@@ -7,8 +7,10 @@ import { NameItem } from '@/components/app/NameItem';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Users, UserPlus, Trash2, Tag } from 'lucide-react';
+import { Plus, Search, Users, UserPlus, Tag } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { FieldGroupItem } from '@/components/app/FieldGroupItem';
+import { useToast } from '@/hooks/use-toast';
 
 export type Name = {
   id: number;
@@ -19,6 +21,7 @@ export type Name = {
 };
 
 export default function Home() {
+  const { toast } = useToast();
   const [names, setNames] = useLocalStorage<Name[]>('names', [
     { id: 1, text: 'Sofia', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [new Date().toISOString()] },
     { id: 2, text: 'Miguel', status: 'irregular', fieldGroup: 'Publicadores', visitHistory: [] },
@@ -71,6 +74,41 @@ export default function Home() {
     setFieldGroups(fieldGroups.filter(g => g !== groupToDelete));
     // Optional: Also remove the group from any names that have it assigned.
     setNames(names.map(n => (n.fieldGroup === groupToDelete ? { ...n, fieldGroup: '' } : n)));
+     toast({
+        title: "Grupo removido",
+        description: `O grupo "${groupToDelete}" foi removido.`,
+      });
+  };
+
+  const updateGroup = (oldName: string, newName: string): boolean => {
+    const trimmedNewName = newName.trim();
+    if (trimmedNewName === '' || oldName === trimmedNewName) {
+      return true; // No change or empty, consider it a success to exit editing.
+    }
+
+    if (fieldGroups.includes(trimmedNewName)) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar grupo",
+        description: `O grupo "${trimmedNewName}" já existe.`,
+      });
+      return false; // Indicate failure
+    }
+
+    setFieldGroups(prevGroups => 
+        prevGroups.map(g => (g === oldName ? trimmedNewName : g)).sort()
+    );
+
+    setNames(prevNames =>
+        prevNames.map(name => 
+            name.fieldGroup === oldName ? { ...name, fieldGroup: trimmedNewName } : name
+        )
+    );
+    toast({
+        title: "Grupo atualizado",
+        description: `O grupo "${oldName}" foi renomeado para "${trimmedNewName}".`,
+    });
+    return true; // Indicate success
   };
 
   const updateName = (id: number, newNameData: Partial<Omit<Name, 'id'>>) => {
@@ -202,12 +240,12 @@ export default function Home() {
                   {isClient ? (
                     fieldGroups.length > 0 ? (
                       fieldGroups.map((group) => (
-                        <div key={group} className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
-                          <span className="text-sm font-medium">{group}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteGroup(group)} aria-label={`Remover grupo ${group}`}>
-                            <Trash2 className="h-4 w-4 text-destructive/70" />
-                          </Button>
-                        </div>
+                        <FieldGroupItem
+                          key={group}
+                          group={group}
+                          updateGroup={updateGroup}
+                          deleteGroup={deleteGroup}
+                        />
                       ))
                     ) : (
                       <p className="text-sm text-center text-muted-foreground py-4">
