@@ -27,8 +27,11 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   // Scenario 1: User is acting on an invitation token.
   if (inviteToken) {
     const inviteRef = doc(db, 'invitations', inviteToken);
-    const inviteSnap = await getDoc(inviteRef);
+    
+    // Use a transaction or batch to ensure atomicity
+    const batch = writeBatch(db);
 
+    const inviteSnap = await getDoc(inviteRef);
     if (!inviteSnap.exists() || inviteSnap.data().claimed === true) {
       throw new Error("Convite inválido ou já utilizado.");
     }
@@ -37,29 +40,22 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
     if (!adminId) {
         throw new Error("O convite é inválido e não contém um administrador associado.");
     }
-
+    
+    // The profile to set or update
+    const newProfileData: Partial<UserProfile> = {
+      role: 'helper',
+      adminId: adminId,
+    };
+    
+    // Add display name and email if it's a new profile
     const userProfileSnap = await getDoc(userProfileRef);
-    const batch = writeBatch(db);
-
-    if (userProfileSnap.exists()) {
-        // Existing user is converted to a helper.
-        // Their name and email are preserved. We just change the role and adminId.
-        // This is a "destructive" action in the sense that they lose access to their old data
-        // through the UI, but their profile and data are not deleted.
-        batch.update(userProfileRef, {
-            role: 'helper',
-            adminId: adminId,
-        });
-    } else {
-        // New user is created as a helper.
-        const newProfile: Omit<UserProfile, 'id'> = {
-            email: user.email!,
-            name: displayName,
-            role: 'helper',
-            adminId: adminId,
-        };
-        batch.set(userProfileRef, newProfile);
+    if (!userProfileSnap.exists()) {
+        newProfileData.name = displayName;
+        newProfileData.email = user.email!;
     }
+    
+    // Use set with merge to create or update the user profile
+    batch.set(userProfileRef, newProfileData, { merge: true });
 
     // Mark invitation as claimed
     batch.update(inviteRef, {
@@ -68,8 +64,15 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
       claimedAt: serverTimestamp(),
     });
     
-    await batch.commit();
-    return; // Success, exit function
+    try {
+        await batch.commit();
+        return; // Success
+    } catch(commitError) {
+        console.error("Batch commit failed during invitation claim:", commitError);
+        // This is a critical failure, but we can't easily roll back the auth user creation here.
+        // The user will exist but their profile will be incorrect. They can try again.
+        throw new Error("Não foi possível processar o convite. Tente novamente.");
+    }
   }
 
   // Scenario 2: User is registering without an invitation.
@@ -224,7 +227,8 @@ export const batchImportData = async (
   db: Firestore,
   userId: string,
   dataToImport: ImportedName[],
-  existingGroups: FieldGroup[]
+  existingGroups: FieldGroup[],
+  existingNames: Name[]
 ) => {
   const batch = writeBatch(db);
 
@@ -246,13 +250,39 @@ export const batchImportData = async (
     });
   });
 
-  // 2. Add new names
+  // 2. Prepare for name import/update
   const namesCollectionRef = collection(db, 'users', userId, 'names');
+  const existingNamesByPersonId = new Map<string, Name>();
+  existingNames.forEach(name => {
+    if (name.personId) {
+      existingNamesByPersonId.set(name.personId, name);
+    }
+  });
+
+  // 3. Process each item for import or update
   dataToImport.forEach(item => {
-    if (item.text) { // Ensure name text exists
+    if (!item.text) { // Ensure name text exists
+      return;
+    }
+
+    const importedPersonId = item.personId || '';
+    const existingMatch = importedPersonId ? existingNamesByPersonId.get(importedPersonId) : undefined;
+    
+    if (existingMatch) {
+      // UPDATE: Found existing name by personId
+      const nameRef = doc(namesCollectionRef, existingMatch.id);
+      batch.update(nameRef, {
+        text: item.text,
+        address: item.address || '',
+        phone: item.phone || '',
+        fieldGroup: item.fieldGroup || '',
+        status: item.status || 'regular',
+      });
+    } else {
+      // CREATE: No match found, create a new name
       const nameRef = doc(namesCollectionRef);
       batch.set(nameRef, {
-        personId: item.personId || '',
+        personId: importedPersonId,
         text: item.text,
         status: item.status || 'regular',
         fieldGroup: item.fieldGroup || '',
@@ -264,7 +294,8 @@ export const batchImportData = async (
     }
   });
 
-  // 3. Commit the batch
+
+  // 4. Commit the batch
   try {
     await batch.commit();
   } catch (error) {

@@ -85,11 +85,12 @@ export default function Home() {
 
   const dataOwnerId = useMemo(() => {
     if (!user) return null;
-    if (!userProfile) return user.uid; // Fallback to own UID if profile is loading/missing
     // A helper must have an adminId to access data. Otherwise, they see their own data.
-    return userProfile.role === 'helper' && userProfile.adminId
-      ? userProfile.adminId
-      : user.uid;
+    if (userProfile?.role === 'helper' && userProfile.adminId) {
+      return userProfile.adminId;
+    }
+    // Default to own UID for admins or helpers in an inconsistent state
+    return user.uid;
   }, [user, userProfile]);
   
   // Fetch admin profile if current user is a helper
@@ -381,10 +382,10 @@ export default function Home() {
     if (!dataOwnerId || !firestore || importedData.length === 0) return;
     
     try {
-        await services.batchImportData(firestore, dataOwnerId, importedData, fieldGroups);
+        await services.batchImportData(firestore, dataOwnerId, importedData, fieldGroups, names);
         toast({
             title: "Importação concluída!",
-            description: `${importedData.length} pessoas foram importadas com sucesso.`,
+            description: `${importedData.length} pessoas foram importadas e/ou atualizadas com sucesso.`,
         });
     } catch (error: any) {
         console.error("Error during batch import:", error);
