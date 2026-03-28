@@ -77,7 +77,7 @@ export function HelpersCard({ ownerId, helpers }: HelpersCardProps) {
     services.removeHelper(firestore, helper.id);
     toast({
         title: 'Ajudante Removido',
-        description: `${helper.email} não tem mais acesso à sua lista.`,
+        description: `${helper.name || helper.email} não tem mais acesso à sua lista.`,
     });
   }
 
@@ -106,10 +106,10 @@ export function HelpersCard({ ownerId, helpers }: HelpersCardProps) {
             {helpers.length > 0 ? (
               helpers.map((helper) => (
                 <div key={helper.id} className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
-                  <span className="text-sm font-medium truncate" title={helper.email}>{helper.email}</span>
+                  <span className="text-sm font-medium truncate" title={helper.name || helper.email}>{helper.name || helper.email}</span>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover ajudante ${helper.email}`}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover ajudante ${helper.name || helper.email}`}>
                         <Trash2 className="h-4 w-4 text-destructive/70" />
                       </Button>
                     </AlertDialogTrigger>
@@ -117,7 +117,7 @@ export function HelpersCard({ ownerId, helpers }: HelpersCardProps) {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Confirmar Remoção</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tem certeza que deseja remover {helper.email} como ajudante? O acesso será revogado imediatamente.
+                          Tem certeza que deseja remover {helper.name || helper.email} como ajudante? O acesso será revogado imediatamente.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

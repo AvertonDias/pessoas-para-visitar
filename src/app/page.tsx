@@ -53,6 +53,7 @@ export type UserProfile = {
 
 export type Helper = {
   id: string;
+  name?: string;
   email: string;
 };
 
