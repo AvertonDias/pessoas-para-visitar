@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getAiSuggestions } from '@/app/actions';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -68,14 +68,14 @@ export function SuggestionBox({ onAddSuggestedName }: SuggestionBoxProps) {
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 mb-4">
           <Wand2 className="text-accent" />
-          <span>Sugestão Inteligente</span>
-        </CardTitle>
-        <CardDescription>Peça à nossa IA para sugerir nomes com base em critérios.</CardDescription>
-      </CardHeader>
-      <CardContent>
+          <h3 className="text-lg font-semibold">Sugestão Inteligente</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Peça à nossa IA para sugerir nomes com base em critérios.
+        </p>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
