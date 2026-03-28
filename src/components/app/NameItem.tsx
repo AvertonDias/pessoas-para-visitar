@@ -61,7 +61,7 @@ export function NameItem({ name, updateName, deleteName }: NameItemProps) {
   };
   
   const handleAddVisit = () => {
-      const newHistory = [...name.visitHistory, new Date().toISOString()];
+      const newHistory = [...(name.visitHistory || []), new Date().toISOString()];
       updateName(name.id, { visitHistory: newHistory });
   }
 
@@ -134,7 +134,7 @@ export function NameItem({ name, updateName, deleteName }: NameItemProps) {
                     <div className="space-y-2">
                         <Label>Histórico de Visitas</Label>
                         <div className="max-h-24 overflow-y-auto space-y-1 pr-2 rounded-md border p-2">
-                        {name.visitHistory.length > 0 ? (
+                        {name.visitHistory && name.visitHistory.length > 0 ? (
                             name.visitHistory.slice().reverse().map((visit, index) => (
                             <div key={index} className="text-sm text-muted-foreground flex items-center gap-2">
                                 <Calendar className="h-4 w-4" /> 
