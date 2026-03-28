@@ -40,7 +40,7 @@ export function NameListCard({
   setSortBy,
 }: NameListCardProps) {
   const description = adminName 
-    ? `Você está vendo a lista de ${adminName}, com ${names.length} ${names.length === 1 ? 'nome' : 'nomes'}.`
+    ? `Você está vendo uma lista compartilhada com ${names.length} ${names.length === 1 ? 'nome' : 'nomes'}.`
     : `Você tem ${names.length} ${names.length === 1 ? 'nome' : 'nomes'} na sua lista.`;
     
   return (
@@ -48,7 +48,7 @@ export function NameListCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
-          <span>{adminName ? `Lista de ${adminName}` : 'Sua Lista'}</span>
+          <span>{adminName ? 'Lista Compartilhada' : 'Sua Lista'}</span>
         </CardTitle>
         <CardDescription>
           {description}
