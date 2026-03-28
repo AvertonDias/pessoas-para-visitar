@@ -31,10 +31,14 @@ export default function LoginPage() {
     } catch (error: any) {
       if (error.code !== 'auth/cancelled-popup-request') {
         console.error("Error signing in with Google", error);
+        let description = "Não foi possível entrar com o Google.";
+        if (error.code === 'auth/unauthorized-domain') {
+          description = "Este domínio não está autorizado para autenticação. Verifique as configurações do seu projeto Firebase.";
+        }
         toast({
           variant: "destructive",
           title: "Erro no login",
-          description: "Não foi possível entrar com o Google.",
+          description: description,
         });
       }
     } finally {
