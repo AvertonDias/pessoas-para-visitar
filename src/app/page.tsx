@@ -7,6 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
 import { FieldGroupsCard } from '@/components/app/home/FieldGroupsCard';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export type Visit = {
   id: string;
@@ -24,12 +29,7 @@ export type Name = {
 
 export default function Home() {
   const { toast } = useToast();
-  const [names, setNames] = useLocalStorage<Name[]>('names', [
-    { id: 1, text: 'Sofia', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [{id: '1', date: new Date().toISOString(), visitors: "João e Maria"}] },
-    { id: 2, text: 'Miguel', status: 'irregular', fieldGroup: 'Publicadores', visitHistory: [] },
-    { id: 3, text: 'Alice', status: 'inativo', fieldGroup: 'Estudantes', visitHistory: [] },
-    { id: 4, text: 'Arthur', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [] },
-  ]);
+  const [names, setNames] = useLocalStorage<Name[]>('names', []);
 
   const [fieldGroups, setFieldGroups] = useLocalStorage<string[]>('fieldGroups', [
     'Pioneiros',
@@ -43,35 +43,48 @@ export default function Home() {
   }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [newName, setNewName] = useState('');
-  const [newGroup, setNewGroup] = useState('');
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
+    text: '',
+    fieldGroup: '',
+    status: 'regular',
+  });
 
-  const addName = (nameText: string) => {
-    if (nameText.trim() === '') return;
+  const addName = () => {
+    if (draftName.text.trim() === '') {
+      toast({
+        variant: "destructive",
+        title: "Erro ao adicionar nome",
+        description: "O nome não pode estar em branco.",
+      });
+      return;
+    };
     const newNameToAdd: Name = {
       id: Date.now(),
-      text: nameText.trim(),
-      status: 'regular',
-      fieldGroup: '',
+      text: draftName.text.trim(),
+      status: draftName.status,
+      fieldGroup: draftName.fieldGroup,
       visitHistory: [],
     };
     setNames(prevNames => [newNameToAdd, ...prevNames]);
+    setIsAddDialogOpen(false);
   };
-
-  const handleAddNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    addName(newName);
-    setNewName('');
-  };
+  
+  const handleOpenAddDialog = () => {
+    setDraftName({ text: '', fieldGroup: '', status: 'regular' });
+    setIsAddDialogOpen(true);
+  }
 
   const handleAddGroupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const newGroup = (e.currentTarget.querySelector('input') as HTMLInputElement).value;
     if (newGroup.trim() && !fieldGroups.includes(newGroup.trim())) {
       setFieldGroups(prevGroups => [...prevGroups, newGroup.trim()].sort());
-      setNewGroup('');
+      (e.currentTarget.querySelector('input') as HTMLInputElement).value = '';
     }
   };
-
+  
   const deleteGroup = (groupToDelete: string) => {
     setFieldGroups(fieldGroups.filter(g => g !== groupToDelete));
     // Optional: Also remove the group from any names that have it assigned.
@@ -127,6 +140,14 @@ export default function Home() {
 
   const filteredNames = isClient ? names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase())) : [];
 
+  if (!isClient) {
+      return (
+        <div className="flex min-h-screen flex-col bg-background items-center justify-center">
+            <p className="text-lg text-muted-foreground">Carregando...</p>
+        </div>
+      )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
@@ -134,14 +155,11 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           <div className="lg:col-span-2 space-y-8">
             <ManageNamesCard
-              newName={newName}
-              setNewName={setNewName}
-              handleAddNameSubmit={handleAddNameSubmit}
+              onAddNameClick={handleOpenAddDialog}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
             />
             <NameListCard
-              isClient={isClient}
               names={names}
               filteredNames={filteredNames}
               searchTerm={searchTerm}
@@ -153,9 +171,8 @@ export default function Home() {
           
           <div className="lg:col-span-1 space-y-8">
             <FieldGroupsCard
-              isClient={isClient}
-              newGroup={newGroup}
-              setNewGroup={setNewGroup}
+              newGroup=""
+              setNewGroup={() => {}}
               handleAddGroupSubmit={handleAddGroupSubmit}
               fieldGroups={fieldGroups}
               updateGroup={updateGroup}
@@ -164,6 +181,67 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Nome</DialogTitle>
+            <DialogDescription>
+              Insira os detalhes para o novo nome.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name-add" className="text-right">Nome</Label>
+              <Input
+                id="name-add"
+                value={draftName.text}
+                onChange={(e) => setDraftName(prev => ({ ...prev, text: e.target.value }))}
+                className="col-span-3"
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fieldgroup-add" className="text-right">Grupo</Label>
+              <Select
+                value={draftName.fieldGroup}
+                onValueChange={(value) => setDraftName(prev => ({ ...prev, fieldGroup: value === '---none---' ? '' : value }))}
+              >
+                <SelectTrigger id="fieldgroup-add" className="col-span-3">
+                  <SelectValue placeholder="Selecione um grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="---none---">Nenhum</SelectItem>
+                  {fieldGroups.map((group) => (
+                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status-add" className="text-right">Status</Label>
+              <Select
+                value={draftName.status}
+                onValueChange={(value: Name['status']) => setDraftName(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger id="status-add" className="col-span-3">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="irregular">Irregular</SelectItem>
+                  <SelectItem value="inativo">Inativo</SelectItem>
+                  <SelectItem value="removido">Removido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={addName}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FieldGroupItem } from '@/components/app/FieldGroupItem';
 import { Plus, Tag } from 'lucide-react';
+import { useState } from 'react';
 
 interface FieldGroupsCardProps {
-  isClient: boolean;
   newGroup: string;
   setNewGroup: (value: string) => void;
   handleAddGroupSubmit: (e: React.FormEvent) => void;
@@ -17,14 +17,13 @@ interface FieldGroupsCardProps {
 }
 
 export function FieldGroupsCard({
-  isClient,
-  newGroup,
-  setNewGroup,
   handleAddGroupSubmit,
   fieldGroups,
   updateGroup,
   deleteGroup,
 }: FieldGroupsCardProps) {
+  const [newGroup, setNewGroup] = useState('');
+  
   return (
     <Card>
       <CardHeader>
@@ -35,7 +34,7 @@ export function FieldGroupsCard({
         <CardDescription>Gerencie os grupos para organizar sua lista.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleAddGroupSubmit} className="flex gap-2 mb-4">
+        <form onSubmit={(e) => { e.preventDefault(); handleAddGroupSubmit(e); setNewGroup(''); }} className="flex gap-2 mb-4">
           <Input
             value={newGroup}
             onChange={(e) => setNewGroup(e.target.value)}
@@ -47,25 +46,19 @@ export function FieldGroupsCard({
           </Button>
         </form>
         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {isClient ? (
-            fieldGroups.length > 0 ? (
-              fieldGroups.map((group) => (
-                <FieldGroupItem
-                  key={group}
-                  group={group}
-                  updateGroup={updateGroup}
-                  deleteGroup={deleteGroup}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-center text-muted-foreground py-4">
-                Nenhum grupo cadastrado.
-              </p>
-            )
+          {fieldGroups.length > 0 ? (
+            fieldGroups.map((group) => (
+              <FieldGroupItem
+                key={group}
+                group={group}
+                updateGroup={updateGroup}
+                deleteGroup={deleteGroup}
+              />
+            ))
           ) : (
-             <p className="text-sm text-center text-muted-foreground py-4">
-                Carregando grupos...
-              </p>
+            <p className="text-sm text-center text-muted-foreground py-4">
+              Nenhum grupo cadastrado.
+            </p>
           )}
         </div>
       </CardContent>

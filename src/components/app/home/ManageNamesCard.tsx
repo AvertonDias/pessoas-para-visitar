@@ -3,20 +3,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 
 interface ManageNamesCardProps {
-  newName: string;
-  setNewName: (value: string) => void;
-  handleAddNameSubmit: (e: React.FormEvent) => void;
+  onAddNameClick: () => void;
   searchTerm: string;
   setSearchTerm: (value: string) => void;
 }
 
 export function ManageNamesCard({
-  newName,
-  setNewName,
-  handleAddNameSubmit,
+  onAddNameClick,
   searchTerm,
   setSearchTerm,
 }: ManageNamesCardProps) {
@@ -29,20 +25,11 @@ export function ManageNamesCard({
         </CardTitle>
         <CardDescription>Adicione um novo nome ou procure na sua lista.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleAddNameSubmit} className="flex flex-col sm:flex-row gap-2 mb-4">
-          <Input
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="Digite um nome..."
-            aria-label="Novo nome"
-          />
-          <Button type="submit" className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Adicionar</span>
-            <span className="sm:hidden">Adicionar Nome</span>
-          </Button>
-        </form>
+      <CardContent className="space-y-4">
+        <Button onClick={onAddNameClick} className="w-full">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Adicionar Novo Nome
+        </Button>
         <div className="relative">
           <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
           <Input
