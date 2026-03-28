@@ -84,7 +84,8 @@ export default function Home() {
   const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const dataOwnerId = useMemo(() => {
-    if (!user || !userProfile) return null;
+    if (!user) return null;
+    if (!userProfile) return user.uid; // Fallback to own UID if profile is loading/missing
     // A helper must have an adminId to access data. Otherwise, they see their own data.
     return userProfile.role === 'helper' && userProfile.adminId
       ? userProfile.adminId
@@ -402,8 +403,18 @@ export default function Home() {
   const filteredNames = useMemo(() => {
     return names.filter(name => {
       const matchesSearch = name.text.toLowerCase().includes(searchTerm.toLowerCase());
+
       const group = name.fieldGroup || '';
-      const matchesGroup = selectedGroup === 'all' || group === selectedGroup;
+
+      let matchesGroup;
+      if (selectedGroup === 'all') {
+        matchesGroup = true;
+      } else if (selectedGroup === '--none--') {
+        matchesGroup = group === '';
+      } else {
+        matchesGroup = group === selectedGroup;
+      }
+
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
     });
