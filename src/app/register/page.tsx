@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListTodo } from 'lucide-react';
+import { ListTodo, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { processRegistration } from '@/lib/firebase-services';
 
@@ -27,6 +27,8 @@ function RegisterForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
   const handleSuccessfulRegistration = async (credential: UserCredential, registrationName?: string | null) => {
@@ -76,6 +78,14 @@ function RegisterForm() {
         variant: "destructive",
         title: "Nome obrigatório",
         description: "Por favor, preencha seu nome.",
+      });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "As senhas não conferem",
+        description: "Por favor, verifique se as senhas digitadas são iguais.",
       });
       return;
     }
@@ -157,15 +167,47 @@ function RegisterForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isRegistering}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Mínimo 6 caracteres"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isRegistering}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password">Confirmar Senha</Label>
+            <div className="relative">
+              <Input
+                id="confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Repita a senha"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isRegistering}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" className="w-full" disabled={isRegistering}>
             {isRegistering ? 'Criando...' : 'Criar Conta com E-mail'}
