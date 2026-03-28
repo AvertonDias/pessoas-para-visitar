@@ -24,13 +24,14 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite');
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const handleSuccessfulRegistration = async (credential: UserCredential) => {
+  const handleSuccessfulRegistration = async (credential: UserCredential, registrationName?: string | null) => {
     if (firestore) {
-      await processRegistration(firestore, credential.user, inviteToken);
+      await processRegistration(firestore, credential.user, inviteToken, registrationName);
     }
   };
   
@@ -60,10 +61,18 @@ function RegisterForm() {
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (name.trim() === '') {
+      toast({
+        variant: "destructive",
+        title: "Nome obrigatório",
+        description: "Por favor, preencha seu nome.",
+      });
+      return;
+    }
     setIsRegistering(true);
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      await handleSuccessfulRegistration(credential);
+      await handleSuccessfulRegistration(credential, name);
     } catch (error: any) {
       console.error("Error signing up with email", error);
        let description = "Ocorreu um erro ao criar sua conta.";
@@ -112,6 +121,18 @@ function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleEmailSignUp} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="Seu nome completo"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isRegistering}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
             <Input

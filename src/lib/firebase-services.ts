@@ -19,8 +19,9 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 
 // User Profile and Registration
-export const processRegistration = async (db: Firestore, user: User, inviteToken?: string | null) => {
+export const processRegistration = async (db: Firestore, user: User, inviteToken?: string | null, registrationName?: string | null) => {
   const userProfileRef = doc(db, 'users', user.uid);
+  const displayName = registrationName || user.displayName;
 
   // Check for invite token first
   if (inviteToken) {
@@ -35,7 +36,7 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
         if (adminId) {
           const profile: Omit<UserProfile, 'id'> = {
             email: user.email!,
-            name: user.displayName,
+            name: displayName,
             role: 'helper',
             adminId: adminId,
           };
@@ -59,7 +60,7 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   // Default behavior: No valid invitation, create admin profile
   const profile: Omit<UserProfile, 'id'> = {
     email: user.email!,
-    name: user.displayName,
+    name: displayName,
     role: 'admin',
   };
   await setDoc(userProfileRef, profile);
