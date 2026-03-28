@@ -16,7 +16,7 @@ export function ImportCard({ onImportClick }: ImportCardProps) {
           <UploadCloud className="h-5 w-5 text-primary" />
           <span>Importar Dados</span>
         </CardTitle>
-        <CardDescription>Importe pessoas e grupos a partir de um arquivo CSV.</CardDescription>
+        <CardDescription>Importe pessoas e grupos a partir de um arquivo CSV do NW.</CardDescription>
       </CardHeader>
       <CardContent>
         <Button onClick={onImportClick} className="w-full">
