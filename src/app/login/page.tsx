@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { useFirebaseApp, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,26 +67,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleAnonymousSignIn = async () => {
-    setIsSigningIn(true);
-    try {
-      await signInAnonymously(auth);
-      toast({
-        title: "Acesso como convidado",
-        description: "Seus dados poderão ser perdidos. Crie uma conta para salvá-los permanentemente.",
-      });
-    } catch (error: any) {
-      console.error("Error signing in anonymously", error);
-      toast({
-        variant: "destructive",
-        title: "Erro no login",
-        description: "Não foi possível entrar como convidado.",
-      });
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
-  
   useEffect(() => {
     if (user) {
       router.replace('/');
@@ -113,14 +93,9 @@ export default function LoginPage() {
           <CardDescription>Faça login para continuar no ListaNomes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningIn}>
-              Continuar com Google
-            </Button>
-            <Button variant="secondary" className="w-full" onClick={handleAnonymousSignIn} disabled={isSigningIn}>
-              Acessar como Convidado
-            </Button>
-          </div>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningIn}>
+            Continuar com Google
+          </Button>
 
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
