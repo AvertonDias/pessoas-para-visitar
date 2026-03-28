@@ -54,7 +54,7 @@ function RegisterForm() {
       const credential = await signInWithPopup(auth, provider);
       await handleSuccessfulRegistration(credential);
     } catch (error: any) {
-      if (error.code !== 'auth/cancelled-popup-request') {
+      if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
         console.error("Error signing in with Google", error);
         let description = error.message || "Não foi possível entrar com o Google.";
         if (error.code === 'auth/unauthorized-domain') {
@@ -151,6 +151,7 @@ function RegisterForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isRegistering}
+              autoComplete="name"
             />
           </div>
           <div className="space-y-2">
@@ -163,6 +164,7 @@ function RegisterForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isRegistering}
+              autoComplete="email"
             />
           </div>
           <div className="space-y-2">
@@ -176,6 +178,7 @@ function RegisterForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isRegistering}
+                autoComplete="new-password"
               />
               <button
                 type="button"
@@ -198,6 +201,7 @@ function RegisterForm() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isRegistering}
+                autoComplete="new-password"
               />
               <button
                 type="button"
