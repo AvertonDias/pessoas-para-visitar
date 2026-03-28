@@ -30,6 +30,7 @@ export type Visit = {
 
 export type Name = {
   id: string;
+  personId?: string;
   text: string;
   address?: string;
   phone?: string;
@@ -263,43 +264,72 @@ export default function Home() {
           return;
         }
 
-        const header = rows[0].split(',').map(h => h.trim().toLowerCase());
+        const header = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
         const dataRows = rows.slice(1);
+        
+        // Name columns
+        const displayNameIndex = header.findIndex(h => h === 'displayname');
+        const firstNameIndex = header.findIndex(h => h === 'firstname');
+        const middleNameIndex = header.findIndex(h => h === 'middlename');
+        const lastNameIndex = header.findIndex(h => h === 'lastname');
 
-        const nameIndex = header.findIndex(h => ['displayname', 'nome', 'nome completo'].includes(h));
+        // Contact and group columns
         const groupIndex = header.findIndex(h => ['groupname', 'grupo'].includes(h));
         const addressIndex = header.findIndex(h => ['address', 'endereço'].includes(h));
-        const phoneIndex = header.findIndex(h => ['phonemobile', 'phonehome', 'telefone'].includes(h));
-        const statusIndex = header.findIndex(h => h === 'status');
+        const phoneMobileIndex = header.findIndex(h => h === 'phonemobile');
+        const phoneHomeIndex = header.findIndex(h => h === 'phonehome');
+        const personIdIndex = header.findIndex(h => h === 'personid');
 
-        if (nameIndex === -1) {
-            toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter uma coluna para o nome, como 'Nome', 'Nome Completo' ou 'DisplayName'." });
+        // Status logic columns
+        const movedIndex = header.findIndex(h => h === 'moved');
+        const activeIndex = header.findIndex(h => h === 'active');
+        const regularIndex = header.findIndex(h => h === 'regular');
+
+        if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
+            toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter a coluna 'DisplayName' ou as colunas 'FirstName' e 'LastName'." });
             return;
         }
 
-        const statusMap: { [key: string]: Name['status'] } = {
-            'ativo': 'regular',
-            'irregular': 'irregular',
-            'inativo': 'inativo',
-            'removido': 'removido'
-        };
-
         const importedResult: ImportedName[] = dataRows.map(row => {
-          const values = row.split(',').map(v => v.trim());
-          const statusValue = statusIndex !== -1 ? values[statusIndex]?.toLowerCase() : 'ativo';
+          // Clean up values: trim spaces and remove quotes.
+          const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+          
+          let text = '';
+          if (displayNameIndex !== -1 && values[displayNameIndex]) {
+            text = values[displayNameIndex];
+          } else {
+            text = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
+          }
+
+          // Status determination logic based on user's rules
+          let status: Name['status'] = 'regular'; // Default status
+          const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
+          const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
+          const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
+
+          if (isMoved) {
+            status = 'removido';
+          } else if (activeIndex !== -1 && !isActive) {
+            status = 'inativo';
+          } else if (regularIndex !== -1 && !isRegular) {
+            status = 'irregular';
+          }
+
+          const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
 
           return {
-            text: values[nameIndex] || '',
+            personId: personIdIndex !== -1 ? values[personIdIndex] : '',
+            text: text,
             fieldGroup: groupIndex !== -1 ? values[groupIndex] : '',
             address: addressIndex !== -1 ? values[addressIndex] : '',
-            phone: phoneIndex !== -1 ? values[phoneIndex] : '',
-            status: statusMap[statusValue] || 'regular',
+            phone: phone,
+            status: status,
           };
         }).filter(item => item.text);
 
-        const existingGroupNames = new Set(fieldGroups.map(g => g.name));
+        const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
         const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean));
-        const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g!));
+        const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g!.toLowerCase()));
 
         setNewGroupsCount(newGroups.length);
         setImportedData(importedResult);

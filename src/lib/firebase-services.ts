@@ -232,6 +232,7 @@ export const batchImportData = async (
     if (item.text) { // Ensure name text exists
       const nameRef = doc(namesCollectionRef);
       batch.set(nameRef, {
+        personId: item.personId || '',
         text: item.text,
         status: item.status || 'regular',
         fieldGroup: item.fieldGroup || '',

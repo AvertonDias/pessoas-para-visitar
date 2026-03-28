@@ -36,6 +36,10 @@
       "description": "Representa uma pessoa na lista de nomes do usuário, incluindo detalhes de contato e status.",
       "type": "object",
       "properties": {
+        "personId": {
+          "type": "string",
+          "description": "O ID único da pessoa, geralmente do software de origem (ex: NW Scheduler PersonID)."
+        },
         "text": {
           "type": "string",
           "description": "O nome completo da pessoa."
