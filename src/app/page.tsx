@@ -161,21 +161,16 @@ export default function Home() {
     setIsAddDialogOpen(true);
   }
 
-  const handleAddGroupSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const addGroup = (groupName: string) => {
     if (!dataOwnerId || !firestore) return;
 
-    const newGroupInput = e.currentTarget.querySelector('input');
-    if (!newGroupInput) return;
-
-    const newGroupName = newGroupInput.value.trim();
+    const newGroupName = groupName.trim();
     if (newGroupName && !fieldGroups.some(g => g.name === newGroupName)) {
       services.addFieldGroup(firestore, dataOwnerId, newGroupName);
       toast({
         title: "Grupo adicionado",
         description: `O grupo "${newGroupName}" foi criado.`,
       });
-      newGroupInput.value = '';
     } else if (newGroupName) {
        toast({
         variant: "destructive",
@@ -400,7 +395,7 @@ export default function Home() {
               <div className="space-y-8 mt-4">
                  <FieldGroupsCard
                     isAdmin={isAdmin}
-                    handleAddGroupSubmit={handleAddGroupSubmit}
+                    onAddGroup={addGroup}
                     fieldGroups={fieldGroups}
                     updateGroup={updateGroup}
                     deleteGroup={deleteGroup}
@@ -437,7 +432,7 @@ export default function Home() {
             <div className="lg:col-span-1 space-y-8">
               <FieldGroupsCard
                 isAdmin={isAdmin}
-                handleAddGroupSubmit={handleAddGroupSubmit}
+                onAddGroup={addGroup}
                 fieldGroups={fieldGroups}
                 updateGroup={updateGroup}
                 deleteGroup={deleteGroup}

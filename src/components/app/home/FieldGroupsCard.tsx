@@ -10,7 +10,7 @@ import { FieldGroup } from '@/app/page';
 
 interface FieldGroupsCardProps {
   isAdmin: boolean;
-  handleAddGroupSubmit: (e: React.FormEvent) => void;
+  onAddGroup: (groupName: string) => void;
   fieldGroups: FieldGroup[];
   updateGroup: (groupId: string, newName: string) => boolean;
   deleteGroup: (groupId: string) => void;
@@ -19,13 +19,22 @@ interface FieldGroupsCardProps {
 
 export function FieldGroupsCard({
   isAdmin,
-  handleAddGroupSubmit,
+  onAddGroup,
   fieldGroups,
   updateGroup,
   deleteGroup,
   groupCounts,
 }: FieldGroupsCardProps) {
   const [newGroup, setNewGroup] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = newGroup.trim();
+    if (trimmedName) {
+      onAddGroup(trimmedName);
+      setNewGroup('');
+    }
+  };
   
   return (
     <Card>
@@ -38,7 +47,7 @@ export function FieldGroupsCard({
       </CardHeader>
       <CardContent>
         {isAdmin && (
-          <form onSubmit={(e) => { handleAddGroupSubmit(e); setNewGroup(''); }} className="flex gap-2 mb-4">
+          <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
             <Input
               value={newGroup}
               onChange={(e) => setNewGroup(e.target.value)}
