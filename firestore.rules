@@ -82,27 +82,40 @@ service cloud.firestore {
     /**
      * @description Rules for a user's private list of 'nomes' (names).
      * @path /users/{userId}/nomes/{nomeId}
-     * @allow (create) An authenticated user (uid: 'user123') can create a new name document at /users/user123/nomes/nomeABC.
-     * @deny (get) An authenticated user (uid: 'user123') cannot read a name document belonging to another user at /users/user456/nomes/nomeXYZ.
-     * @principle Restricts all access to the document owner, as defined by the {userId} in the path.
+     * @principle Restricts document access to the owner. List access is on the collection.
      */
     match /users/{userId}/nomes/{nomeId} {
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
       allow create: if isOwner(userId) && hasValidNomeDataOnCreate(nomeId);
       allow update: if isExistingOwner(userId) && hasValidNomeDataOnUpdate();
       allow delete: if isExistingOwner(userId);
     }
     
     /**
+     * @description Collection-level rule for listing 'nomes'.
+     * @path /users/{userId}/nomes
+     */
+    match /users/{userId}/nomes {
+        allow list: if isOwner(userId);
+    }
+    
+    /**
      * @description Rules for a user's private list of 'fieldGroups'.
      * @path /users/{userId}/fieldGroups/{fieldGroupId}
-     * @principle Restricts all access to the document owner, as defined by the {userId} in the path.
+     * @principle Restricts document access to the owner. List access is on the collection.
      */
     match /users/{userId}/fieldGroups/{fieldGroupId} {
-      allow get, list: if isOwner(userId);
+      allow get: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Collection-level rule for listing 'fieldGroups'.
+     * @path /users/{userId}/fieldGroups
+     */
+    match /users/{userId}/fieldGroups {
+      allow list: if isOwner(userId);
     }
   }
 }
