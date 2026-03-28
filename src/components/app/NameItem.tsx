@@ -45,6 +45,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { calculateStatusFromHistory } from '@/lib/status-logic';
 
 interface NameItemProps {
   name: Name;
@@ -139,13 +140,24 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
         newHistory = [...(name.visitHistory || []), newVisit];
     }
 
-    updateName(name.id, { visitHistory: newHistory });
+    let newStatus = name.status;
+    if (name.status !== 'removido') {
+      newStatus = calculateStatusFromHistory(newHistory);
+    }
+
+    updateName(name.id, { visitHistory: newHistory, status: newStatus });
     setIsVisitDialogOpen(false);
   };
 
   const handleDeleteVisit = (visitId: string) => {
     const newHistory = (name.visitHistory || []).filter(v => v.id !== visitId);
-    updateName(name.id, { visitHistory: newHistory });
+    
+    let newStatus = name.status;
+    if (name.status !== 'removido') {
+      newStatus = calculateStatusFromHistory(newHistory);
+    }
+
+    updateName(name.id, { visitHistory: newHistory, status: newStatus });
   };
 
 
