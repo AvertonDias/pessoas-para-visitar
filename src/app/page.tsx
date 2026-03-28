@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { collection, query, doc, where } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 
 export type Visit = {
@@ -95,7 +95,7 @@ export default function Home() {
 
   const helpersQuery = useMemoFirebase(() => {
     if (!user || !firestore || userProfile?.role !== 'admin') return null;
-    return query(collection(firestore, 'users'), services.where('adminId', '==', user.uid));
+    return query(collection(firestore, 'users'), where('adminId', '==', user.uid));
   }, [user, firestore, userProfile]);
   const { data: helpersData, loading: helpersLoading } = useCollection<Helper>(helpersQuery);
   const helpers = helpersData || [];
@@ -267,10 +267,10 @@ export default function Home() {
         {isMobile ? (
           <div className="space-y-4">
             <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as any)} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted p-1">
+              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} rounded-xl bg-muted p-1`}>
                 <TabsTrigger value="pessoas" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Pessoas</TabsTrigger>
-                 {isAdmin && <TabsTrigger value="grupos" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Grupos</TabsTrigger>}
-                 {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Ajudantes</TabsTrigger>}
+                <TabsTrigger value="grupos" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Grupos</TabsTrigger>
+                {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Ajudantes</TabsTrigger>}
               </TabsList>
             </Tabs>
             
@@ -292,9 +292,10 @@ export default function Home() {
               </div>
             )}
 
-            {isAdmin && mobileView === 'grupos' && (
+            {mobileView === 'grupos' && (
               <div className="space-y-8 mt-4">
                  <FieldGroupsCard
+                    isAdmin={isAdmin}
                     handleAddGroupSubmit={handleAddGroupSubmit}
                     fieldGroups={fieldGroups}
                     updateGroup={updateGroup}
@@ -329,17 +330,16 @@ export default function Home() {
             </div>
             
             <div className="lg:col-span-1 space-y-8">
+              <FieldGroupsCard
+                isAdmin={isAdmin}
+                handleAddGroupSubmit={handleAddGroupSubmit}
+                fieldGroups={fieldGroups}
+                updateGroup={updateGroup}
+                deleteGroup={deleteGroup}
+                groupCounts={groupCounts}
+              />
               {isAdmin && (
-                <>
-                  <FieldGroupsCard
-                    handleAddGroupSubmit={handleAddGroupSubmit}
-                    fieldGroups={fieldGroups}
-                    updateGroup={updateGroup}
-                    deleteGroup={deleteGroup}
-                    groupCounts={groupCounts}
-                  />
-                  <HelpersCard ownerId={user.uid} helpers={helpers} />
-                </>
+                <HelpersCard ownerId={user.uid} helpers={helpers} />
               )}
             </div>
           </div>

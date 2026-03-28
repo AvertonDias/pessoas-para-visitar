@@ -23,9 +23,10 @@ interface FieldGroupItemProps {
   updateGroup: (groupId: string, newName: string) => boolean;
   deleteGroup: (groupId: string) => void;
   count: number;
+  isEditable: boolean;
 }
 
-export function FieldGroupItem({ group, updateGroup, deleteGroup, count }: FieldGroupItemProps) {
+export function FieldGroupItem({ group, updateGroup, deleteGroup, count, isEditable }: FieldGroupItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(group.name);
 
@@ -82,30 +83,32 @@ export function FieldGroupItem({ group, updateGroup, deleteGroup, count }: Field
         <span className="text-sm font-medium truncate" title={group.name}>{group.name}</span>
         <Badge variant="secondary" className="flex-shrink-0">{count}</Badge>
       </div>
-      <div className="flex items-center flex-shrink-0">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)} aria-label={`Editar grupo ${group.name}`}>
-          <Pencil className="h-4 w-4 text-muted-foreground" />
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover grupo ${group.name}`}>
-              <Trash2 className="h-4 w-4 text-destructive/70" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir o grupo "{group.name}"? Esta ação removerá o grupo de todos os nomes associados e não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteGroup(group.id)}>Excluir</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      {isEditable && (
+        <div className="flex items-center flex-shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)} aria-label={`Editar grupo ${group.name}`}>
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover grupo ${group.name}`}>
+                <Trash2 className="h-4 w-4 text-destructive/70" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir o grupo "{group.name}"? Esta ação removerá o grupo de todos os nomes associados e não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteGroup(group.id)}>Excluir</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </div>
   );
 }
