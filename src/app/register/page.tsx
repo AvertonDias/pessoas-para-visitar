@@ -33,7 +33,7 @@ export default function RegisterPage() {
         console.error("Error signing in with Google", error);
         let description = "Não foi possível entrar com o Google.";
         if (error.code === 'auth/unauthorized-domain') {
-          description = "Este domínio não está autorizado para autenticação. Verifique as configurações do seu projeto Firebase.";
+          description = "Este domínio não está autorizado. Por favor, verifique as configurações de domínio autorizado no seu Console do Firebase.";
         }
         toast({
           variant: "destructive",

@@ -47,13 +47,15 @@ export default function Home() {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'users', user.uid, 'names'), orderBy('text', 'asc'));
   }, [user, firestore]);
-  const { data: names = [], loading: namesLoading } = useCollection<Name>(namesQuery);
+  const { data: namesData, loading: namesLoading } = useCollection<Name>(namesQuery);
+  const names = namesData || [];
 
   const groupsQuery = useMemo(() => {
       if (!user || !firestore) return null;
       return query(collection(firestore, 'users', user.uid, 'fieldGroups'), orderBy('name', 'asc'));
   }, [user, firestore]);
-  const { data: fieldGroups = [], loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
+  const { data: fieldGroupsData, loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
+  const fieldGroups = fieldGroupsData || [];
   
   const [searchTerm, setSearchTerm] = useState('');
   
