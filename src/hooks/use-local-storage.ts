@@ -1,36 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
-  const getStoredValue = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    // Este efeito é executado apenas no lado do cliente, após a hidratação.
+    // É seguro acessar window e localStorage aqui.
     try {
       const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
+      if (item) {
+        setStoredValue(JSON.parse(item) as T);
+      }
     } catch (error) {
-      console.error(error);
-      return initialValue;
+      console.error(`Error reading localStorage key “${key}”:`, error);
     }
-  }, [key, initialValue]);
-
-  const [storedValue, setStoredValue] = useState<T>(getStoredValue);
+  }, [key]);
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
+      // Permite que o valor seja uma função para termos a mesma API do useState
       const valueToStore = value instanceof Function ? value(storedValue) : value;
+      // Salva o estado
       setStoredValue(valueToStore);
+      // Salva no local storage
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
-      console.error(error);
+      console.error(`Error setting localStorage key “${key}”:`, error);
     }
   };
-
-  useEffect(() => {
-    setStoredValue(getStoredValue());
-  }, [getStoredValue]);
 
   return [storedValue, setValue];
 }
