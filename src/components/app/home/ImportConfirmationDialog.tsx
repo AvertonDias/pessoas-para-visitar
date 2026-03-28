@@ -99,6 +99,7 @@ export function ImportConfirmationDialog({
                             <TableHeader>
                             <TableRow>
                                 <TableHead>Nome Completo</TableHead>
+                                <TableHead>Última Visita</TableHead>
                                 <TableHead>Grupo</TableHead>
                                 <TableHead>Endereço</TableHead>
                                 <TableHead>Telefone</TableHead>
@@ -109,6 +110,13 @@ export function ImportConfirmationDialog({
                             {preview.toCreate.map((item, index) => (
                                 <TableRow key={index}>
                                 <TableCell className="font-medium">{item.text}</TableCell>
+                                <TableCell>
+                                    {item.importedVisitDate ? (
+                                        new Date(item.importedVisitDate).toLocaleDateString('pt-BR')
+                                    ) : (
+                                        <span className="text-muted-foreground/60">N/A</span>
+                                    )}
+                                </TableCell>
                                 <TableCell>{item.fieldGroup || <span className="text-muted-foreground/60">N/A</span>}</TableCell>
                                 <TableCell>{item.address || <span className="text-muted-foreground/60">N/A</span>}</TableCell>
                                 <TableCell>{item.phone || <span className="text-muted-foreground/60">N/A</span>}</TableCell>

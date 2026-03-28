@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, where } from 'firebase/firestore';
@@ -59,7 +61,9 @@ export type Helper = {
   email: string;
 };
 
-export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory'>>;
+export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory'>> & {
+  importedVisitDate?: string;
+};
 
 export type ImportUpdate = {
   existing: Name;
@@ -306,6 +310,7 @@ export default function Home() {
           active: ['active'],
           regular: ['regular'],
           dateOfRemoved: ['dateofremoved'],
+          lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita'],
         };
         
         const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
@@ -323,6 +328,7 @@ export default function Home() {
         const activeIndex = getIndex(nameKeys.active);
         const regularIndex = getIndex(nameKeys.regular);
         const dateOfRemovedIndex = getIndex(nameKeys.dateOfRemoved);
+        const lastVisitIndex = getIndex(nameKeys.lastVisit);
 
         if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
             toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter 'DisplayName' ou 'FirstName' e 'LastName'." });
@@ -360,6 +366,15 @@ export default function Home() {
 
           const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
 
+          const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
+          let importedVisitDate: string | undefined;
+          if (lastVisitValue) {
+            const parsedDate = new Date(lastVisitValue);
+            if (!isNaN(parsedDate.getTime())) {
+              importedVisitDate = parsedDate.toISOString();
+            }
+          }
+
           return {
             personId: personIdIndex !== -1 ? values[personIdIndex] : '',
             text: text,
@@ -367,6 +382,7 @@ export default function Home() {
             address: addressIndex !== -1 ? values[addressIndex] : '',
             phone: phone,
             status: status,
+            importedVisitDate: importedVisitDate,
           };
         }).filter(item => item.text);
 
@@ -396,6 +412,19 @@ export default function Home() {
                 if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
                 if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
                 
+                if (item.importedVisitDate) {
+                  const newVisitDate = new Date(item.importedVisitDate);
+                  const visitExists = (existing.visitHistory || []).some(visit => {
+                      const existingDate = new Date(visit.date);
+                      return existingDate.getFullYear() === newVisitDate.getFullYear() &&
+                             existingDate.getMonth() === newVisitDate.getMonth() &&
+                             existingDate.getDate() === newVisitDate.getDate();
+                  });
+                  if (!visitExists) {
+                      changes.push(`Adicionar visita em: ${format(newVisitDate, "PPP", { locale: ptBR })}`);
+                  }
+                }
+
                 if (changes.length > 0) {
                     toUpdate.push({ existing, newData: item, changes });
                 }

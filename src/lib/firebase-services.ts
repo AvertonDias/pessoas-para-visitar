@@ -18,6 +18,7 @@ import type { Name, UserProfile, FieldGroup, ImportedName } from '@/app/page';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
+import { calculateStatusFromHistory } from './status-logic';
 
 // User Profile and Registration
 export const processRegistration = async (db: Firestore, user: User, inviteToken?: string | null, registrationName?: string | null) => {
@@ -50,7 +51,7 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
     // Add display name and email if it's a new profile
     const userProfileSnap = await getDoc(userProfileRef);
     if (!userProfileSnap.exists()) {
-        newProfileData.name = displayName;
+        newProfileData.name = displayName ?? undefined;
         newProfileData.email = user.email!;
     }
     
@@ -82,7 +83,7 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
       // This prevents an existing helper from overwriting their role by re-registering.
       const profile: Omit<UserProfile, 'id'> = {
         email: user.email!,
-        name: displayName,
+        name: displayName ?? undefined,
         role: 'admin',
       };
       await setDoc(userProfileRef, profile);
@@ -271,25 +272,67 @@ export const batchImportData = async (
     if (existingMatch) {
       // UPDATE: Found existing name by personId
       const nameRef = doc(namesCollectionRef, existingMatch.id);
-      batch.update(nameRef, {
+      const updatePayload: Partial<Omit<Name, 'id'>> = {
         text: item.text,
         address: item.address || '',
         phone: item.phone || '',
         fieldGroup: item.fieldGroup || '',
-        status: item.status || 'regular',
-      });
+      };
+      
+      let finalHistory = existingMatch.visitHistory || [];
+      if (item.importedVisitDate) {
+        const newVisitDate = new Date(item.importedVisitDate);
+        const visitExists = finalHistory.some(visit => {
+            const existingDate = new Date(visit.date);
+            return existingDate.getFullYear() === newVisitDate.getFullYear() &&
+                   existingDate.getMonth() === newVisitDate.getMonth() &&
+                   existingDate.getDate() === newVisitDate.getDate();
+        });
+
+        if (!visitExists) {
+            finalHistory = [
+                ...finalHistory,
+                {
+                    id: doc(collection(db, 'temp-ids')).id,
+                    date: item.importedVisitDate,
+                    visitors: 'Importado'
+                }
+            ];
+            updatePayload.visitHistory = finalHistory;
+        }
+      }
+      
+      if (item.status === 'removido') {
+        updatePayload.status = 'removido';
+      } else {
+        updatePayload.status = calculateStatusFromHistory(finalHistory);
+      }
+
+      batch.update(nameRef, updatePayload);
+
     } else {
       // CREATE: No match found, create a new name
       const nameRef = doc(namesCollectionRef);
+      const visitHistory = item.importedVisitDate ? [{
+        id: doc(collection(db, 'temp-ids')).id,
+        date: item.importedVisitDate,
+        visitors: 'Importado'
+      }] : [];
+      
+      let status = item.status || 'regular';
+      if (status !== 'removido') {
+        status = calculateStatusFromHistory(visitHistory);
+      }
+
       batch.set(nameRef, {
         personId: importedPersonId,
         text: item.text,
-        status: item.status || 'regular',
+        status: status,
         fieldGroup: item.fieldGroup || '',
         address: item.address || '',
         phone: item.phone || '',
         createdAt: serverTimestamp(),
-        visitHistory: []
+        visitHistory: visitHistory
       });
     }
   });
