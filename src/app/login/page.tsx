@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { useFirebaseApp, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +66,26 @@ export default function LoginPage() {
       setIsSigningIn(false);
     }
   };
+
+  const handleAnonymousSignIn = async () => {
+    setIsSigningIn(true);
+    try {
+      await signInAnonymously(auth);
+      toast({
+        title: "Acesso como convidado",
+        description: "Seus dados poderão ser perdidos. Crie uma conta para salvá-los permanentemente.",
+      });
+    } catch (error: any) {
+      console.error("Error signing in anonymously", error);
+      toast({
+        variant: "destructive",
+        title: "Erro no login",
+        description: "Não foi possível entrar como convidado.",
+      });
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
   
   useEffect(() => {
     if (user) {
@@ -93,6 +113,26 @@ export default function LoginPage() {
           <CardDescription>Faça login para continuar no ListaNomes.</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="space-y-4">
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningIn}>
+              Continuar com Google
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={handleAnonymousSignIn} disabled={isSigningIn}>
+              Acessar como Convidado
+            </Button>
+          </div>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Ou com e-mail
+              </span>
+            </div>
+          </div>
+          
           <form onSubmit={handleEmailSignIn} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
@@ -118,29 +158,14 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSigningIn}>
-              {isSigningIn ? 'Entrando...' : 'Entrar'}
+              {isSigningIn ? 'Entrando...' : 'Entrar com E-mail'}
             </Button>
           </form>
           
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Ou continue com
-              </span>
-            </div>
-          </div>
-
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningIn}>
-            Google
-          </Button>
-
           <div className="mt-4 text-center text-sm">
             Não tem uma conta?{" "}
             <Link href="/register" className="underline">
-              Cadastre-se
+              Crie um acesso permanente
             </Link>
           </div>
         </CardContent>

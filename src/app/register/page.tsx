@@ -37,7 +37,7 @@ export default function RegisterPage() {
         }
         toast({
           variant: "destructive",
-          title: "Erro no cadastro",
+          title: "Erro ao criar acesso",
           description: description,
         });
       }
@@ -61,7 +61,7 @@ export default function RegisterPage() {
       }
       toast({
         variant: "destructive",
-        title: "Erro no cadastro",
+        title: "Erro ao criar acesso",
         description,
       });
     } finally {
@@ -90,8 +90,8 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <ListTodo className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Crie sua conta</CardTitle>
-          <CardDescription>Insira seus dados para se cadastrar.</CardDescription>
+          <CardTitle className="text-2xl">Crie seu Acesso Permanente</CardTitle>
+          <CardDescription>Salve seus dados criando uma conta com e-mail e senha ou usando o Google.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleEmailSignUp} className="space-y-4">
@@ -120,7 +120,7 @@ export default function RegisterPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isRegistering}>
-              {isRegistering ? 'Cadastrando...' : 'Cadastrar'}
+              {isRegistering ? 'Criando...' : 'Criar Conta com E-mail'}
             </Button>
           </form>
           
@@ -130,7 +130,7 @@ export default function RegisterPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Ou cadastre-se com
+                Ou crie com
               </span>
             </div>
           </div>
