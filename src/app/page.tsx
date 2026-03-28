@@ -372,12 +372,12 @@ export default function Home() {
             title: "Importação concluída!",
             description: `${importedData.length} pessoas foram importadas com sucesso.`,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error during batch import:", error);
         toast({
             variant: "destructive",
             title: "Erro na importação",
-            description: "Não foi possível salvar os dados. Verifique suas permissões e tente novamente.",
+            description: error.message || "Ocorreu um erro inesperado ao salvar os dados. Tente novamente.",
         });
     } finally {
         setIsImportConfirmOpen(false);

@@ -247,13 +247,11 @@ export const batchImportData = async (
   // 3. Commit the batch
   try {
     await batch.commit();
-  } catch (serverError) {
-    const permissionError = new FirestorePermissionError({
-      path: `users/${userId}/names`,
-      operation: 'write',
-    });
-    errorEmitter.emit('permission-error', permissionError);
-    throw permissionError;
+  } catch (error) {
+    // Re-throw the original error to be caught by the UI layer.
+    // This provides more specific error information than creating a generic permission error.
+    console.error("Firebase batch commit failed:", error); // Log the true error for debugging.
+    throw error; // Rethrow it to the calling function in the UI.
   }
 };
 
