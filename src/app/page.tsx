@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/app/Header';
 import { useToast } from '@/hooks/use-toast';
@@ -8,6 +8,8 @@ import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
 import { FieldGroupsCard } from '@/components/app/home/FieldGroupsCard';
 import { HelpersCard } from '@/components/app/home/HelpersCard';
+import { ImportCard } from '@/components/app/home/ImportCard';
+import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -29,6 +31,8 @@ export type Visit = {
 export type Name = {
   id: string;
   text: string;
+  address?: string;
+  phone?: string;
   status: 'regular' | 'irregular' | 'inativo' | 'removido';
   fieldGroup: string;
   visitHistory: Visit[];
@@ -52,6 +56,8 @@ export type Helper = {
   email: string;
 };
 
+export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory'>>;
+
 
 export default function Home() {
   const { toast } = useToast();
@@ -62,6 +68,7 @@ export default function Home() {
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes'>('pessoas');
   const [isClient, setIsClient] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -117,6 +124,11 @@ export default function Home() {
     fieldGroup: '',
     status: 'regular',
   });
+  
+  // State for import functionality
+  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
+  const [importedData, setImportedData] = useState<ImportedName[]>([]);
+  const [newGroupsCount, setNewGroupsCount] = useState(0);
 
   const addName = () => {
     if (!dataOwnerId || !firestore) return;
@@ -132,6 +144,8 @@ export default function Home() {
       text: draftName.text.trim(),
       status: draftName.status,
       fieldGroup: draftName.fieldGroup,
+      address: '',
+      phone: '',
     };
     services.addName(firestore, dataOwnerId, newNameToAdd);
     toast({
@@ -239,6 +253,95 @@ export default function Home() {
     });
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      try {
+        const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+        if (rows.length < 2) {
+          toast({ variant: "destructive", title: "Arquivo CSV inválido", description: "O arquivo precisa ter um cabeçalho e pelo menos uma linha de dados." });
+          return;
+        }
+
+        const header = rows[0].split(',').map(h => h.trim());
+        const dataRows = rows.slice(1);
+
+        const nameIndex = header.findIndex(h => h.toLowerCase() === 'displayname');
+        const groupIndex = header.findIndex(h => h.toLowerCase() === 'groupname');
+        const addressIndex = header.findIndex(h => h.toLowerCase() === 'address');
+        const phoneIndex = header.findIndex(h => h.toLowerCase() === 'phonemobile' || h.toLowerCase() === 'phonehome');
+        const statusIndex = header.findIndex(h => h.toLowerCase() === 'status');
+        
+        if (nameIndex === -1) {
+            toast({ variant: "destructive", title: "Coluna não encontrada", description: "A coluna 'DisplayName' é obrigatória no arquivo CSV." });
+            return;
+        }
+        
+        const statusMap: { [key: string]: Name['status'] } = {
+            'ativo': 'regular',
+            'irregular': 'irregular',
+            'inativo': 'inativo',
+            'removido': 'removido'
+        };
+
+        const importedResult: ImportedName[] = dataRows.map(row => {
+          const values = row.split(',').map(v => v.trim());
+          const statusValue = statusIndex !== -1 ? values[statusIndex]?.toLowerCase() : 'ativo';
+
+          return {
+            text: values[nameIndex] || '',
+            fieldGroup: groupIndex !== -1 ? values[groupIndex] : '',
+            address: addressIndex !== -1 ? values[addressIndex] : '',
+            phone: phoneIndex !== -1 ? values[phoneIndex] : '',
+            status: statusMap[statusValue] || 'regular',
+          };
+        }).filter(item => item.text);
+
+        const existingGroupNames = new Set(fieldGroups.map(g => g.name));
+        const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean));
+        const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g!));
+        
+        setNewGroupsCount(newGroups.length);
+        setImportedData(importedResult);
+        setIsImportConfirmOpen(true);
+
+      } catch (error) {
+        console.error("Error parsing CSV:", error);
+        toast({ variant: "destructive", title: "Erro ao ler arquivo", description: "Não foi possível processar o arquivo CSV. Verifique o formato." });
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // Reset file input
+  };
+  
+  const handleConfirmImport = async () => {
+    if (!dataOwnerId || !firestore || importedData.length === 0) return;
+    
+    try {
+        await services.batchImportData(firestore, dataOwnerId, importedData, fieldGroups);
+        toast({
+            title: "Importação concluída!",
+            description: `${importedData.length} pessoas foram importadas com sucesso.`,
+        });
+    } catch (error) {
+        console.error("Error during batch import:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro na importação",
+            description: "Não foi possível salvar os dados. Verifique suas permissões e tente novamente.",
+        });
+    } finally {
+        setIsImportConfirmOpen(false);
+        setImportedData([]);
+        setNewGroupsCount(0);
+    }
+  };
+
+
   const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading;
@@ -308,6 +411,7 @@ export default function Home() {
              {isAdmin && mobileView === 'ajudantes' && (
               <div className="space-y-8 mt-4">
                  <HelpersCard ownerId={user.uid} helpers={helpers} />
+                 <ImportCard onImportClick={() => fileInputRef.current?.click()}/>
               </div>
             )}
           </div>
@@ -339,12 +443,23 @@ export default function Home() {
                 groupCounts={groupCounts}
               />
               {isAdmin && (
-                <HelpersCard ownerId={user.uid} helpers={helpers} />
+                <>
+                  <HelpersCard ownerId={user.uid} helpers={helpers} />
+                  <ImportCard onImportClick={() => fileInputRef.current?.click()}/>
+                </>
               )}
             </div>
           </div>
         )}
       </main>
+      
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept=".csv"
+      />
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -406,6 +521,14 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <ImportConfirmationDialog
+        isOpen={isImportConfirmOpen}
+        onOpenChange={setIsImportConfirmOpen}
+        data={importedData}
+        newGroupsCount={newGroupsCount}
+        onConfirm={handleConfirmImport}
+      />
     </div>
   );
 }

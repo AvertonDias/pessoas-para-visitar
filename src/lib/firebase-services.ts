@@ -10,9 +10,10 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Firestore,
 } from 'firebase/firestore';
-import type { Name, UserProfile } from '@/app/page';
+import type { Name, UserProfile, FieldGroup, ImportedName } from '@/app/page';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
@@ -195,5 +196,64 @@ export const removeHelper = (db: Firestore, helperId: string) => {
       errorEmitter.emit('permission-error', permissionError);
     });
 };
+
+// Import
+
+export const batchImportData = async (
+  db: Firestore,
+  userId: string,
+  dataToImport: ImportedName[],
+  existingGroups: FieldGroup[]
+) => {
+  const batch = writeBatch(db);
+
+  // 1. Create new groups if they don't exist
+  const existingGroupNames = new Set(existingGroups.map(g => g.name.toLowerCase()));
+  const newGroupsToCreate = new Set<string>();
+
+  dataToImport.forEach(item => {
+    if (item.fieldGroup && !existingGroupNames.has(item.fieldGroup.toLowerCase())) {
+      newGroupsToCreate.add(item.fieldGroup);
+    }
+  });
+
+  newGroupsToCreate.forEach(groupName => {
+    const groupRef = doc(collection(db, 'users', userId, 'fieldGroups'));
+    batch.set(groupRef, {
+      name: groupName,
+      createdAt: serverTimestamp()
+    });
+  });
+
+  // 2. Add new names
+  const namesCollectionRef = collection(db, 'users', userId, 'names');
+  dataToImport.forEach(item => {
+    if (item.text) { // Ensure name text exists
+      const nameRef = doc(namesCollectionRef);
+      batch.set(nameRef, {
+        text: item.text,
+        status: item.status || 'regular',
+        fieldGroup: item.fieldGroup || '',
+        address: item.address || '',
+        phone: item.phone || '',
+        createdAt: serverTimestamp(),
+        visitHistory: []
+      });
+    }
+  });
+
+  // 3. Commit the batch
+  try {
+    await batch.commit();
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: `users/${userId}/names`,
+      operation: 'write',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
+  }
+};
+
 
 export { where };

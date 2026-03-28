@@ -32,34 +32,63 @@
       ]
     },
     "Nome": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Nome",
+      "description": "Representa uma pessoa na lista de nomes do usuário, incluindo detalhes de contato e status.",
       "type": "object",
-      "description": "Representa um nome individual na lista de nomes do usuário.",
       "properties": {
-        "id": {
+        "text": {
           "type": "string",
-          "description": "Identificador único para a entidade Nome."
+          "description": "O nome completo da pessoa."
         },
-        "valor": {
+        "address": {
           "type": "string",
-          "description": "O valor do nome adicionado à lista."
+          "description": "O endereço da pessoa."
         },
-        "dataCriacao": {
+        "phone": {
           "type": "string",
-          "description": "Data e hora em que o nome foi adicionado pela primeira vez.",
-          "format": "date-time"
+          "description": "O telefone de contato da pessoa."
         },
-        "dataAtualizacao": {
+        "fieldGroup": {
           "type": "string",
-          "description": "Data e hora da última vez que o nome foi atualizado.",
-          "format": "date-time"
+          "description": "O grupo de campo ao qual a pessoa está associada."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "regular",
+            "irregular",
+            "inativo",
+            "removido"
+          ],
+          "description": "O status atual da pessoa."
+        },
+        "visitHistory": {
+          "type": "array",
+          "description": "Um histórico de visitas.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "visitors": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "O timestamp de quando a pessoa foi adicionada."
         }
       },
       "required": [
-        "id",
-        "valor",
-        "dataCriacao"
+        "text",
+        "status"
       ]
     },
     "FieldGroup": {

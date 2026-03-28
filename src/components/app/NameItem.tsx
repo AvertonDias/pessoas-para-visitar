@@ -55,6 +55,8 @@ interface NameItemProps {
 
 export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItemProps) {
   const [editText, setEditText] = useState(name.text);
+  const [editAddress, setEditAddress] = useState(name.address || '');
+  const [editPhone, setEditPhone] = useState(name.phone || '');
   const [editFieldGroup, setEditFieldGroup] = useState(name.fieldGroup || '');
   const [editStatus, setEditStatus] = useState(name.status);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -68,6 +70,8 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     if (editText.trim()) {
       updateName(name.id, { 
           text: editText.trim(),
+          address: editAddress.trim(),
+          phone: editPhone.trim(),
           fieldGroup: editFieldGroup,
           status: editStatus
       });
@@ -94,6 +98,8 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     if (!open) {
       // Reset state if dialog is closed without saving
       setEditText(name.text);
+      setEditAddress(name.address || '');
+      setEditPhone(name.phone || '');
       setEditFieldGroup(name.fieldGroup || '');
       setEditStatus(name.status);
     }
@@ -156,7 +162,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                       <Pencil className="h-4 w-4 text-muted-foreground" />
                   </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                       <DialogTitle>Editar Detalhes</DialogTitle>
                       <DialogDescription>
@@ -167,6 +173,14 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                       <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="name-edit" className="text-right">Nome</Label>
                           <Input id="name-edit" value={editText} onChange={(e) => setEditText(e.target.value)} className="col-span-3" />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="address-edit" className="text-right">Endereço</Label>
+                          <Input id="address-edit" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="col-span-3" />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="phone-edit" className="text-right">Telefone</Label>
+                          <Input id="phone-edit" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="col-span-3" />
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
