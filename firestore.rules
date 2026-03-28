@@ -3,13 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /users/{userId} {
-      // A user can fully manage their own profile document.
+      // 1. A user can manage their own profile document.
       allow read, write: if request.auth.uid == userId;
 
-      // An admin can read their helpers' profiles (for get and list/query).
-      allow read: if resource.data.adminId == request.auth.uid;
+      // 2. An admin can read their helpers' profiles (for list and get).
+      allow read: if 'adminId' in resource.data && resource.data.adminId == request.auth.uid;
+      
+      // 3. A helper can read their admin's profile (for get only).
+      allow get: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminId == userId;
 
-      // An admin can update a helper's profile (e.g. to remove them).
+      // 4. An admin can update a helper's profile (e.g. to remove them).
       // We use get() to check the document's state before the update.
       allow update: if get(/databases/$(database)/documents/users/$(userId)).data.adminId == request.auth.uid;
     }
