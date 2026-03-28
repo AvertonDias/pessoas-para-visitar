@@ -5,8 +5,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 
 export const metadata: Metadata = {
-  title: 'ListaNomes PWA',
-  description: 'Um PWA para criar e gerenciar listas de nomes, com sugestões de IA.',
+  title: 'Pessoas para visitar',
+  description: 'Um PWA para criar e gerenciar listas de pessoas para visitar.',
   manifest: '/manifest.json',
 };
 
