@@ -11,6 +11,7 @@ import {
   updateDoc,
   where,
   writeBatch,
+  deleteField,
   type Firestore,
 } from 'firebase/firestore';
 import type { Name, UserProfile, FieldGroup, ImportedName } from '@/app/page';
@@ -205,7 +206,7 @@ export const createInvitation = async (db: Firestore, adminId: string): Promise<
 export const removeHelper = (db: Firestore, helperId: string) => {
   const userProfileRef = doc(db, 'users', helperId);
   // This removes their adminId, reverting them to a standard 'admin' of their own (likely empty) data.
-  const data = { role: 'admin', adminId: null };
+  const data = { role: 'admin', adminId: deleteField() };
   updateDoc(userProfileRef, data)
      .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({

@@ -85,7 +85,10 @@ export default function Home() {
 
   const dataOwnerId = useMemo(() => {
     if (!user || !userProfile) return null;
-    return userProfile.role === 'helper' ? userProfile.adminId : user.uid;
+    // A helper must have an adminId to access data. Otherwise, they see their own data.
+    return userProfile.role === 'helper' && userProfile.adminId
+      ? userProfile.adminId
+      : user.uid;
   }, [user, userProfile]);
   
   // Fetch admin profile if current user is a helper
