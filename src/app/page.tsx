@@ -258,7 +258,7 @@ export default function Home() {
       )
   }
   
-  const isAdmin = userProfile?.role === 'admin';
+  const isAdmin = userProfile?.role !== 'helper';
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
