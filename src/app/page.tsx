@@ -284,6 +284,7 @@ export default function Home() {
         const movedIndex = header.findIndex(h => h === 'moved');
         const activeIndex = header.findIndex(h => h === 'active');
         const regularIndex = header.findIndex(h => h === 'regular');
+        const dateOfRemovedIndex = header.findIndex(h => h === 'dateofremoved');
 
         if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
             toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter a coluna 'DisplayName' ou as colunas 'FirstName' e 'LastName'." });
@@ -306,8 +307,9 @@ export default function Home() {
           const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
           const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
           const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
+          const hasDateOfRemoved = dateOfRemovedIndex !== -1 && values[dateOfRemovedIndex]?.trim() !== '';
 
-          if (isMoved) {
+          if (isMoved || hasDateOfRemoved) {
             status = 'removido';
           } else if (activeIndex !== -1 && !isActive) {
             status = 'inativo';
