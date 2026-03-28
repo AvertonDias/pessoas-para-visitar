@@ -61,6 +61,11 @@ export type Helper = {
 
 export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory'>>;
 
+export type ImportUpdate = {
+  existing: Name;
+  newData: ImportedName;
+  changes: string[];
+};
 
 export default function Home() {
   const { toast } = useToast();
@@ -145,8 +150,12 @@ export default function Home() {
   
   // State for import functionality
   const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
-  const [importedData, setImportedData] = useState<ImportedName[]>([]);
-  const [newGroupsToCreate, setNewGroupsToCreate] = useState<string[]>([]);
+  const [importPreview, setImportPreview] = useState<{
+    toCreate: ImportedName[];
+    toUpdate: ImportUpdate[];
+    newGroups: string[];
+  } | null>(null);
+
 
   const addName = () => {
     if (!dataOwnerId || !firestore) return;
@@ -361,12 +370,53 @@ export default function Home() {
           };
         }).filter(item => item.text);
 
+        // Analyze changes for preview
+        const existingNamesMap = new Map<string, Name>();
+        names.forEach(name => {
+            if (name.personId) {
+                existingNamesMap.set(name.personId, name);
+            }
+        });
+
+        const toCreate: ImportedName[] = [];
+        const toUpdate: ImportUpdate[] = [];
+        const formatChange = (label: string, from: any, to: any) => {
+            const fromStr = from || 'vazio';
+            const toStr = to || 'vazio';
+            return `${label}: de "${fromStr}" para "${toStr}"`;
+        };
+
+        for (const item of importedResult) {
+            const existing = item.personId ? existingNamesMap.get(item.personId) : undefined;
+            if (existing) {
+                const changes: string[] = [];
+                if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
+                if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
+                if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
+                if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
+                if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
+                
+                if (changes.length > 0) {
+                    toUpdate.push({ existing, newData: item, changes });
+                }
+            } else {
+                toCreate.push(item);
+            }
+        }
+
         const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
         const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
         const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
 
-        setNewGroupsToCreate(newGroups);
-        setImportedData(importedResult);
+        if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
+            toast({
+                title: "Nenhuma alteração detectada",
+                description: "Os dados no arquivo CSV são idênticos aos dados existentes.",
+            });
+            return;
+        }
+
+        setImportPreview({ toCreate, toUpdate, newGroups });
         setIsImportConfirmOpen(true);
 
       } catch (error) {
@@ -379,13 +429,25 @@ export default function Home() {
   };
   
   const handleConfirmImport = async () => {
-    if (!dataOwnerId || !firestore || importedData.length === 0) return;
+    if (!dataOwnerId || !firestore || !importPreview) return;
     
+    const dataToImport = [
+      ...importPreview.toCreate,
+      ...importPreview.toUpdate.map(u => u.newData)
+    ];
+
+    if (dataToImport.length === 0 && importPreview.newGroups.length === 0) {
+      toast({ title: "Nenhuma alteração para importar." });
+      setIsImportConfirmOpen(false);
+      setImportPreview(null);
+      return;
+    }
+
     try {
-        await services.batchImportData(firestore, dataOwnerId, importedData, fieldGroups, names);
+        await services.batchImportData(firestore, dataOwnerId, dataToImport, fieldGroups, names);
         toast({
             title: "Importação concluída!",
-            description: `${importedData.length} pessoas foram importadas e/ou atualizadas com sucesso.`,
+            description: `${dataToImport.length} pessoas foram importadas e/ou atualizadas com sucesso.`,
         });
     } catch (error: any) {
         console.error("Error during batch import:", error);
@@ -396,8 +458,7 @@ export default function Home() {
         });
     } finally {
         setIsImportConfirmOpen(false);
-        setImportedData([]);
-        setNewGroupsToCreate([]);
+        setImportPreview(null);
     }
   };
 
@@ -637,8 +698,7 @@ export default function Home() {
       <ImportConfirmationDialog
         isOpen={isImportConfirmOpen}
         onOpenChange={setIsImportConfirmOpen}
-        data={importedData}
-        newGroups={newGroupsToCreate}
+        preview={importPreview}
         onConfirm={handleConfirmImport}
       />
     </div>
