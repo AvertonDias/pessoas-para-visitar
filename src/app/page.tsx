@@ -101,7 +101,7 @@ export default function Home() {
   const fieldGroups = fieldGroupsData || [];
 
   const helpersQuery = useMemoFirebase(() => {
-    if (!user || !firestore || userProfile?.role !== 'admin') return null;
+    if (!user || !firestore || userProfile?.role === 'helper') return null;
     return query(collection(firestore, 'users'), where('adminId', '==', user.uid));
   }, [user, firestore, userProfile]);
   const { data: helpersData, loading: helpersLoading } = useCollection<Helper>(helpersQuery);
