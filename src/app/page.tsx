@@ -130,7 +130,7 @@ export default function Home() {
   // State for import functionality
   const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
   const [importedData, setImportedData] = useState<ImportedName[]>([]);
-  const [newGroupsCount, setNewGroupsCount] = useState(0);
+  const [newGroupsToCreate, setNewGroupsToCreate] = useState<string[]>([]);
 
   const addName = () => {
     if (!dataOwnerId || !firestore) return;
@@ -328,10 +328,10 @@ export default function Home() {
         }).filter(item => item.text);
 
         const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
-        const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean));
-        const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g!.toLowerCase()));
+        const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
+        const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
 
-        setNewGroupsCount(newGroups.length);
+        setNewGroupsToCreate(newGroups);
         setImportedData(importedResult);
         setIsImportConfirmOpen(true);
 
@@ -363,7 +363,7 @@ export default function Home() {
     } finally {
         setIsImportConfirmOpen(false);
         setImportedData([]);
-        setNewGroupsCount(0);
+        setNewGroupsToCreate([]);
     }
   };
 
@@ -552,7 +552,7 @@ export default function Home() {
         isOpen={isImportConfirmOpen}
         onOpenChange={setIsImportConfirmOpen}
         data={importedData}
-        newGroupsCount={newGroupsCount}
+        newGroups={newGroupsToCreate}
         onConfirm={handleConfirmImport}
       />
     </div>

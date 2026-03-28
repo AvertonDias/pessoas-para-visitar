@@ -18,7 +18,7 @@ interface ImportConfirmationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   data: ImportedName[];
-  newGroupsCount: number;
+  newGroups: string[];
   onConfirm: () => void;
 }
 
@@ -37,7 +37,7 @@ export function ImportConfirmationDialog({
   isOpen,
   onOpenChange,
   data,
-  newGroupsCount,
+  newGroups,
   onConfirm,
 }: ImportConfirmationDialogProps) {
   return (
@@ -47,10 +47,24 @@ export function ImportConfirmationDialog({
           <DialogTitle>Confirmar Importação</DialogTitle>
           <DialogDescription>
             Revise os dados abaixo. Você está prestes a importar {data.length} pessoas
-            {newGroupsCount > 0 && ` e criar ${newGroupsCount} novos grupos`}.
+            {newGroups.length > 0 && ` e criar ${newGroups.length} novo(s) grupo(s)`}.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh] rounded-md border">
+        
+        {newGroups.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-foreground">
+              Novos grupos a serem criados:
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {newGroups.map((group, index) => (
+                <Badge key={index} variant="secondary">{group}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <ScrollArea className="max-h-[50vh] rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
