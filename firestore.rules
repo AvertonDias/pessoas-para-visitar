@@ -1,16 +1,97 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model where all
+ * data is considered private to the user who created it. Access is granted based
+ * on the user's authenticated ID matching the user ID segment in the document path.
+ *
+ * Data Structure: All application data is organized hierarchically under a top-level
+ * 'users' collection. Each user's data is nested within their own document tree,
+ * for example: /users/{userId}/nomes/{nomeId}. This structure provides a clear
+ * and secure boundary between different users' data.
+ *
+ * Key Security Decisions:
+ * - Strict Ownership: A user can only read, write, and delete documents that
+ *   exist within their own data tree (i.e., where the path contains their UID).
+ * - No Public Data: There are no publicly readable collections. All access
+ *   requires authentication.
+ * - User Listing Disabled: The rules do not allow querying the top-level
+ *   '/users' collection, preventing any possibility of enumerating the app's users.
+ * - Path-Based Authorization: Authorization relies exclusively on the {userId}
+ *   wildcard in the document path. This is a deliberate denormalization strategy
+ *   that avoids costly and complex `get()` calls to other documents, leading to
+ *   more performant and secure rules.
+ *
+ * Denormalization for Authorization: The core security model relies on the document
+ * path itself as a form of denormalized authorization data. The presence of a
+ * user's UID in the path (e.g., `/users/{userId}/...`) is the sole check required
+ * to grant access, making rules simple, fast, and scalable.
+ *
+ * Structural Segregation: By nesting user-specific data like 'nomes' into a
+ * dedicated subcollection under the user's ID, we ensure that security requirements
+ * are uniform across the collection. This prevents mixing private and public data
+ * and simplifies query security, as any query against a user's subcollection is
+ * inherently scoped to that user.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      match /names/{nameId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      match /fieldGroups/{fieldGroupId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    // Helper Functions
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for verifying document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Verifies ownership for an existing document. Used for update and delete
+     * operations to prevent acting on non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates required fields for creating a 'Nome' document.
+     * In prototyping mode, we only validate fields critical for authorization
+     * and relational integrity, not the entire data shape.
+     */
+    function hasValidNomeDataOnCreate(nomeId) {
+      // Enforce that the document's internal ID matches the ID in its path.
+      return request.resource.data.id == nomeId;
+    }
+
+    /**
+     * Validates required fields for updating a 'Nome' document.
+     * Enforces the immutability of the document's unique identifier.
+     */
+    function hasValidNomeDataOnUpdate() {
+      // The internal 'id' field cannot be changed after creation.
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * @description Rules for a user's private list of 'nomes' (names).
+     * @path /users/{userId}/nomes/{nomeId}
+     * @allow (create) An authenticated user (uid: 'user123') can create a new name document at /users/user123/nomes/nomeABC.
+     * @deny (get) An authenticated user (uid: 'user123') cannot read a name document belonging to another user at /users/user456/nomes/nomeXYZ.
+     * @principle Restricts all access to the document owner, as defined by the {userId} in the path.
+     */
+    match /users/{userId}/nomes/{nomeId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidNomeDataOnCreate(nomeId);
+      allow update: if isExistingOwner(userId) && hasValidNomeDataOnUpdate();
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
