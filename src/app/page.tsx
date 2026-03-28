@@ -130,6 +130,8 @@ export default function Home() {
   }, [names]);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
@@ -397,7 +399,15 @@ export default function Home() {
   };
 
 
-  const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredNames = useMemo(() => {
+    return names.filter(name => {
+      const matchesSearch = name.text.toLowerCase().includes(searchTerm.toLowerCase());
+      const group = name.fieldGroup || '';
+      const matchesGroup = selectedGroup === 'all' || group === selectedGroup;
+      const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
+      return matchesSearch && matchesGroup && matchesStatus;
+    });
+  }, [names, searchTerm, selectedGroup, selectedStatus]);
 
   const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
@@ -447,6 +457,10 @@ export default function Home() {
                   deleteName={deleteName}
                   fieldGroups={fieldGroups.map(fg => fg.name)}
                   adminName={adminProfile?.name}
+                  selectedGroup={selectedGroup}
+                  setSelectedGroup={setSelectedGroup}
+                  selectedStatus={selectedStatus}
+                  setSelectedStatus={setSelectedStatus}
                 />
               </div>
             )}
@@ -487,6 +501,10 @@ export default function Home() {
                 deleteName={deleteName}
                 fieldGroups={fieldGroups.map(fg => fg.name)}
                 adminName={adminProfile?.name}
+                selectedGroup={selectedGroup}
+                setSelectedGroup={setSelectedGroup}
+                selectedStatus={selectedStatus}
+                setSelectedStatus={setSelectedStatus}
               />
             </div>
             
