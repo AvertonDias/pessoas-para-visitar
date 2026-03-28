@@ -13,14 +13,17 @@ import { AnimatePresence, motion } from 'framer-motion';
 export type Name = {
   id: number;
   text: string;
+  status: 'regular' | 'irregular' | 'inativo' | 'removido';
+  fieldGroup: string;
+  visitHistory: string[];
 };
 
 export default function Home() {
   const [names, setNames] = useLocalStorage<Name[]>('names', [
-    { id: 1, text: 'Sofia' },
-    { id: 2, text: 'Miguel' },
-    { id: 3, text: 'Alice' },
-    { id: 4, text: 'Arthur' },
+    { id: 1, text: 'Sofia', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [new Date().toISOString()] },
+    { id: 2, text: 'Miguel', status: 'irregular', fieldGroup: 'Publicadores', visitHistory: [] },
+    { id: 3, text: 'Alice', status: 'inativo', fieldGroup: 'Estudantes', visitHistory: [] },
+    { id: 4, text: 'Arthur', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [] },
   ]);
   
   const [isClient, setIsClient] = useState(false);
@@ -36,6 +39,9 @@ export default function Home() {
     const newNameToAdd: Name = {
       id: Date.now(),
       text: nameText.trim(),
+      status: 'regular',
+      fieldGroup: '',
+      visitHistory: [],
     };
     setNames(prevNames => [newNameToAdd, ...prevNames]);
   };
@@ -46,8 +52,12 @@ export default function Home() {
     setNewName('');
   };
 
-  const updateName = (id: number, newText: string) => {
-    setNames(prevNames => prevNames.map(name => (name.id === id ? { ...name, text: newText.trim() } : name)));
+  const updateName = (id: number, newNameData: Partial<Omit<Name, 'id'>>) => {
+    setNames(prevNames =>
+      prevNames.map(name =>
+        name.id === id ? { ...name, ...newNameData } : name
+      )
+    );
   };
 
   const deleteName = (id: number) => {
@@ -129,9 +139,15 @@ export default function Home() {
                         </p>
                       )
                     ) : (
-                      <p className="text-muted-foreground text-center py-4">
-                        Carregando nomes...
-                      </p>
+                      [...Array(3)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-2 p-3 rounded-md bg-card border">
+                          <div className="h-4 bg-muted rounded w-1/3 animate-pulse"></div>
+                          <div className="flex-grow"></div>
+                          <div className="h-6 w-20 bg-muted rounded-full animate-pulse"></div>
+                          <div className="h-8 w-8 bg-muted rounded-md animate-pulse"></div>
+                          <div className="h-8 w-8 bg-muted rounded-md animate-pulse"></div>
+                        </div>
+                      ))
                     )}
                   </AnimatePresence>
                 </div>
