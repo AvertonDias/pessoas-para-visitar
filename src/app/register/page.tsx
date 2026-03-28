@@ -30,8 +30,18 @@ function RegisterForm() {
   const [isRegistering, setIsRegistering] = useState(false);
 
   const handleSuccessfulRegistration = async (credential: UserCredential, registrationName?: string | null) => {
-    if (firestore) {
+    if (!firestore) {
+      // This is a critical failure. Clean up the user and throw.
+      await credential.user.delete().catch(e => console.error("Failed to clean up user after Firestore init failure", e));
+      throw new Error("Ocorreu um erro inesperado: a conexão com o banco de dados falhou.");
+    }
+    try {
       await processRegistration(firestore, credential.user, inviteToken, registrationName);
+    } catch (error) {
+        // If profile creation fails (e.g., invalid invite), delete the auth user
+        await credential.user.delete().catch(e => console.error("Failed to clean up user after registration failure", e));
+        // Re-throw the original, more specific error to be displayed in the UI.
+        throw error;
     }
   };
   
@@ -44,7 +54,7 @@ function RegisterForm() {
     } catch (error: any) {
       if (error.code !== 'auth/cancelled-popup-request') {
         console.error("Error signing in with Google", error);
-        let description = "Não foi possível entrar com o Google.";
+        let description = error.message || "Não foi possível entrar com o Google.";
         if (error.code === 'auth/unauthorized-domain') {
           description = "Este domínio não está autorizado. Por favor, verifique as configurações de domínio autorizado no seu Console do Firebase.";
         }
@@ -75,7 +85,7 @@ function RegisterForm() {
       await handleSuccessfulRegistration(credential, name);
     } catch (error: any) {
       console.error("Error signing up with email", error);
-       let description = "Ocorreu um erro ao criar sua conta.";
+       let description = error.message || "Ocorreu um erro ao criar sua conta.";
       if (error.code === 'auth/email-already-in-use') {
         description = "Este e-mail já está em uso por outra conta.";
       } else if (error.code === 'auth/weak-password') {

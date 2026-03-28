@@ -23,41 +23,44 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   const userProfileRef = doc(db, 'users', user.uid);
   const displayName = registrationName || user.displayName;
 
-  // Check for invite token first
+  // Scenario 1: User is registering with an invitation token.
   if (inviteToken) {
     const inviteRef = doc(db, 'invitations', inviteToken);
-    try {
-      const inviteSnap = await getDoc(inviteRef);
+    const inviteSnap = await getDoc(inviteRef);
 
-      if (inviteSnap.exists() && inviteSnap.data().claimed === false) {
-        // User was invited, create helper profile
-        const adminId = inviteSnap.data().adminId;
-
-        if (adminId) {
-          const profile: Omit<UserProfile, 'id'> = {
-            email: user.email!,
-            name: displayName,
-            role: 'helper',
-            adminId: adminId,
-          };
-          await setDoc(userProfileRef, profile);
-
-          // Mark the invitation as claimed
-          await updateDoc(inviteRef, {
-            claimed: true,
-            claimedBy: user.uid,
-            claimedAt: serverTimestamp(),
-          });
-          return; // Stop execution
-        }
-      }
-    } catch (error) {
-        console.error("Error processing invitation:", error);
+    if (!inviteSnap.exists() || inviteSnap.data().claimed === true) {
+      // If invite doesn't exist or is already claimed, throw an error.
+      // The calling function is responsible for deleting the orphaned auth user.
+      throw new Error("Convite inválido ou já utilizado.");
     }
-    // If token is invalid, claimed, or an error occurs, fall through to default behavior
+
+    const adminId = inviteSnap.data().adminId;
+    if (!adminId) {
+        throw new Error("O convite é inválido e não contém um administrador associado.");
+    }
+
+    // Create a 'helper' user profile
+    const profile: Omit<UserProfile, 'id'> = {
+      email: user.email!,
+      name: displayName,
+      role: 'helper',
+      adminId: adminId,
+    };
+    
+    // Use a batch to make the operation atomic
+    const batch = writeBatch(db);
+    batch.set(userProfileRef, profile);
+    batch.update(inviteRef, {
+      claimed: true,
+      claimedBy: user.uid,
+      claimedAt: serverTimestamp(),
+    });
+    
+    await batch.commit();
+    return; // Success, exit function
   }
-  
-  // Default behavior: No valid invitation, create admin profile
+
+  // Scenario 2: User is registering without an invitation (becomes an admin).
   const profile: Omit<UserProfile, 'id'> = {
     email: user.email!,
     name: displayName,
