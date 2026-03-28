@@ -143,6 +143,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('visit-desc');
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
@@ -305,7 +306,7 @@ export default function Home() {
           phoneMobile: ['phonemobile', 'telefone'],
           phoneHome: ['phonehome'],
           personId: ['personid'],
-          moved: ['moved'],
+          moved: ['moved', 'removed', 'removido'],
           active: ['active'],
           regular: ['regular'],
           dateOfRemoved: ['dateofremoved'],
@@ -346,11 +347,10 @@ export default function Home() {
             text = values[displayNameIndex];
           }
 
-          let status: Name['status'] = 'regular';
+          let status: Name['status'];
           const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
-          const hasDateOfRemoved = dateOfRemovedIndex !== -1 && values[dateOfRemovedIndex]?.trim() !== '';
-          
-          if (isMoved || hasDateOfRemoved) {
+
+          if (isMoved) {
             status = 'removido';
           } else {
             const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
@@ -360,6 +360,8 @@ export default function Home() {
               status = 'inativo';
             } else if (regularIndex !== -1 && !isRegular) {
               status = 'irregular';
+            } else {
+              status = 'regular';
             }
           }
 
@@ -492,15 +494,9 @@ export default function Home() {
 
 
   const filteredNames = useMemo(() => {
-    let sortedNames = names.slice().sort((a, b) => {
-      return a.text.localeCompare(b.text);
-    });
-
-    return sortedNames.filter(name => {
+    const filtered = names.filter(name => {
       const matchesSearch = name.text.toLowerCase().includes(searchTerm.toLowerCase());
-
       const group = name.fieldGroup || '';
-
       let matchesGroup;
       if (selectedGroup === 'all') {
         matchesGroup = true;
@@ -509,11 +505,32 @@ export default function Home() {
       } else {
         matchesGroup = group === selectedGroup;
       }
-
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
     });
-  }, [names, searchTerm, selectedGroup, selectedStatus]);
+
+    // Then, sort the filtered names
+    filtered.sort((a, b) => {
+      const dateA = getMostRecentVisitDate(a.visitHistory).getTime();
+      const dateB = getMostRecentVisitDate(b.visitHistory).getTime();
+      
+      let dateComparison = 0;
+      if (sortBy === 'visit-asc') {
+        dateComparison = dateA - dateB;
+      } else { // 'visit-desc' is the default
+        dateComparison = dateB - dateA;
+      }
+
+      // If dates are the same, sort by name alphabetically
+      if (dateComparison === 0) {
+        return a.text.localeCompare(b.text);
+      }
+      
+      return dateComparison;
+    });
+
+    return filtered;
+  }, [names, searchTerm, selectedGroup, selectedStatus, sortBy]);
 
   const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
@@ -567,6 +584,8 @@ export default function Home() {
                   setSelectedGroup={setSelectedGroup}
                   selectedStatus={selectedStatus}
                   setSelectedStatus={setSelectedStatus}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
                 />
               </div>
             )}
@@ -611,6 +630,8 @@ export default function Home() {
                 setSelectedGroup={setSelectedGroup}
                 selectedStatus={selectedStatus}
                 setSelectedStatus={setSelectedStatus}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
               />
             </div>
             

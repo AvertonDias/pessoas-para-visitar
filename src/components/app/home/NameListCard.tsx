@@ -20,6 +20,8 @@ interface NameListCardProps {
   setSelectedGroup: (value: string) => void;
   selectedStatus: string;
   setSelectedStatus: (value: string) => void;
+  sortBy: string;
+  setSortBy: (value: string) => void;
 }
 
 export function NameListCard({
@@ -34,6 +36,8 @@ export function NameListCard({
   setSelectedGroup,
   selectedStatus,
   setSelectedStatus,
+  sortBy,
+  setSortBy,
 }: NameListCardProps) {
   const description = adminName 
     ? `Você está vendo a lista de ${adminName}, com ${names.length} ${names.length === 1 ? 'nome' : 'nomes'}.`
@@ -79,6 +83,16 @@ export function NameListCard({
               <SelectItem value="irregular">Irregular</SelectItem>
               <SelectItem value="inativo">Inativo</SelectItem>
               <SelectItem value="removido">Removido</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger>
+              <SelectValue placeholder="Ordenar por..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
+              <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
             </SelectContent>
           </Select>
         </div>
