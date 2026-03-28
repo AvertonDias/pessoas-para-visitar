@@ -93,5 +93,16 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && hasValidNomeDataOnUpdate();
       allow delete: if isExistingOwner(userId);
     }
+    
+    /**
+     * @description Rules for a user's private list of 'fieldGroups'.
+     * @path /users/{userId}/fieldGroups/{fieldGroupId}
+     * @principle Restricts all access to the document owner, as defined by the {userId} in the path.
+     */
+    match /users/{userId}/fieldGroups/{fieldGroupId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
   }
 }
