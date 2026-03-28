@@ -21,7 +21,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, where } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
-import { calculateStatusFromHistory } from '@/lib/status-logic';
+import { getMostRecentVisitDate } from '@/lib/status-logic';
 
 export type Visit = {
   id: string;
@@ -133,6 +133,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('visit-desc');
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
@@ -401,7 +402,27 @@ export default function Home() {
 
 
   const filteredNames = useMemo(() => {
-    return names.filter(name => {
+    let sortedNames = names.slice().sort((a, b) => {
+      switch (sortBy) {
+        case 'visit-desc': {
+          const aDate = getMostRecentVisitDate(a.visitHistory);
+          const bDate = getMostRecentVisitDate(b.visitHistory);
+          return bDate.getTime() - aDate.getTime();
+        }
+        case 'visit-asc': {
+          const aDate = getMostRecentVisitDate(a.visitHistory);
+          const bDate = getMostRecentVisitDate(b.visitHistory);
+          return aDate.getTime() - bDate.getTime();
+        }
+        case 'text-desc':
+          return b.text.localeCompare(a.text);
+        case 'text-asc':
+        default:
+          return a.text.localeCompare(b.text);
+      }
+    });
+
+    return sortedNames.filter(name => {
       const matchesSearch = name.text.toLowerCase().includes(searchTerm.toLowerCase());
 
       const group = name.fieldGroup || '';
@@ -418,7 +439,7 @@ export default function Home() {
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
     });
-  }, [names, searchTerm, selectedGroup, selectedStatus]);
+  }, [names, searchTerm, selectedGroup, selectedStatus, sortBy]);
 
   const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
@@ -472,6 +493,8 @@ export default function Home() {
                   setSelectedGroup={setSelectedGroup}
                   selectedStatus={selectedStatus}
                   setSelectedStatus={setSelectedStatus}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
                 />
               </div>
             )}
@@ -516,6 +539,8 @@ export default function Home() {
                 setSelectedGroup={setSelectedGroup}
                 selectedStatus={selectedStatus}
                 setSelectedStatus={setSelectedStatus}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
               />
             </div>
             

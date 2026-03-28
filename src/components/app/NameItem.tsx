@@ -5,7 +5,7 @@ import type { Name, Visit } from '@/app/page';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, History, Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
@@ -66,6 +66,13 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
   const [visitorInput, setVisitorInput] = useState('');
   const [dateInput, setDateInput] = useState<Date | undefined>(new Date());
+
+  const mostRecentVisit = (name.visitHistory || []).reduce<Visit | null>((latest, visit) => {
+    if (!latest) return visit;
+    const latestDate = new Date(latest.date);
+    const visitDate = new Date(visit.date);
+    return isAfter(visitDate, latestDate) ? visit : latest;
+  }, null);
 
   const handleUpdate = () => {
     if (editText.trim()) {
@@ -164,7 +171,18 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   return (
     <>
       <div className="flex items-center gap-2 p-3 rounded-md bg-card border hover:bg-secondary/50 transition-colors duration-200">
-          <span className="flex-grow text-foreground">{name.text}</span>
+          <div className="flex-grow">
+            <p className="font-medium text-foreground">{name.text}</p>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+              <CalendarIcon className="h-3 w-3" />
+              {mostRecentVisit ? (
+                  <span>{format(new Date(mostRecentVisit.date), "PPP", { locale: ptBR })}</span>
+              ) : (
+                  <span>Nenhuma visita</span>
+              )}
+            </div>
+          </div>
+          
           {name.fieldGroup && <Badge variant="outline" className="hidden sm:inline-flex">{name.fieldGroup}</Badge>}
           <Badge variant={getStatusVariant(name.status)} className="capitalize">{name.status}</Badge>
           
