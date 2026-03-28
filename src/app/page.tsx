@@ -87,6 +87,13 @@ export default function Home() {
     if (!user || !userProfile) return null;
     return userProfile.role === 'helper' ? userProfile.adminId : user.uid;
   }, [user, userProfile]);
+  
+  // Fetch admin profile if current user is a helper
+  const adminProfileRef = useMemoFirebase(() => {
+    if (!firestore || !dataOwnerId || !user || dataOwnerId === user.uid) return null;
+    return doc(firestore, 'users', dataOwnerId);
+  }, [firestore, dataOwnerId, user]);
+  const { data: adminProfile, loading: adminProfileLoading } = useDoc<UserProfile>(adminProfileRef);
 
   // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
@@ -389,7 +396,7 @@ export default function Home() {
 
   const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading;
+  const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
   useEffect(() => {
     if (!userLoading && !user) {
@@ -436,6 +443,7 @@ export default function Home() {
                   updateName={updateName}
                   deleteName={deleteName}
                   fieldGroups={fieldGroups.map(fg => fg.name)}
+                  adminName={adminProfile?.name}
                 />
               </div>
             )}
@@ -475,6 +483,7 @@ export default function Home() {
                 updateName={updateName}
                 deleteName={deleteName}
                 fieldGroups={fieldGroups.map(fg => fg.name)}
+                adminName={adminProfile?.name}
               />
             </div>
             

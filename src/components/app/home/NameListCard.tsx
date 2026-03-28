@@ -13,6 +13,7 @@ interface NameListCardProps {
   updateName: (id: string, newNameData: Partial<Omit<Name, 'id'>>) => void;
   deleteName: (id: string) => void;
   fieldGroups: string[];
+  adminName?: string;
 }
 
 export function NameListCard({
@@ -22,16 +23,21 @@ export function NameListCard({
   updateName,
   deleteName,
   fieldGroups,
+  adminName,
 }: NameListCardProps) {
+  const description = adminName 
+    ? `Você está vendo a lista de ${adminName}, com ${names.length} ${names.length === 1 ? 'nome' : 'nomes'}.`
+    : `Você tem ${names.length} ${names.length === 1 ? 'nome' : 'nomes'} na sua lista.`;
+    
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
-          <span>Sua Lista</span>
+          <span>{adminName ? `Lista de ${adminName}` : 'Sua Lista'}</span>
         </CardTitle>
         <CardDescription>
-          {`Você tem ${names.length} ${names.length === 1 ? 'nome' : 'nomes'} na sua lista.`}
+          {description}
         </CardDescription>
       </CardHeader>
       <CardContent>
