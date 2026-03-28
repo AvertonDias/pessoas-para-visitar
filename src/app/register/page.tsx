@@ -3,17 +3,19 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useFirebaseApp, useUser } from '@/firebase';
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
+import { useFirebaseApp, useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { processRegistration } from '@/lib/firebase-services';
 
 export default function RegisterPage() {
   const app = useFirebaseApp();
+  const firestore = useFirestore();
   const auth = getAuth(app);
   const router = useRouter();
   const { toast } = useToast();
@@ -22,12 +24,19 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+
+  const handleSuccessfulRegistration = async (credential: UserCredential) => {
+    if (firestore) {
+      await processRegistration(firestore, credential.user);
+    }
+  };
   
   const handleGoogleSignIn = async () => {
     setIsRegistering(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const credential = await signInWithPopup(auth, provider);
+      await handleSuccessfulRegistration(credential);
     } catch (error: any) {
       if (error.code !== 'auth/cancelled-popup-request') {
         console.error("Error signing in with Google", error);
@@ -50,7 +59,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsRegistering(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      await handleSuccessfulRegistration(credential);
     } catch (error: any) {
       console.error("Error signing up with email", error);
        let description = "Ocorreu um erro ao criar sua conta.";

@@ -1,9 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read and write their own data.
-    match /users/{userId}/{allPaths=**} {
+
+    // Rule for user profiles
+    match /users/{userId} {
+      // Users can read and write their own profile.
+      // Admins can also read their helpers' profiles to manage them.
       allow read, write: if request.auth.uid == userId;
+      allow read: if get(/databases/$(database)/documents/users/$(userId)).data.adminId == request.auth.uid;
+    }
+
+    // Rule for data owned by a user (admin)
+    match /users/{ownerId}/{collection}/{docId} {
+        // Allow access if the requester is the owner OR if their user profile in Firestore
+        // marks them as a helper for the owner. This uses a 'get' call, which is necessary
+        // for this type of delegated permission model.
+        allow read, write: if request.auth.uid == ownerId ||
+                             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminId == ownerId;
+    }
+
+    // Rule for invitations subcollection
+    match /users/{adminId}/invitations/{invitationId} {
+        // Only the admin can create, read, or delete invitations.
+        allow read, write, delete: if request.auth.uid == adminId;
     }
   }
 }

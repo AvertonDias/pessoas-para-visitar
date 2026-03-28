@@ -1,5 +1,36 @@
 {
   "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "type": "object",
+      "description": "Represents a user of the application, defining their role and associations.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The user's email address."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "helper"
+          ],
+          "description": "The user's role in the application."
+        },
+        "adminId": {
+          "type": "string",
+          "description": "If the user is a helper, this is the UID of their admin."
+        }
+      },
+      "required": [
+        "email",
+        "role"
+      ]
+    },
     "Nome": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Nome",
@@ -30,6 +61,40 @@
         "valor",
         "dataCriacao"
       ]
+    },
+    "FieldGroup": {
+      "title": "Field Group",
+      "type": "object",
+      "description": "Represents a group to categorize names.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the group."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the group was created."
+        }
+      },
+      "required": [
+        "name",
+        "createdAt"
+      ]
+    },
+    "Invitation": {
+      "title": "Invitation",
+      "type": "object",
+      "description": "Represents a pending invitation for a user to become a helper.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email of the user being invited."
+        }
+      },
+      "required": [
+        "email"
+      ]
     }
   },
   "auth": {
@@ -42,26 +107,56 @@
   "firestore": {
     "structure": [
       {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores the profile information for each user, including their role and admin association if they are a helper."
+        }
+      },
+      {
         "path": "/users/{userId}/nomes/{nomeId}",
         "definition": {
           "entityName": "Nome",
           "schema": {
             "$ref": "#/backend/entities/Nome"
           },
-          "description": "Cada documento representa um nome individual na lista de nomes de um usuário específico. O `userId` no caminho atua como o identificador do proprietário, garantindo a independência da autorização e simplificando as regras de segurança. Inclui campos para valor, data de criação e data de atualização.",
+          "description": "Each document represents an individual name in a user's list. The `userId` is the owner of the data.",
           "params": [
             {
               "name": "userId",
-              "description": "O identificador único do usuário proprietário desta lista de nomes."
+              "description": "The unique identifier of the user who owns this list of names."
             },
             {
               "name": "nomeId",
-              "description": "O identificador único para um nome específico dentro da lista do usuário."
+              "description": "The unique identifier for a specific name within the user's list."
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/fieldGroups/{groupId}",
+        "definition": {
+          "entityName": "FieldGroup",
+          "schema": {
+            "$ref": "#/backend/entities/FieldGroup"
+          },
+          "description": "Represents a group created by a user to categorize their names. The `userId` is the owner of the group."
+        }
+      },
+      {
+        "path": "/users/{adminId}/invitations/{invitationId}",
+        "definition": {
+          "entityName": "Invitation",
+          "schema": {
+            "$ref": "#/backend/entities/Invitation"
+          },
+          "description": "Stores pending invitations sent by an admin to potential helpers."
+        }
       }
     ],
-    "reasoning": "A estrutura de dados recomendada utiliza o padrão de subcoleções aninhadas sob um identificador de usuário (`/users/{userId}/nomes/{nomeId}`). Esta abordagem é fundamental para garantir a segurança, escalabilidade e depurabilidade, conforme os princípios e mandatos estabelecidos.\n\n**Justificativa de Design:**\n\n1.  **Independência de Autorização (CRÍTICO):** A propriedade `ownerId` ou qualquer campo similar é implicitamente definida pelo `{userId}` no caminho. Para o documento `Nome` em `/users/{userId}/nomes/{nomeId}`, o `userId` no caminho *é* o proprietário. Isso elimina completamente a necessidade de chamadas `get()` nas regras de segurança para verificar a propriedade ou associações com documentos pai. As regras se tornam simples: `allow read, write: if request.auth.uid == userId;`. Esta denormalização via caminho é crucial para permitir operações atômicas (transações/batches) sem quebrar as verificações de segurança e simplifica enormemente a depuração de regras.\n\n2.  **QAPs (Consultas como Permissões):** A estrutura suporta QAPs de forma nativa e robusta. Quando um usuário solicita sua lista de nomes, a consulta é direcionada para `/users/{request.auth.uid}/nomes`. As regras de segurança do Firestore garantem automaticamente que apenas os documentos onde o `{userId}` no caminho corresponde a `request.auth.uid` serão retornados. Isso significa que as regras não precisam atuar como filtros, evitando consultas ineficientes ou inseguras. A autorização é baseada na `solicitação`, não nos `dados`, garantindo que apenas dados autorizados sejam acessíveis, mesmo em operações de listagem.\n\n3.  **Segregação Estrutural:** Todos os documentos dentro da subcoleção `/users/{userId}/nomes` possuem o mesmo requisito de segurança: acesso exclusivo pelo `{userId}` proprietário. Isso mantém uma postura de segurança homogênea para cada coleção de nomes de usuário, prevenindo a mistura de dados com diferentes requisitos de acesso e simplificando drasticamente as regras de segurança para essa coleção.\n\n4.  **Adesão aos Mandatos:**\n    *   **Autorização Independente via Desnormalização (A):** Conforme explicado, o `userId` no caminho atua como o contexto de autorização desnormalizado.\n    *   **Segregação Estrutural (B):** A coleção de nomes de cada usuário é segregada, garantindo uma postura de segurança consistente.\n    *   **Modelagem de Acesso (C):** Utiliza o padrão de \"Dados Privados\" e \"Caminhos Hierárquicos para Dados de Propriedade do Usuário\" (`/users/{userId}/nomes/{nomeId}`), que é a abordagem mais segura e eficiente para dados de propriedade individual.\n    *   **Clareza e Previsibilidade dos Dados (D):** O schema `Nome` é claro e previsível. Os wildcards (`{userId}`, `{nomeId}`) são semanticamente descritivos.\n\nEste design cria uma base segura e fácil de gerenciar para todas as funcionalidades de gerenciamento de nomes da aplicação, garantindo que as interações do usuário com sua lista de nomes sejam protegidas e eficientes."
+    "reasoning": "The data structure now includes a top-level `/users/{userId}` collection to store user profiles with role-based access control information (`role`, `adminId`). Data collections like `nomes` and `fieldGroups` remain nested under `/users/{ownerId}` to maintain clear data ownership. A new `invitations` sub-collection is added to manage the helper invitation workflow. This structure allows for secure, delegated access using Firestore's path-based security and `get()` calls in rules to verify helper status."
   }
 }

@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
 import { FieldGroupsCard } from '@/components/app/home/FieldGroupsCard';
+import { HelpersCard } from '@/components/app/home/HelpersCard';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 
 export type Visit = {
@@ -38,6 +39,20 @@ export type FieldGroup = {
   name: string;
 };
 
+export type UserProfile = {
+  id: string;
+  name?: string;
+  email: string;
+  role: 'admin' | 'helper';
+  adminId?: string;
+};
+
+export type Helper = {
+  id: string;
+  email: string;
+};
+
+
 export default function Home() {
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
@@ -45,27 +60,45 @@ export default function Home() {
   const router = useRouter();
   
   const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<'pessoas' | 'grupos'>('pessoas');
+  const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes'>('pessoas');
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const dataOwnerId = useMemo(() => {
+    if (!user || !userProfile) return null;
+    return userProfile.role === 'helper' ? userProfile.adminId : user.uid;
+  }, [user, userProfile]);
+
   // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'names'));
-  }, [user, firestore]);
+    if (!dataOwnerId || !firestore) return null;
+    return query(collection(firestore, 'users', dataOwnerId, 'names'));
+  }, [dataOwnerId, firestore]);
   const { data: namesData, loading: namesLoading } = useCollection<Name>(namesQuery);
   const names = namesData || [];
 
   const groupsQuery = useMemoFirebase(() => {
-      if (!user || !firestore) return null;
-      return query(collection(firestore, 'users', user.uid, 'fieldGroups'));
-  }, [user, firestore]);
+    if (!dataOwnerId || !firestore) return null;
+    return query(collection(firestore, 'users', dataOwnerId, 'fieldGroups'));
+  }, [dataOwnerId, firestore]);
   const { data: fieldGroupsData, loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   const fieldGroups = fieldGroupsData || [];
+
+  const helpersQuery = useMemoFirebase(() => {
+    if (!user || !firestore || userProfile?.role !== 'admin') return null;
+    return query(collection(firestore, 'users'), services.where('adminId', '==', user.uid));
+  }, [user, firestore, userProfile]);
+  const { data: helpersData, loading: helpersLoading } = useCollection<Helper>(helpersQuery);
+  const helpers = helpersData || [];
 
   const groupCounts = useMemo(() => {
     return names.reduce((acc, name) => {
@@ -86,7 +119,7 @@ export default function Home() {
   });
 
   const addName = () => {
-    if (!user || !firestore) return;
+    if (!dataOwnerId || !firestore) return;
     if (draftName.text.trim() === '') {
       toast({
         variant: "destructive",
@@ -100,7 +133,7 @@ export default function Home() {
       status: draftName.status,
       fieldGroup: draftName.fieldGroup,
     };
-    services.addName(firestore, user.uid, newNameToAdd);
+    services.addName(firestore, dataOwnerId, newNameToAdd);
     toast({
       title: "Nome adicionado",
       description: `${draftName.text.trim()} foi adicionado à lista.`,
@@ -115,14 +148,14 @@ export default function Home() {
 
   const handleAddGroupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !firestore) return;
+    if (!dataOwnerId || !firestore) return;
 
     const newGroupInput = e.currentTarget.querySelector('input');
     if (!newGroupInput) return;
 
     const newGroupName = newGroupInput.value.trim();
     if (newGroupName && !fieldGroups.some(g => g.name === newGroupName)) {
-      services.addFieldGroup(firestore, user.uid, newGroupName);
+      services.addFieldGroup(firestore, dataOwnerId, newGroupName);
       toast({
         title: "Grupo adicionado",
         description: `O grupo "${newGroupName}" foi criado.`,
@@ -138,11 +171,11 @@ export default function Home() {
   };
   
   const deleteGroup = (groupId: string) => {
-    if (!user || !firestore) return;
+    if (!dataOwnerId || !firestore) return;
     const groupToDelete = fieldGroups.find(g => g.id === groupId);
     if (!groupToDelete) return;
 
-    services.deleteFieldGroup(firestore, user.uid, groupId);
+    services.deleteFieldGroup(firestore, dataOwnerId, groupId);
 
     // Remove the group from any names that have it assigned.
     names.forEach(name => {
@@ -158,7 +191,7 @@ export default function Home() {
   };
 
   const updateGroup = (groupId: string, newName: string): boolean => {
-    if (!user || !firestore) return false;
+    if (!dataOwnerId || !firestore) return false;
     const oldGroup = fieldGroups.find(g => g.id === groupId);
     if (!oldGroup) return false;
 
@@ -176,7 +209,7 @@ export default function Home() {
       return false;
     }
     
-    services.updateFieldGroup(firestore, user.uid, groupId, trimmedNewName);
+    services.updateFieldGroup(firestore, dataOwnerId, groupId, trimmedNewName);
 
     // Update names associated with the old group name
     names.forEach(name => {
@@ -193,13 +226,13 @@ export default function Home() {
   };
 
   const updateName = (id: string, newNameData: Partial<Omit<Name, 'id'>>) => {
-    if (!user || !firestore) return;
-    services.updateName(firestore, user.uid, id, newNameData);
+    if (!dataOwnerId || !firestore) return;
+    services.updateName(firestore, dataOwnerId, id, newNameData);
   };
 
   const deleteName = (id: string) => {
-    if (!user || !firestore) return;
-    services.deleteName(firestore, user.uid, id);
+    if (!dataOwnerId || !firestore) return;
+    services.deleteName(firestore, dataOwnerId, id);
     toast({
         title: "Nome removido",
         description: `O nome foi removido da lista.`,
@@ -208,13 +241,13 @@ export default function Home() {
 
   const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const isLoading = userLoading || namesLoading || groupsLoading;
+  const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading;
   
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!userLoading && !user) {
       router.replace('/login');
     }
-  }, [isLoading, user, router]);
+  }, [userLoading, user, router]);
 
 
   if (isLoading || !user || !isClient) {
@@ -224,6 +257,8 @@ export default function Home() {
         </div>
       )
   }
+  
+  const isAdmin = userProfile?.role === 'admin';
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -231,10 +266,11 @@ export default function Home() {
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
         {isMobile ? (
           <div className="space-y-4">
-            <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as 'pessoas' | 'grupos')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted p-1">
+            <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted p-1">
                 <TabsTrigger value="pessoas" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Pessoas</TabsTrigger>
-                <TabsTrigger value="grupos" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Grupos</TabsTrigger>
+                 {isAdmin && <TabsTrigger value="grupos" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Grupos</TabsTrigger>}
+                 {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Ajudantes</TabsTrigger>}
               </TabsList>
             </Tabs>
             
@@ -256,7 +292,7 @@ export default function Home() {
               </div>
             )}
 
-            {mobileView === 'grupos' && (
+            {isAdmin && mobileView === 'grupos' && (
               <div className="space-y-8 mt-4">
                  <FieldGroupsCard
                     handleAddGroupSubmit={handleAddGroupSubmit}
@@ -265,6 +301,12 @@ export default function Home() {
                     deleteGroup={deleteGroup}
                     groupCounts={groupCounts}
                   />
+              </div>
+            )}
+
+             {isAdmin && mobileView === 'ajudantes' && (
+              <div className="space-y-8 mt-4">
+                 <HelpersCard ownerId={user.uid} helpers={helpers} />
               </div>
             )}
           </div>
@@ -287,13 +329,18 @@ export default function Home() {
             </div>
             
             <div className="lg:col-span-1 space-y-8">
-              <FieldGroupsCard
-                handleAddGroupSubmit={handleAddGroupSubmit}
-                fieldGroups={fieldGroups}
-                updateGroup={updateGroup}
-                deleteGroup={deleteGroup}
-                groupCounts={groupCounts}
-              />
+              {isAdmin && (
+                <>
+                  <FieldGroupsCard
+                    handleAddGroupSubmit={handleAddGroupSubmit}
+                    fieldGroups={fieldGroups}
+                    updateGroup={updateGroup}
+                    deleteGroup={deleteGroup}
+                    groupCounts={groupCounts}
+                  />
+                  <HelpersCard ownerId={user.uid} helpers={helpers} />
+                </>
+              )}
             </div>
           </div>
         )}
