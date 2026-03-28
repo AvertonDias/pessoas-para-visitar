@@ -21,6 +21,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, where } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
+import { calculateStatusFromHistory } from '@/lib/status-logic';
 
 export type Visit = {
   id: string;
@@ -264,59 +265,73 @@ export default function Home() {
           return;
         }
 
-        const header = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const header = rows[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
         const dataRows = rows.slice(1);
         
-        // Name columns
-        const displayNameIndex = header.findIndex(h => h === 'displayname');
-        const firstNameIndex = header.findIndex(h => h === 'firstname');
-        const middleNameIndex = header.findIndex(h => h === 'middlename');
-        const lastNameIndex = header.findIndex(h => h === 'lastname');
+        const nameKeys = {
+          displayName: ['displayname', 'nome', 'nome completo'],
+          firstName: ['firstname'],
+          middleName: ['middlename'],
+          lastName: ['lastname'],
+          group: ['groupname', 'grupo'],
+          address: ['address', 'endereço'],
+          phoneMobile: ['phonemobile', 'telefone'],
+          phoneHome: ['phonehome'],
+          personId: ['personid'],
+          moved: ['moved'],
+          active: ['active'],
+          regular: ['regular'],
+          dateOfRemoved: ['dateofremoved'],
+        };
+        
+        const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
 
-        // Contact and group columns
-        const groupIndex = header.findIndex(h => ['groupname', 'grupo'].includes(h));
-        const addressIndex = header.findIndex(h => ['address', 'endereço'].includes(h));
-        const phoneMobileIndex = header.findIndex(h => h === 'phonemobile');
-        const phoneHomeIndex = header.findIndex(h => h === 'phonehome');
-        const personIdIndex = header.findIndex(h => h === 'personid');
-
-        // Status logic columns
-        const movedIndex = header.findIndex(h => h === 'moved');
-        const activeIndex = header.findIndex(h => h === 'active');
-        const regularIndex = header.findIndex(h => h === 'regular');
-        const dateOfRemovedIndex = header.findIndex(h => h === 'dateofremoved');
+        const displayNameIndex = getIndex(nameKeys.displayName);
+        const firstNameIndex = getIndex(nameKeys.firstName);
+        const middleNameIndex = getIndex(nameKeys.middleName);
+        const lastNameIndex = getIndex(nameKeys.lastName);
+        const groupIndex = getIndex(nameKeys.group);
+        const addressIndex = getIndex(nameKeys.address);
+        const phoneMobileIndex = getIndex(nameKeys.phoneMobile);
+        const phoneHomeIndex = getIndex(nameKeys.phoneHome);
+        const personIdIndex = getIndex(nameKeys.personId);
+        const movedIndex = getIndex(nameKeys.moved);
+        const activeIndex = getIndex(nameKeys.active);
+        const regularIndex = getIndex(nameKeys.regular);
+        const dateOfRemovedIndex = getIndex(nameKeys.dateOfRemoved);
 
         if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
-            toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter a coluna 'DisplayName' ou as colunas 'FirstName' e 'LastName'." });
+            toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter 'DisplayName' ou 'FirstName' e 'LastName'." });
             return;
         }
 
         const importedResult: ImportedName[] = dataRows.map(row => {
-          // Clean up values: trim spaces and remove quotes.
           const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
           
           let text = '';
           const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
 
-          if (fullName) {
-            text = fullName;
+          if (fullName.trim()) {
+            text = fullName.trim();
           } else if (displayNameIndex !== -1 && values[displayNameIndex]) {
             text = values[displayNameIndex];
           }
 
-          // Status determination logic based on user's rules
-          let status: Name['status'] = 'regular'; // Default status
+          let status: Name['status'] = 'regular';
           const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
-          const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
-          const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
           const hasDateOfRemoved = dateOfRemovedIndex !== -1 && values[dateOfRemovedIndex]?.trim() !== '';
-
+          
           if (isMoved || hasDateOfRemoved) {
             status = 'removido';
-          } else if (activeIndex !== -1 && !isActive) {
-            status = 'inativo';
-          } else if (regularIndex !== -1 && !isRegular) {
-            status = 'irregular';
+          } else {
+            const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
+            const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
+
+            if (activeIndex !== -1 && !isActive) {
+              status = 'inativo';
+            } else if (regularIndex !== -1 && !isRegular) {
+              status = 'irregular';
+            }
           }
 
           const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
@@ -345,7 +360,7 @@ export default function Home() {
       }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
+    event.target.value = '';
   };
   
   const handleConfirmImport = async () => {
