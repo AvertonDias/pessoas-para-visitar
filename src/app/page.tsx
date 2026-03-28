@@ -143,7 +143,6 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('visit-desc');
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
@@ -494,23 +493,7 @@ export default function Home() {
 
   const filteredNames = useMemo(() => {
     let sortedNames = names.slice().sort((a, b) => {
-      switch (sortBy) {
-        case 'visit-desc': {
-          const aDate = getMostRecentVisitDate(a.visitHistory);
-          const bDate = getMostRecentVisitDate(b.visitHistory);
-          return bDate.getTime() - aDate.getTime();
-        }
-        case 'visit-asc': {
-          const aDate = getMostRecentVisitDate(a.visitHistory);
-          const bDate = getMostRecentVisitDate(b.visitHistory);
-          return aDate.getTime() - bDate.getTime();
-        }
-        case 'text-desc':
-          return b.text.localeCompare(a.text);
-        case 'text-asc':
-        default:
-          return a.text.localeCompare(b.text);
-      }
+      return a.text.localeCompare(b.text);
     });
 
     return sortedNames.filter(name => {
@@ -530,7 +513,7 @@ export default function Home() {
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
     });
-  }, [names, searchTerm, selectedGroup, selectedStatus, sortBy]);
+  }, [names, searchTerm, selectedGroup, selectedStatus]);
 
   const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
@@ -584,8 +567,6 @@ export default function Home() {
                   setSelectedGroup={setSelectedGroup}
                   selectedStatus={selectedStatus}
                   setSelectedStatus={setSelectedStatus}
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
                 />
               </div>
             )}
@@ -630,8 +611,6 @@ export default function Home() {
                 setSelectedGroup={setSelectedGroup}
                 selectedStatus={selectedStatus}
                 setSelectedStatus={setSelectedStatus}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
               />
             </div>
             
