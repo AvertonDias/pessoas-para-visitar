@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
 import { useFirebaseApp, useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,16 @@ import { ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { processRegistration } from '@/lib/firebase-services';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const app = useFirebaseApp();
   const firestore = useFirestore();
   const auth = getAuth(app);
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading } = useUser();
+  
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +30,7 @@ export default function RegisterPage() {
 
   const handleSuccessfulRegistration = async (credential: UserCredential) => {
     if (firestore) {
-      await processRegistration(firestore, credential.user);
+      await processRegistration(firestore, credential.user, inviteToken);
     }
   };
   
@@ -94,69 +97,91 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <ListTodo className="h-12 w-12 text-primary" />
+    <Card className="w-full max-w-sm">
+      <CardHeader className="text-center">
+        <div className="flex justify-center mb-4">
+          <ListTodo className="h-12 w-12 text-primary" />
+        </div>
+        <CardTitle className="text-2xl">Crie seu Acesso</CardTitle>
+        <CardDescription>
+          {inviteToken 
+            ? 'Crie uma conta para aceitar o convite.' 
+            : 'Salve seus dados criando uma conta com e-mail e senha ou usando o Google.'
+          }
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleEmailSignUp} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isRegistering}
+            />
           </div>
-          <CardTitle className="text-2xl">Crie seu Acesso Permanente</CardTitle>
-          <CardDescription>Salve seus dados criando uma conta com e-mail e senha ou usando o Google.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleEmailSignUp} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isRegistering}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isRegistering}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isRegistering}>
-              {isRegistering ? 'Criando...' : 'Criar Conta com E-mail'}
-            </Button>
-          </form>
-          
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Ou crie com
-              </span>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isRegistering}
+            />
           </div>
-
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isRegistering}>
-            Google
+          <Button type="submit" className="w-full" disabled={isRegistering}>
+            {isRegistering ? 'Criando...' : 'Criar Conta com E-mail'}
           </Button>
-
-          <div className="mt-4 text-center text-sm">
-            Já tem uma conta?{" "}
-            <Link href="/login" className="underline">
-              Faça login
-            </Link>
+        </form>
+        
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
           </div>
-        </CardContent>
-      </Card>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Ou crie com
+            </span>
+          </div>
+        </div>
+
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isRegistering}>
+          Google
+        </Button>
+
+        <div className="mt-4 text-center text-sm">
+          Já tem uma conta?{" "}
+          <Link href="/login" className="underline">
+            Faça login
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <Suspense fallback={
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <ListTodo className="h-12 w-12 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Carregando...</CardTitle>
+          </CardHeader>
+        </Card>
+      }>
+        <RegisterForm />
+      </Suspense>
     </div>
   );
 }

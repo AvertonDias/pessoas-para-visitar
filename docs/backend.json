@@ -85,15 +85,34 @@
     "Invitation": {
       "title": "Invitation",
       "type": "object",
-      "description": "Represents a pending invitation for a user to become a helper.",
+      "description": "Represents a pending invitation token for a user to become a helper.",
       "properties": {
-        "email": {
+        "adminId": {
           "type": "string",
-          "description": "The email of the user being invited."
+          "description": "The UID of the admin who created the invitation."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the invitation was created."
+        },
+        "claimed": {
+          "type": "boolean",
+          "description": "Whether the invitation has been claimed."
+        },
+        "claimedBy": {
+          "type": "string",
+          "description": "The UID of the user who claimed the invitation."
+        },
+        "claimedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the invitation was claimed."
         }
       },
       "required": [
-        "email"
+        "adminId",
+        "createdAt"
       ]
     }
   },
@@ -147,16 +166,16 @@
         }
       },
       {
-        "path": "/users/{adminId}/invitations/{invitationId}",
+        "path": "/invitations/{invitationId}",
         "definition": {
           "entityName": "Invitation",
           "schema": {
             "$ref": "#/backend/entities/Invitation"
           },
-          "description": "Stores pending invitations sent by an admin to potential helpers."
+          "description": "Stores single-use invitation tokens that link a new helper to an admin."
         }
       }
     ],
-    "reasoning": "The data structure now includes a top-level `/users/{userId}` collection to store user profiles with role-based access control information (`role`, `adminId`). Data collections like `nomes` and `fieldGroups` remain nested under `/users/{ownerId}` to maintain clear data ownership. A new `invitations` sub-collection is added to manage the helper invitation workflow. This structure allows for secure, delegated access using Firestore's path-based security and `get()` calls in rules to verify helper status."
+    "reasoning": "The data structure now includes a top-level `/users/{userId}` collection to store user profiles with role-based access control information (`role`, `adminId`). Data collections like `nomes` and `fieldGroups` remain nested under `/users/{ownerId}` to maintain clear data ownership. A new root-level `invitations` collection manages the helper invitation workflow via shareable tokens. This structure allows for secure, delegated access using Firestore's path-based security and `get()` calls in rules to verify helper status."
   }
 }

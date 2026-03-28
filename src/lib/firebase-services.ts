@@ -1,9 +1,9 @@
 import {
   addDoc,
   collection,
-  collectionGroup,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -18,39 +18,52 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 
 // User Profile and Registration
-export const processRegistration = async (db: Firestore, user: User) => {
+export const processRegistration = async (db: Firestore, user: User, inviteToken?: string | null) => {
   const userProfileRef = doc(db, 'users', user.uid);
-  
-  // Check for invitations
-  const invitationsQuery = query(collectionGroup(db, 'invitations'), where('email', '==', user.email));
-  const invitationSnapshot = await getDocs(invitationsQuery);
 
-  if (!invitationSnapshot.empty) {
-    // User was invited, create helper profile
-    const invitation = invitationSnapshot.docs[0];
-    const adminId = invitation.ref.parent.parent?.id;
+  // Check for invite token first
+  if (inviteToken) {
+    const inviteRef = doc(db, 'invitations', inviteToken);
+    try {
+      const inviteSnap = await getDoc(inviteRef);
 
-    if (adminId) {
-      const profile: Omit<UserProfile, 'id'> = {
-        email: user.email!,
-        name: user.displayName,
-        role: 'helper',
-        adminId: adminId,
-      };
-      await setDoc(userProfileRef, profile);
-      // Delete the invitation so it can't be reused
-      await deleteDoc(invitation.ref);
+      if (inviteSnap.exists() && inviteSnap.data().claimed === false) {
+        // User was invited, create helper profile
+        const adminId = inviteSnap.data().adminId;
+
+        if (adminId) {
+          const profile: Omit<UserProfile, 'id'> = {
+            email: user.email!,
+            name: user.displayName,
+            role: 'helper',
+            adminId: adminId,
+          };
+          await setDoc(userProfileRef, profile);
+
+          // Mark the invitation as claimed
+          await updateDoc(inviteRef, {
+            claimed: true,
+            claimedBy: user.uid,
+            claimedAt: serverTimestamp(),
+          });
+          return; // Stop execution
+        }
+      }
+    } catch (error) {
+        console.error("Error processing invitation:", error);
     }
-  } else {
-    // No invitation, create admin profile
-    const profile: Omit<UserProfile, 'id'> = {
-      email: user.email!,
-      name: user.displayName,
-      role: 'admin',
-    };
-    await setDoc(userProfileRef, profile);
+    // If token is invalid, claimed, or an error occurs, fall through to default behavior
   }
+  
+  // Default behavior: No valid invitation, create admin profile
+  const profile: Omit<UserProfile, 'id'> = {
+    email: user.email!,
+    name: user.displayName,
+    role: 'admin',
+  };
+  await setDoc(userProfileRef, profile);
 };
+
 
 // Names
 
@@ -66,7 +79,7 @@ export const addName = (db: Firestore, userId: string, nameData: Omit<Name, 'id'
       const permissionError = new FirestorePermissionError({
         path: namesCollection.path,
         operation: 'create',
-        requestResourceData: data
+        requestResourceData: data,
       });
       errorEmitter.emit('permission-error', permissionError);
     });
@@ -145,17 +158,27 @@ export const deleteFieldGroup = (db: Firestore, userId: string, groupId: string)
 
 // Helpers & Invitations
 
-export const inviteHelper = (db: Firestore, ownerId: string, email: string) => {
-  const invitationsCollection = collection(db, 'users', ownerId, 'invitations');
-  addDoc(invitationsCollection, { email })
-    .catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: invitationsCollection.path,
-        operation: 'create',
-        requestResourceData: { email },
-      });
-      errorEmitter.emit('permission-error', permissionError);
+export const createInvitation = async (db: Firestore, adminId: string): Promise<string> => {
+  const invitationsCollection = collection(db, 'invitations');
+  const data = {
+    adminId,
+    createdAt: serverTimestamp(),
+    claimed: false,
+    claimedBy: null,
+    claimedAt: null,
+  };
+  try {
+    const docRef = await addDoc(invitationsCollection, data);
+    return docRef.id;
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: invitationsCollection.path,
+      operation: 'create',
+      requestResourceData: data,
     });
+    errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
+  }
 };
 
 export const removeHelper = (db: Firestore, helperId: string) => {
