@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/app/Header';
 import { useToast } from '@/hooks/use-toast';
 import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
@@ -15,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
-import { Login } from '@/components/app/Login';
 
 export type Visit = {
   id: string;
@@ -40,6 +40,7 @@ export default function Home() {
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   // Data fetching from Firestore
   const namesQuery = useMemo(() => {
@@ -187,17 +188,20 @@ export default function Home() {
   const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const isLoading = userLoading || namesLoading || groupsLoading;
+  
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isLoading, user, router]);
 
-  if (isLoading) {
+
+  if (isLoading || !user) {
       return (
         <div className="flex min-h-screen flex-col bg-background items-center justify-center">
             <p className="text-lg text-muted-foreground">Carregando...</p>
         </div>
       )
-  }
-
-  if (!user) {
-    return <Login />;
   }
 
   return (
