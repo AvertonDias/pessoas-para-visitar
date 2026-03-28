@@ -205,13 +205,12 @@ export default function Home() {
               <Label htmlFor="fieldgroup-add" className="text-right">Grupo</Label>
               <Select
                 value={draftName.fieldGroup}
-                onValueChange={(value) => setDraftName(prev => ({ ...prev, fieldGroup: value === '---none---' ? '' : value }))}
+                onValueChange={(value) => setDraftName(prev => ({ ...prev, fieldGroup: value }))}
               >
                 <SelectTrigger id="fieldgroup-add" className="col-span-3">
                   <SelectValue placeholder="Selecione um grupo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="---none---">Nenhum</SelectItem>
                   {fieldGroups.map((group) => (
                     <SelectItem key={group} value={group}>{group}</SelectItem>
                   ))}

@@ -170,12 +170,11 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
-                          <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value === '---none---' ? '' : value)}>
+                          <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value)}>
                               <SelectTrigger id="fieldgroup-edit" className="col-span-3">
                                   <SelectValue placeholder="Selecione um grupo" />
                               </SelectTrigger>
                               <SelectContent>
-                                  <SelectItem value="---none---">Nenhum</SelectItem>
                                   {fieldGroups.map((group) => (
                                       <SelectItem key={group} value={group}>{group}</SelectItem>
                                   ))}
