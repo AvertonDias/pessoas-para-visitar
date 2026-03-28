@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "Visit": {
+      "title": "Visit",
+      "description": "Represents a single visit in the history.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the visit."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the visit in ISO format.",
+          "format": "date-time"
+        },
+        "visitors": {
+          "type": "string",
+          "description": "Names of the people who made the visit."
+        }
+      },
+      "required": [
+        "id",
+        "date"
+      ]
+    },
+    "Name": {
+      "title": "Name",
+      "description": "Represents a person in the list.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The person's name."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the person.",
+          "enum": [
+            "regular",
+            "irregular",
+            "inativo",
+            "removido"
+          ]
+        },
+        "fieldGroup": {
+          "type": "string",
+          "description": "The field group this person belongs to."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the name was created."
+        },
+        "visitHistory": {
+          "type": "array",
+          "description": "A history of visits.",
+          "items": {
+            "$ref": "#/entities/Visit"
+          }
+        }
+      },
+      "required": [
+        "text",
+        "status",
+        "createdAt"
+      ]
+    },
+    "FieldGroup": {
+      "title": "Field Group",
+      "description": "A group to categorize names.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the group."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the group was created."
+        }
+      },
+      "required": [
+        "name",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}/names/{nameId}": {
+      "schema": {
+        "$ref": "#/entities/Name"
+      },
+      "description": "Stores the names for each user."
+    },
+    "/users/{userId}/fieldGroups/{fieldGroupId}": {
+      "schema": {
+        "$ref": "#/entities/FieldGroup"
+      },
+      "description": "Stores the field groups for each user."
+    }
+  }
+}

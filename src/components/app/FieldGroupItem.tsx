@@ -15,26 +15,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FieldGroup } from '@/app/page';
 
 interface FieldGroupItemProps {
-  group: string;
-  updateGroup: (oldName: string, newName: string) => boolean;
-  deleteGroup: (groupName: string) => void;
+  group: FieldGroup;
+  updateGroup: (groupId: string, newName: string) => boolean;
+  deleteGroup: (groupId: string) => void;
 }
 
 export function FieldGroupItem({ group, updateGroup, deleteGroup }: FieldGroupItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(group);
+  const [editText, setEditText] = useState(group.name);
 
   const handleUpdate = () => {
-    if (editText.trim() === group) {
+    if (editText.trim() === group.name) {
         setIsEditing(false);
-        setEditText(group);
+        setEditText(group.name);
         return;
     }
 
     if (editText.trim()) {
-      const success = updateGroup(group, editText.trim());
+      const success = updateGroup(group.id, editText.trim());
       if (success) {
         setIsEditing(false);
       }
@@ -43,7 +44,7 @@ export function FieldGroupItem({ group, updateGroup, deleteGroup }: FieldGroupIt
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditText(group);
+    setEditText(group.name);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -75,14 +76,14 @@ export function FieldGroupItem({ group, updateGroup, deleteGroup }: FieldGroupIt
 
   return (
     <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
-      <span className="text-sm font-medium">{group}</span>
+      <span className="text-sm font-medium">{group.name}</span>
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)} aria-label={`Editar grupo ${group}`}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)} aria-label={`Editar grupo ${group.name}`}>
           <Pencil className="h-4 w-4 text-muted-foreground" />
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover grupo ${group}`}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover grupo ${group.name}`}>
               <Trash2 className="h-4 w-4 text-destructive/70" />
             </Button>
           </AlertDialogTrigger>
@@ -90,12 +91,12 @@ export function FieldGroupItem({ group, updateGroup, deleteGroup }: FieldGroupIt
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir o grupo "{group}"? Esta ação removerá o grupo de todos os nomes associados e não pode ser desfeita.
+                Tem certeza que deseja excluir o grupo "{group.name}"? Esta ação removerá o grupo de todos os nomes associados e não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteGroup(group)}>Excluir</AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteGroup(group.id)}>Excluir</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

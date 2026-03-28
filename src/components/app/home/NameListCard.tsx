@@ -10,8 +10,8 @@ interface NameListCardProps {
   names: Name[];
   filteredNames: Name[];
   searchTerm: string;
-  updateName: (id: number, newNameData: Partial<Omit<Name, 'id'>>) => void;
-  deleteName: (id: number) => void;
+  updateName: (id: string, newNameData: Partial<Omit<Name, 'id'>>) => void;
+  deleteName: (id: string) => void;
   fieldGroups: string[];
 }
 

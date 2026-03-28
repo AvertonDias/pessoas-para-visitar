@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
+import FirebaseErrorListener from '@/components/FirebaseErrorListener';
+
 
 export const metadata: Metadata = {
   title: 'ListaNomes PWA',
@@ -23,8 +26,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <FirebaseClientProvider>
+          <FirebaseErrorListener />
+          {children}
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

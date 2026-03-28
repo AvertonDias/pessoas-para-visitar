@@ -48,8 +48,8 @@ import { Separator } from '@/components/ui/separator';
 
 interface NameItemProps {
   name: Name;
-  updateName: (id: number, data: Partial<Omit<Name, 'id'>>) => void;
-  deleteName: (id: number) => void;
+  updateName: (id: string, data: Partial<Omit<Name, 'id'>>) => void;
+  deleteName: (id: string) => void;
   fieldGroups: string[];
 }
 
@@ -170,11 +170,12 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
-                          <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value)}>
+                          <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value === '---' ? '' : value)}>
                               <SelectTrigger id="fieldgroup-edit" className="col-span-3">
                                   <SelectValue placeholder="Selecione um grupo" />
                               </SelectTrigger>
                               <SelectContent>
+                                  <SelectItem value="---">Nenhum</SelectItem>
                                   {fieldGroups.map((group) => (
                                       <SelectItem key={group} value={group}>{group}</SelectItem>
                                   ))}
@@ -200,20 +201,12 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                           <Label>Histórico de Visitas</Label>
                           <div className="max-h-32 overflow-y-auto space-y-1 pr-2 rounded-md border p-2">
                             {(name.visitHistory || []).slice().reverse().map((visit) => {
-                                if (typeof visit === 'string') {
-                                    return (
-                                        <div key={visit} className="text-sm text-muted-foreground flex items-center gap-2">
-                                            <CalendarIcon className="h-4 w-4" />
-                                            {new Date(visit).toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                        </div>
-                                    );
-                                }
                                 return (
                                     <div key={visit.id} className="text-sm text-muted-foreground flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
                                             <CalendarIcon className="h-4 w-4" />
                                             <span className="truncate">
-                                                {new Date(visit.date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                {format(new Date(visit.date), "PPP", { locale: ptBR })}
                                                 {visit.visitors && <span className="text-foreground/80"> - {visit.visitors}</span>}
                                             </span>
                                         </div>

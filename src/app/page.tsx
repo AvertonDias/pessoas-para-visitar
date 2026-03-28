@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Header } from '@/components/app/Header';
-import useLocalStorage from '@/hooks/use-local-storage';
 import { useToast } from '@/hooks/use-toast';
 import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
@@ -13,6 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import * as services from '@/lib/firebase-services';
+import { Login } from '@/components/app/Login';
+
 export type Visit = {
   id: string;
   date: string;
@@ -20,28 +24,36 @@ export type Visit = {
 };
 
 export type Name = {
-  id: number;
+  id: string;
   text: string;
   status: 'regular' | 'irregular' | 'inativo' | 'removido';
   fieldGroup: string;
   visitHistory: Visit[];
 };
 
+export type FieldGroup = {
+  id: string;
+  name: string;
+};
+
 export default function Home() {
   const { toast } = useToast();
-  const [names, setNames] = useLocalStorage<Name[]>('names', []);
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
 
-  const [fieldGroups, setFieldGroups] = useLocalStorage<string[]>('fieldGroups', [
-    'Pioneiros',
-    'Publicadores',
-    'Estudantes',
-  ]);
+  // Data fetching from Firestore
+  const namesQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'users', user.uid, 'names'), orderBy('text', 'asc'));
+  }, [user, firestore]);
+  const { data: names = [], loading: namesLoading } = useCollection<Name>(namesQuery);
+
+  const groupsQuery = useMemo(() => {
+      if (!user || !firestore) return null;
+      return query(collection(firestore, 'users', user.uid, 'fieldGroups'), orderBy('name', 'asc'));
+  }, [user, firestore]);
+  const { data: fieldGroups = [], loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -52,6 +64,7 @@ export default function Home() {
   });
 
   const addName = () => {
+    if (!user || !firestore) return;
     if (draftName.text.trim() === '') {
       toast({
         variant: "destructive",
@@ -60,14 +73,16 @@ export default function Home() {
       });
       return;
     };
-    const newNameToAdd: Name = {
-      id: Date.now(),
+    const newNameToAdd = {
       text: draftName.text.trim(),
       status: draftName.status,
       fieldGroup: draftName.fieldGroup,
-      visitHistory: [],
     };
-    setNames(prevNames => [newNameToAdd, ...prevNames]);
+    services.addName(firestore, user.uid, newNameToAdd);
+    toast({
+      title: "Nome adicionado",
+      description: `${draftName.text.trim()} foi adicionado à lista.`,
+    });
     setIsAddDialogOpen(false);
   };
   
@@ -78,74 +93,111 @@ export default function Home() {
 
   const handleAddGroupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newGroup = (e.currentTarget.querySelector('input') as HTMLInputElement).value;
-    if (newGroup.trim() && !fieldGroups.includes(newGroup.trim())) {
-      setFieldGroups(prevGroups => [...prevGroups, newGroup.trim()].sort());
-      (e.currentTarget.querySelector('input') as HTMLInputElement).value = '';
+    if (!user || !firestore) return;
+
+    const newGroupInput = e.currentTarget.querySelector('input');
+    if (!newGroupInput) return;
+
+    const newGroupName = newGroupInput.value.trim();
+    if (newGroupName && !fieldGroups.some(g => g.name === newGroupName)) {
+      services.addFieldGroup(firestore, user.uid, newGroupName);
+      toast({
+        title: "Grupo adicionado",
+        description: `O grupo "${newGroupName}" foi criado.`,
+      });
+      newGroupInput.value = '';
+    } else if (newGroupName) {
+       toast({
+        variant: "destructive",
+        title: "Erro",
+        description: `O grupo "${newGroupName}" já existe.`,
+      });
     }
   };
   
-  const deleteGroup = (groupToDelete: string) => {
-    setFieldGroups(fieldGroups.filter(g => g !== groupToDelete));
-    // Optional: Also remove the group from any names that have it assigned.
-    setNames(names.map(n => (n.fieldGroup === groupToDelete ? { ...n, fieldGroup: '' } : n)));
-     toast({
+  const deleteGroup = (groupId: string) => {
+    if (!user || !firestore) return;
+    const groupToDelete = fieldGroups.find(g => g.id === groupId);
+    if (!groupToDelete) return;
+
+    services.deleteFieldGroup(firestore, user.uid, groupId);
+
+    // Remove the group from any names that have it assigned.
+    names.forEach(name => {
+      if (name.fieldGroup === groupToDelete.name) {
+        updateName(name.id, { ...name, fieldGroup: '' });
+      }
+    });
+
+    toast({
         title: "Grupo removido",
-        description: `O grupo "${groupToDelete}" foi removido.`,
-      });
+        description: `O grupo "${groupToDelete.name}" foi removido.`,
+    });
   };
 
-  const updateGroup = (oldName: string, newName: string): boolean => {
+  const updateGroup = (groupId: string, newName: string): boolean => {
+    if (!user || !firestore) return false;
+    const oldGroup = fieldGroups.find(g => g.id === groupId);
+    if (!oldGroup) return false;
+
     const trimmedNewName = newName.trim();
-    if (trimmedNewName === '' || oldName === trimmedNewName) {
-      return true; // No change or empty, consider it a success to exit editing.
+    if (trimmedNewName === '' || oldGroup.name === trimmedNewName) {
+      return true;
     }
 
-    if (fieldGroups.includes(trimmedNewName)) {
+    if (fieldGroups.some(g => g.name === trimmedNewName)) {
       toast({
         variant: "destructive",
         title: "Erro ao atualizar grupo",
         description: `O grupo "${trimmedNewName}" já existe.`,
       });
-      return false; // Indicate failure
+      return false;
     }
+    
+    services.updateFieldGroup(firestore, user.uid, groupId, trimmedNewName);
 
-    setFieldGroups(prevGroups => 
-        prevGroups.map(g => (g === oldName ? trimmedNewName : g)).sort()
-    );
-
-    setNames(prevNames =>
-        prevNames.map(name => 
-            name.fieldGroup === oldName ? { ...name, fieldGroup: trimmedNewName } : name
-        )
-    );
+    // Update names associated with the old group name
+    names.forEach(name => {
+      if (name.fieldGroup === oldGroup.name) {
+        updateName(name.id, { fieldGroup: trimmedNewName });
+      }
+    });
+    
     toast({
         title: "Grupo atualizado",
-        description: `O grupo "${oldName}" foi renomeado para "${trimmedNewName}".`,
+        description: `O grupo "${oldGroup.name}" foi renomeado para "${trimmedNewName}".`,
     });
-    return true; // Indicate success
+    return true;
   };
 
-  const updateName = (id: number, newNameData: Partial<Omit<Name, 'id'>>) => {
-    setNames(prevNames =>
-      prevNames.map(name =>
-        name.id === id ? { ...name, ...newNameData } : name
-      )
-    );
+  const updateName = (id: string, newNameData: Partial<Omit<Name, 'id'>>) => {
+    if (!user || !firestore) return;
+    services.updateName(firestore, user.uid, id, newNameData);
   };
 
-  const deleteName = (id: number) => {
-    setNames(prevNames => prevNames.filter(name => name.id !== id));
+  const deleteName = (id: string) => {
+    if (!user || !firestore) return;
+    services.deleteName(firestore, user.uid, id);
+    toast({
+        title: "Nome removido",
+        description: `O nome foi removido da lista.`,
+    });
   };
 
-  const filteredNames = isClient ? names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase())) : [];
+  const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  if (!isClient) {
+  const isLoading = userLoading || namesLoading || groupsLoading;
+
+  if (isLoading) {
       return (
         <div className="flex min-h-screen flex-col bg-background items-center justify-center">
             <p className="text-lg text-muted-foreground">Carregando...</p>
         </div>
       )
+  }
+
+  if (!user) {
+    return <Login />;
   }
 
   return (
@@ -165,14 +217,12 @@ export default function Home() {
               searchTerm={searchTerm}
               updateName={updateName}
               deleteName={deleteName}
-              fieldGroups={fieldGroups}
+              fieldGroups={fieldGroups.map(fg => fg.name)}
             />
           </div>
           
           <div className="lg:col-span-1 space-y-8">
             <FieldGroupsCard
-              newGroup=""
-              setNewGroup={() => {}}
               handleAddGroupSubmit={handleAddGroupSubmit}
               fieldGroups={fieldGroups}
               updateGroup={updateGroup}
@@ -212,7 +262,7 @@ export default function Home() {
                 </SelectTrigger>
                 <SelectContent>
                   {fieldGroups.map((group) => (
-                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                    <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

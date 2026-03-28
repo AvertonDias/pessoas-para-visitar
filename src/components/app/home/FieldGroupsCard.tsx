@@ -6,14 +6,13 @@ import { Button } from '@/components/ui/button';
 import { FieldGroupItem } from '@/components/app/FieldGroupItem';
 import { Plus, Tag } from 'lucide-react';
 import { useState } from 'react';
+import { FieldGroup } from '@/app/page';
 
 interface FieldGroupsCardProps {
-  newGroup: string;
-  setNewGroup: (value: string) => void;
   handleAddGroupSubmit: (e: React.FormEvent) => void;
-  fieldGroups: string[];
-  updateGroup: (oldName: string, newName: string) => boolean;
-  deleteGroup: (groupToDelete: string) => void;
+  fieldGroups: FieldGroup[];
+  updateGroup: (groupId: string, newName: string) => boolean;
+  deleteGroup: (groupId: string) => void;
 }
 
 export function FieldGroupsCard({
@@ -34,7 +33,7 @@ export function FieldGroupsCard({
         <CardDescription>Gerencie os grupos para organizar sua lista.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={(e) => { e.preventDefault(); handleAddGroupSubmit(e); setNewGroup(''); }} className="flex gap-2 mb-4">
+        <form onSubmit={(e) => { handleAddGroupSubmit(e); setNewGroup(''); }} className="flex gap-2 mb-4">
           <Input
             value={newGroup}
             onChange={(e) => setNewGroup(e.target.value)}
@@ -49,7 +48,7 @@ export function FieldGroupsCard({
           {fieldGroups.length > 0 ? (
             fieldGroups.map((group) => (
               <FieldGroupItem
-                key={group}
+                key={group.id}
                 group={group}
                 updateGroup={updateGroup}
                 deleteGroup={deleteGroup}
