@@ -5,6 +5,17 @@ import type { Name } from '@/app/page';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface NameItemProps {
   name: Name;
@@ -61,9 +72,25 @@ export function NameItem({ name, updateName, deleteName }: NameItemProps) {
           <Button size="icon" variant="ghost" onClick={() => setIsEditing(true)} aria-label={`Editar ${name.text}`}>
             <Pencil className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Button size="icon" variant="ghost" onClick={() => deleteName(name.id)} aria-label={`Remover ${name.text}`}>
-            <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="icon" variant="ghost" aria-label={`Remover ${name.text}`}>
+                <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Essa ação não pode ser desfeita. Isso excluirá permanentemente o nome "{name.text}" da sua lista.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteName(name.id)}>Excluir</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </>
       )}
     </div>
