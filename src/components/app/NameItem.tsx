@@ -41,11 +41,12 @@ interface NameItemProps {
   name: Name;
   updateName: (id: number, data: Partial<Omit<Name, 'id'>>) => void;
   deleteName: (id: number) => void;
+  fieldGroups: string[];
 }
 
-export function NameItem({ name, updateName, deleteName }: NameItemProps) {
+export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItemProps) {
   const [editText, setEditText] = useState(name.text);
-  const [editFieldGroup, setEditFieldGroup] = useState(name.fieldGroup);
+  const [editFieldGroup, setEditFieldGroup] = useState(name.fieldGroup || '');
   const [editStatus, setEditStatus] = useState(name.status);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -82,8 +83,9 @@ export function NameItem({ name, updateName, deleteName }: NameItemProps) {
   
   const onOpenChange = (open: boolean) => {
     if (!open) {
+      // Reset state if dialog is closed without saving
       setEditText(name.text);
-      setEditFieldGroup(name.fieldGroup);
+      setEditFieldGroup(name.fieldGroup || '');
       setEditStatus(name.status);
     }
     setIsEditDialogOpen(open);
@@ -92,6 +94,7 @@ export function NameItem({ name, updateName, deleteName }: NameItemProps) {
   return (
     <div className="flex items-center gap-2 p-3 rounded-md bg-card border hover:bg-secondary/50 transition-colors duration-200">
         <span className="flex-grow text-foreground">{name.text}</span>
+        {name.fieldGroup && <Badge variant="outline" className="hidden sm:inline-flex">{name.fieldGroup}</Badge>}
         <Badge variant={getStatusVariant(name.status)} className="capitalize">{name.status}</Badge>
         
         <Dialog open={isEditDialogOpen} onOpenChange={onOpenChange}>
@@ -114,7 +117,17 @@ export function NameItem({ name, updateName, deleteName }: NameItemProps) {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
-                        <Input id="fieldgroup-edit" value={editFieldGroup} onChange={(e) => setEditFieldGroup(e.target.value)} className="col-span-3" />
+                        <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value)}>
+                            <SelectTrigger id="fieldgroup-edit" className="col-span-3">
+                                <SelectValue placeholder="Selecione um grupo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Nenhum</SelectItem>
+                                {fieldGroups.map((group) => (
+                                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="status-edit" className="text-right">Status</Label>

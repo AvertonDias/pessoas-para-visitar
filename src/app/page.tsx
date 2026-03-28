@@ -7,7 +7,7 @@ import { NameItem } from '@/components/app/NameItem';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Users, UserPlus } from 'lucide-react';
+import { Plus, Search, Users, UserPlus, Trash2, Tag } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export type Name = {
@@ -25,6 +25,12 @@ export default function Home() {
     { id: 3, text: 'Alice', status: 'inativo', fieldGroup: 'Estudantes', visitHistory: [] },
     { id: 4, text: 'Arthur', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [] },
   ]);
+
+  const [fieldGroups, setFieldGroups] = useLocalStorage<string[]>('fieldGroups', [
+    'Pioneiros',
+    'Publicadores',
+    'Estudantes',
+  ]);
   
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -33,6 +39,7 @@ export default function Home() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [newName, setNewName] = useState('');
+  const [newGroup, setNewGroup] = useState('');
 
   const addName = (nameText: string) => {
     if (nameText.trim() === '') return;
@@ -46,10 +53,24 @@ export default function Home() {
     setNames(prevNames => [newNameToAdd, ...prevNames]);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addName(newName);
     setNewName('');
+  };
+
+  const handleAddGroupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newGroup.trim() && !fieldGroups.includes(newGroup.trim())) {
+      setFieldGroups(prevGroups => [...prevGroups, newGroup.trim()].sort());
+      setNewGroup('');
+    }
+  };
+
+  const deleteGroup = (groupToDelete: string) => {
+    setFieldGroups(fieldGroups.filter(g => g !== groupToDelete));
+    // Optional: Also remove the group from any names that have it assigned.
+    setNames(names.map(n => (n.fieldGroup === groupToDelete ? { ...n, fieldGroup: '' } : n)));
   };
 
   const updateName = (id: number, newNameData: Partial<Omit<Name, 'id'>>) => {
@@ -64,13 +85,14 @@ export default function Home() {
     setNames(prevNames => prevNames.filter(name => name.id !== id));
   };
 
-  const filteredNames = names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredNames = isClient ? names.filter(name => name.text.toLowerCase().includes(searchTerm.toLowerCase())) : [];
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="lg:col-span-2 space-y-8">
             <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -80,7 +102,7 @@ export default function Home() {
                 <CardDescription>Adicione um novo nome ou procure na sua lista.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleAddSubmit} className="flex flex-col sm:flex-row gap-2 mb-4">
+                <form onSubmit={handleAddNameSubmit} className="flex flex-col sm:flex-row gap-2 mb-4">
                   <Input
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
@@ -130,7 +152,7 @@ export default function Home() {
                             exit={{ opacity: 0, x: -50 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <NameItem name={name} updateName={updateName} deleteName={deleteName} />
+                            <NameItem name={name} updateName={updateName} deleteName={deleteName} fieldGroups={fieldGroups} />
                           </motion.div>
                         ))
                       ) : (
@@ -153,6 +175,54 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          <div className="lg:col-span-1 space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-primary" />
+                  <span>Grupos de Campo</span>
+                </CardTitle>
+                <CardDescription>Gerencie os grupos para organizar sua lista.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddGroupSubmit} className="flex gap-2 mb-4">
+                  <Input
+                    value={newGroup}
+                    onChange={(e) => setNewGroup(e.target.value)}
+                    placeholder="Nome do novo grupo"
+                    aria-label="Novo grupo"
+                  />
+                  <Button type="submit" size="icon" aria-label="Adicionar grupo">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </form>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {isClient ? (
+                    fieldGroups.length > 0 ? (
+                      fieldGroups.map((group) => (
+                        <div key={group} className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
+                          <span className="text-sm font-medium">{group}</span>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteGroup(group)} aria-label={`Remover grupo ${group}`}>
+                            <Trash2 className="h-4 w-4 text-destructive/70" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-center text-muted-foreground py-4">
+                        Nenhum grupo cadastrado.
+                      </p>
+                    )
+                  ) : (
+                     <p className="text-sm text-center text-muted-foreground py-4">
+                        Carregando grupos...
+                      </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
     </div>
