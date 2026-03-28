@@ -23,14 +23,12 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   const userProfileRef = doc(db, 'users', user.uid);
   const displayName = registrationName || user.displayName;
 
-  // Scenario 1: User is registering with an invitation token.
+  // Scenario 1: User is acting on an invitation token.
   if (inviteToken) {
     const inviteRef = doc(db, 'invitations', inviteToken);
     const inviteSnap = await getDoc(inviteRef);
 
     if (!inviteSnap.exists() || inviteSnap.data().claimed === true) {
-      // If invite doesn't exist or is already claimed, throw an error.
-      // The calling function is responsible for deleting the orphaned auth user.
       throw new Error("Convite inválido ou já utilizado.");
     }
 
@@ -39,17 +37,30 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
         throw new Error("O convite é inválido e não contém um administrador associado.");
     }
 
-    // Create a 'helper' user profile
-    const profile: Omit<UserProfile, 'id'> = {
-      email: user.email!,
-      name: displayName,
-      role: 'helper',
-      adminId: adminId,
-    };
-    
-    // Use a batch to make the operation atomic
+    const userProfileSnap = await getDoc(userProfileRef);
     const batch = writeBatch(db);
-    batch.set(userProfileRef, profile);
+
+    if (userProfileSnap.exists()) {
+        // Existing user is converted to a helper.
+        // Their name and email are preserved. We just change the role and adminId.
+        // This is a "destructive" action in the sense that they lose access to their old data
+        // through the UI, but their profile and data are not deleted.
+        batch.update(userProfileRef, {
+            role: 'helper',
+            adminId: adminId,
+        });
+    } else {
+        // New user is created as a helper.
+        const newProfile: Omit<UserProfile, 'id'> = {
+            email: user.email!,
+            name: displayName,
+            role: 'helper',
+            adminId: adminId,
+        };
+        batch.set(userProfileRef, newProfile);
+    }
+
+    // Mark invitation as claimed
     batch.update(inviteRef, {
       claimed: true,
       claimedBy: user.uid,
@@ -60,13 +71,18 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
     return; // Success, exit function
   }
 
-  // Scenario 2: User is registering without an invitation (becomes an admin).
-  const profile: Omit<UserProfile, 'id'> = {
-    email: user.email!,
-    name: displayName,
-    role: 'admin',
-  };
-  await setDoc(userProfileRef, profile);
+  // Scenario 2: User is registering without an invitation.
+  const userProfileSnap = await getDoc(userProfileRef);
+  if (!userProfileSnap.exists()) {
+      // Only create a new admin profile if one doesn't exist.
+      // This prevents an existing helper from overwriting their role by re-registering.
+      const profile: Omit<UserProfile, 'id'> = {
+        email: user.email!,
+        name: displayName,
+        role: 'admin',
+      };
+      await setDoc(userProfileRef, profile);
+  }
 };
 
 
