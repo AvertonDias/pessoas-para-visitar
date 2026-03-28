@@ -267,20 +267,20 @@ export default function Home() {
           return;
         }
 
-        const header = rows[0].split(',').map(h => h.trim());
+        const header = rows[0].split(',').map(h => h.trim().toLowerCase());
         const dataRows = rows.slice(1);
 
-        const nameIndex = header.findIndex(h => h.toLowerCase() === 'displayname');
-        const groupIndex = header.findIndex(h => h.toLowerCase() === 'groupname');
-        const addressIndex = header.findIndex(h => h.toLowerCase() === 'address');
-        const phoneIndex = header.findIndex(h => h.toLowerCase() === 'phonemobile' || h.toLowerCase() === 'phonehome');
-        const statusIndex = header.findIndex(h => h.toLowerCase() === 'status');
-        
+        const nameIndex = header.findIndex(h => ['displayname', 'nome', 'nome completo'].includes(h));
+        const groupIndex = header.findIndex(h => ['groupname', 'grupo'].includes(h));
+        const addressIndex = header.findIndex(h => ['address', 'endereço'].includes(h));
+        const phoneIndex = header.findIndex(h => ['phonemobile', 'phonehome', 'telefone'].includes(h));
+        const statusIndex = header.findIndex(h => h === 'status');
+
         if (nameIndex === -1) {
-            toast({ variant: "destructive", title: "Coluna não encontrada", description: "A coluna 'DisplayName' é obrigatória no arquivo CSV." });
+            toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter uma coluna para o nome, como 'Nome', 'Nome Completo' ou 'DisplayName'." });
             return;
         }
-        
+
         const statusMap: { [key: string]: Name['status'] } = {
             'ativo': 'regular',
             'irregular': 'irregular',
@@ -304,7 +304,7 @@ export default function Home() {
         const existingGroupNames = new Set(fieldGroups.map(g => g.name));
         const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean));
         const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g!));
-        
+
         setNewGroupsCount(newGroups.length);
         setImportedData(importedResult);
         setIsImportConfirmOpen(true);
