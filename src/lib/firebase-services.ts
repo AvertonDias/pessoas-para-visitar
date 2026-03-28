@@ -277,6 +277,7 @@ export const batchImportData = async (
         address: item.address || '',
         phone: item.phone || '',
         fieldGroup: item.fieldGroup || '',
+        status: item.status, // Prioritize status from the CSV file
       };
       
       let finalHistory = existingMatch.visitHistory || [];
@@ -301,12 +302,6 @@ export const batchImportData = async (
             updatePayload.visitHistory = finalHistory;
         }
       }
-      
-      if (item.status === 'removido') {
-        updatePayload.status = 'removido';
-      } else {
-        updatePayload.status = calculateStatusFromHistory(finalHistory);
-      }
 
       batch.update(nameRef, updatePayload);
 
@@ -319,10 +314,7 @@ export const batchImportData = async (
         visitors: 'Importado'
       }] : [];
       
-      let status = item.status || 'regular';
-      if (status !== 'removido') {
-        status = calculateStatusFromHistory(visitHistory);
-      }
+      const status = item.status || 'regular'; // Prioritize status from the CSV file
 
       batch.set(nameRef, {
         personId: importedPersonId,
