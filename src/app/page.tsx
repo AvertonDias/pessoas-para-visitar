@@ -8,18 +8,24 @@ import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
 import { FieldGroupsCard } from '@/components/app/home/FieldGroupsCard';
 
+export type Visit = {
+  id: string;
+  date: string;
+  visitors: string;
+};
+
 export type Name = {
   id: number;
   text: string;
   status: 'regular' | 'irregular' | 'inativo' | 'removido';
   fieldGroup: string;
-  visitHistory: string[];
+  visitHistory: Visit[];
 };
 
 export default function Home() {
   const { toast } = useToast();
   const [names, setNames] = useLocalStorage<Name[]>('names', [
-    { id: 1, text: 'Sofia', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [new Date().toISOString()] },
+    { id: 1, text: 'Sofia', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [{id: '1', date: new Date().toISOString(), visitors: "João e Maria"}] },
     { id: 2, text: 'Miguel', status: 'irregular', fieldGroup: 'Publicadores', visitHistory: [] },
     { id: 3, text: 'Alice', status: 'inativo', fieldGroup: 'Estudantes', visitHistory: [] },
     { id: 4, text: 'Arthur', status: 'regular', fieldGroup: 'Pioneiros', visitHistory: [] },
