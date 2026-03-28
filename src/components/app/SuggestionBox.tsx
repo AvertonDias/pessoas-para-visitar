@@ -69,13 +69,6 @@ export function SuggestionBox({ onAddSuggestedName }: SuggestionBoxProps) {
   return (
     <Card className="overflow-hidden">
       <CardContent className="pt-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Wand2 className="text-accent" />
-          <h3 className="text-lg font-semibold">Sugestão Inteligente</h3>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Peça à nossa IA para sugerir nomes com base em critérios.
-        </p>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
