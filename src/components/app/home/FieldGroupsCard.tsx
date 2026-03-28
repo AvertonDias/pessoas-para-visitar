@@ -13,6 +13,7 @@ interface FieldGroupsCardProps {
   fieldGroups: FieldGroup[];
   updateGroup: (groupId: string, newName: string) => boolean;
   deleteGroup: (groupId: string) => void;
+  groupCounts: { [groupName: string]: number };
 }
 
 export function FieldGroupsCard({
@@ -20,6 +21,7 @@ export function FieldGroupsCard({
   fieldGroups,
   updateGroup,
   deleteGroup,
+  groupCounts,
 }: FieldGroupsCardProps) {
   const [newGroup, setNewGroup] = useState('');
   
@@ -52,6 +54,7 @@ export function FieldGroupsCard({
                 group={group}
                 updateGroup={updateGroup}
                 deleteGroup={deleteGroup}
+                count={groupCounts[group.name] || 0}
               />
             ))
           ) : (

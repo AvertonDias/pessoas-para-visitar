@@ -16,14 +16,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FieldGroup } from '@/app/page';
+import { Badge } from '@/components/ui/badge';
 
 interface FieldGroupItemProps {
   group: FieldGroup;
   updateGroup: (groupId: string, newName: string) => boolean;
   deleteGroup: (groupId: string) => void;
+  count: number;
 }
 
-export function FieldGroupItem({ group, updateGroup, deleteGroup }: FieldGroupItemProps) {
+export function FieldGroupItem({ group, updateGroup, deleteGroup, count }: FieldGroupItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(group.name);
 
@@ -76,8 +78,11 @@ export function FieldGroupItem({ group, updateGroup, deleteGroup }: FieldGroupIt
 
   return (
     <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
-      <span className="text-sm font-medium">{group.name}</span>
-      <div className="flex items-center">
+      <div className="flex items-center gap-2 flex-grow min-w-0">
+        <span className="text-sm font-medium truncate" title={group.name}>{group.name}</span>
+        <Badge variant="secondary" className="flex-shrink-0">{count}</Badge>
+      </div>
+      <div className="flex items-center flex-shrink-0">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)} aria-label={`Editar grupo ${group.name}`}>
           <Pencil className="h-4 w-4 text-muted-foreground" />
         </Button>

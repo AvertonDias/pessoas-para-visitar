@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/app/Header';
 import { useToast } from '@/hooks/use-toast';
@@ -66,6 +66,15 @@ export default function Home() {
   }, [user, firestore]);
   const { data: fieldGroupsData, loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   const fieldGroups = fieldGroupsData || [];
+
+  const groupCounts = useMemo(() => {
+    return names.reduce((acc, name) => {
+      if (name.fieldGroup) {
+        acc[name.fieldGroup] = (acc[name.fieldGroup] || 0) + 1;
+      }
+      return acc;
+    }, {} as { [key: string]: number });
+  }, [names]);
   
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -223,9 +232,9 @@ export default function Home() {
         {isMobile ? (
           <div className="space-y-4">
             <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as 'pessoas' | 'grupos')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
-                <TabsTrigger value="grupos">Grupos</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted p-1">
+                <TabsTrigger value="pessoas" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Pessoas</TabsTrigger>
+                <TabsTrigger value="grupos" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Grupos</TabsTrigger>
               </TabsList>
             </Tabs>
             
@@ -254,6 +263,7 @@ export default function Home() {
                     fieldGroups={fieldGroups}
                     updateGroup={updateGroup}
                     deleteGroup={deleteGroup}
+                    groupCounts={groupCounts}
                   />
               </div>
             )}
@@ -282,6 +292,7 @@ export default function Home() {
                 fieldGroups={fieldGroups}
                 updateGroup={updateGroup}
                 deleteGroup={deleteGroup}
+                groupCounts={groupCounts}
               />
             </div>
           </div>
