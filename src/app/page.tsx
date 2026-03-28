@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Header } from '@/components/app/Header';
-import { SuggestionBox } from '@/components/app/SuggestionBox';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { NameItem } from '@/components/app/NameItem';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -56,8 +55,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8">
             <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -128,11 +126,6 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="lg:sticky lg:top-8">
-            <SuggestionBox onAddSuggestedName={addName} />
-          </div>
         </div>
       </main>
     </div>
