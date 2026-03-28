@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 
 export type Visit = {
@@ -45,14 +45,14 @@ export default function Home() {
   // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'names');
+    return query(collection(firestore, 'users', user.uid, 'names'));
   }, [user, firestore]);
   const { data: namesData, loading: namesLoading } = useCollection<Name>(namesQuery);
   const names = namesData || [];
 
   const groupsQuery = useMemoFirebase(() => {
       if (!user || !firestore) return null;
-      return collection(firestore, 'users', user.uid, 'fieldGroups');
+      return query(collection(firestore, 'users', user.uid, 'fieldGroups'));
   }, [user, firestore]);
   const { data: fieldGroupsData, loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   const fieldGroups = fieldGroupsData || [];
@@ -261,12 +261,13 @@ export default function Home() {
               <Label htmlFor="fieldgroup-add" className="text-right">Grupo</Label>
               <Select
                 value={draftName.fieldGroup}
-                onValueChange={(value) => setDraftName(prev => ({ ...prev, fieldGroup: value }))}
+                onValueChange={(value) => setDraftName(prev => ({ ...prev, fieldGroup: value === '---' ? '' : value }))}
               >
                 <SelectTrigger id="fieldgroup-add" className="col-span-3">
-                  <SelectValue placeholder="Selecione um grupo" />
+                  <SelectValue placeholder="Não designado" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="---">Não designado</SelectItem>
                   {fieldGroups.map((group) => (
                     <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>
                   ))}
