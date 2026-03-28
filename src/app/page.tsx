@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/app/Header';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { NameItem } from '@/components/app/NameItem';
@@ -22,6 +22,11 @@ export default function Home() {
     { id: 3, text: 'Alice' },
     { id: 4, text: 'Arthur' },
   ]);
+  
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [newName, setNewName] = useState('');
@@ -98,28 +103,34 @@ export default function Home() {
                   <span>Sua Lista</span>
                 </CardTitle>
                 <CardDescription>
-                  Você tem {names.length} {names.length === 1 ? 'nome' : 'nomes'} na sua lista.
+                  {isClient ? `Você tem ${names.length} ${names.length === 1 ? 'nome' : 'nomes'} na sua lista.` : 'Carregando...'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <AnimatePresence>
-                    {filteredNames.length > 0 ? (
-                      filteredNames.map(name => (
-                        <motion.div
-                          key={name.id}
-                          layout
-                          initial={{ opacity: 0, y: -20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, x: -50 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <NameItem name={name} updateName={updateName} deleteName={deleteName} />
-                        </motion.div>
-                      ))
+                    {isClient ? (
+                      filteredNames.length > 0 ? (
+                        filteredNames.map(name => (
+                          <motion.div
+                            key={name.id}
+                            layout
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <NameItem name={name} updateName={updateName} deleteName={deleteName} />
+                          </motion.div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">
+                          {searchTerm ? 'Nenhum nome encontrado.' : 'Sua lista está vazia. Adicione um nome acima!'}
+                        </p>
+                      )
                     ) : (
                       <p className="text-muted-foreground text-center py-4">
-                        {searchTerm ? 'Nenhum nome encontrado.' : 'Sua lista está vazia. Adicione um nome acima!'}
+                        Carregando nomes...
                       </p>
                     )}
                   </AnimatePresence>
