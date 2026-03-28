@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 
 export type Visit = {
@@ -45,14 +45,14 @@ export default function Home() {
   // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'names'), orderBy('text', 'asc'));
+    return collection(firestore, 'users', user.uid, 'names');
   }, [user, firestore]);
   const { data: namesData, loading: namesLoading } = useCollection<Name>(namesQuery);
   const names = namesData || [];
 
   const groupsQuery = useMemoFirebase(() => {
       if (!user || !firestore) return null;
-      return query(collection(firestore, 'users', user.uid, 'fieldGroups'), orderBy('name', 'asc'));
+      return collection(firestore, 'users', user.uid, 'fieldGroups');
   }, [user, firestore]);
   const { data: fieldGroupsData, loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   const fieldGroups = fieldGroupsData || [];
