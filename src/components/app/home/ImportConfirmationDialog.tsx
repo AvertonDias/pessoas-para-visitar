@@ -68,7 +68,7 @@ export function ImportConfirmationDialog({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
+                <TableHead>Nome Completo</TableHead>
                 <TableHead>Grupo</TableHead>
                 <TableHead>Endereço</TableHead>
                 <TableHead>Telefone</TableHead>

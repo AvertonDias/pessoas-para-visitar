@@ -296,10 +296,12 @@ export default function Home() {
           const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
           
           let text = '';
-          if (displayNameIndex !== -1 && values[displayNameIndex]) {
+          const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
+
+          if (fullName) {
+            text = fullName;
+          } else if (displayNameIndex !== -1 && values[displayNameIndex]) {
             text = values[displayNameIndex];
-          } else {
-            text = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
           }
 
           // Status determination logic based on user's rules
