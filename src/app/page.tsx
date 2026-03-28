@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
@@ -41,6 +43,14 @@ export default function Home() {
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'pessoas' | 'grupos'>('pessoas');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
@@ -198,7 +208,7 @@ export default function Home() {
   }, [isLoading, user, router]);
 
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !isClient) {
       return (
         <div className="flex min-h-screen flex-col bg-background items-center justify-center">
             <p className="text-lg text-muted-foreground">Carregando...</p>
@@ -210,32 +220,72 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          <div className="lg:col-span-2 space-y-8">
-            <ManageNamesCard
-              onAddNameClick={handleOpenAddDialog}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-            />
-            <NameListCard
-              names={names}
-              filteredNames={filteredNames}
-              searchTerm={searchTerm}
-              updateName={updateName}
-              deleteName={deleteName}
-              fieldGroups={fieldGroups.map(fg => fg.name)}
-            />
+        {isMobile ? (
+          <div className="space-y-4">
+            <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as 'pessoas' | 'grupos')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
+                <TabsTrigger value="grupos">Grupos</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            {mobileView === 'pessoas' && (
+              <div className="space-y-8 mt-4">
+                <ManageNamesCard
+                  onAddNameClick={handleOpenAddDialog}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                />
+                <NameListCard
+                  names={names}
+                  filteredNames={filteredNames}
+                  searchTerm={searchTerm}
+                  updateName={updateName}
+                  deleteName={deleteName}
+                  fieldGroups={fieldGroups.map(fg => fg.name)}
+                />
+              </div>
+            )}
+
+            {mobileView === 'grupos' && (
+              <div className="space-y-8 mt-4">
+                 <FieldGroupsCard
+                    handleAddGroupSubmit={handleAddGroupSubmit}
+                    fieldGroups={fieldGroups}
+                    updateGroup={updateGroup}
+                    deleteGroup={deleteGroup}
+                  />
+              </div>
+            )}
           </div>
-          
-          <div className="lg:col-span-1 space-y-8">
-            <FieldGroupsCard
-              handleAddGroupSubmit={handleAddGroupSubmit}
-              fieldGroups={fieldGroups}
-              updateGroup={updateGroup}
-              deleteGroup={deleteGroup}
-            />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="lg:col-span-2 space-y-8">
+              <ManageNamesCard
+                onAddNameClick={handleOpenAddDialog}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+              />
+              <NameListCard
+                names={names}
+                filteredNames={filteredNames}
+                searchTerm={searchTerm}
+                updateName={updateName}
+                deleteName={deleteName}
+                fieldGroups={fieldGroups.map(fg => fg.name)}
+              />
+            </div>
+            
+            <div className="lg:col-span-1 space-y-8">
+              <FieldGroupsCard
+                handleAddGroupSubmit={handleAddGroupSubmit}
+                fieldGroups={fieldGroups}
+                updateGroup={updateGroup}
+                deleteGroup={deleteGroup}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
