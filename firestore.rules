@@ -1,21 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Rules for 'nomes' subcollection
-    match /users/{userId}/nomes/{nomeId} {
-      allow get, create, update, delete: if request.auth.uid == userId;
-    }
-    match /users/{userId}/nomes {
-      allow list: if request.auth.uid == userId;
-    }
-
-    // Rules for 'fieldGroups' subcollection
-    match /users/{userId}/fieldGroups/{fieldGroupId} {
-      allow get, create, update, delete: if request.auth.uid == userId;
-    }
-    match /users/{userId}/fieldGroups {
-      allow list: if request.auth.uid == userId;
+    // Users can only read and write their own data.
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth.uid == userId;
     }
   }
 }
