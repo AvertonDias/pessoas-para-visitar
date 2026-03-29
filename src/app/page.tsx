@@ -163,6 +163,7 @@ export default function Home() {
     toCreate: ImportedName[];
     toUpdate: ImportUpdate[];
     newGroups: string[];
+    unmatchedNames: string[];
   } | null>(null);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
@@ -292,6 +293,17 @@ export default function Home() {
         description: `O nome foi removido da lista.`,
     });
   };
+
+  // Helper for cleaning up names for comparison
+  const normalizeName = (name: string) => {
+    if (!name) return '';
+    return name
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .replace(/\s+/g, ' '); // Collapse multiple spaces
+  }
 
   const processCsvText = (text: string, visitsOnly: boolean = false) => {
     try {
@@ -426,12 +438,13 @@ export default function Home() {
           }
       });
       const existingNamesByName = new Map<string, Name>();
-        names.forEach(name => {
-        existingNamesByName.set(name.text.toLowerCase().trim(), name);
+      names.forEach(name => {
+        existingNamesByName.set(normalizeName(name.text), name);
       });
 
       const toCreate: ImportedName[] = [];
       const toUpdate: ImportUpdate[] = [];
+      const unmatchedNames: string[] = [];
       const formatChange = (label: string, from: any, to: any) => {
           const fromStr = from || 'vazio';
           const toStr = to || 'vazio';
@@ -440,7 +453,7 @@ export default function Home() {
 
       for (const item of importedResult) {
           const existing = (item.personId ? existingNamesByPersonId.get(item.personId) : undefined) 
-                          || existingNamesByName.get(item.text.toLowerCase().trim());
+                          || existingNamesByName.get(normalizeName(item.text));
                           
           if (existing) {
               const changes: string[] = [];
@@ -476,6 +489,8 @@ export default function Home() {
           } else {
               if (!visitsOnly) {
                 toCreate.push(item);
+              } else {
+                unmatchedNames.push(item.text);
               }
           }
       }
@@ -484,7 +499,7 @@ export default function Home() {
       const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
       const newGroups = visitsOnly ? [] : [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
 
-      if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
+      if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0 && unmatchedNames.length === 0) {
           toast({
               title: "Nenhuma alteração detectada",
               description: "Os dados no arquivo são idênticos aos dados existentes.",
@@ -492,7 +507,7 @@ export default function Home() {
           return;
       }
 
-      setImportPreview({ toCreate, toUpdate, newGroups });
+      setImportPreview({ toCreate, toUpdate, newGroups, unmatchedNames });
       setConfirmAction({ handler: () => handleConfirmImport(visitsOnly) });
       setIsImportConfirmOpen(true);
 

@@ -21,6 +21,7 @@ interface ImportConfirmationDialogProps {
     toCreate: ImportedName[];
     toUpdate: ImportUpdate[];
     newGroups: string[];
+    unmatchedNames: string[];
   } | null;
   onConfirm: () => void;
 }
@@ -45,6 +46,7 @@ export function ImportConfirmationDialog({
     if (!preview) return null;
 
     const totalChanges = preview.toCreate.length + preview.toUpdate.length + preview.newGroups.length;
+    const hasUnmatched = preview.unmatchedNames.length > 0;
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -58,6 +60,25 @@ export function ImportConfirmationDialog({
             
             <ScrollArea className="max-h-[60vh] pr-4">
             <div className="space-y-6">
+                {hasUnmatched && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                    <h4 className="text-lg font-semibold text-destructive-foreground flex items-center gap-2">
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.49991 0.877045C3.84222 0.877045 0.877045 3.84222 0.877045 7.49991C0.877045 11.1576 3.84222 14.1228 7.49991 14.1228C11.1576 14.1228 14.1228 11.1576 14.1228 7.49991C14.1228 3.84222 11.1576 0.877045 7.49991 0.877045ZM1.82704 7.49991C1.82704 4.36671 4.36671 1.82704 7.49991 1.82704C10.6331 1.82704 13.1728 4.36671 13.1728 7.49991C13.1728 10.6331 10.6331 13.1728 7.49991 13.1728C4.36671 13.1728 1.82704 10.6331 1.82704 7.49991ZM7.50003 4C7.22389 4 7.00003 4.22386 7.00003 4.5V8C7.00003 8.27614 7.22389 8.5 7.50003 8.5C7.77617 8.5 8.00003 8.27614 8.00003 8V4.5C8.00003 4.22386 7.77617 4 7.50003 4ZM7.5 11C7.77614 11 8 10.7761 8 10.5C8 10.2239 7.77614 10 7.5 10C7.22386 10 7 10.2239 7 10.5C7 10.7761 7.22386 11 7.5 11Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+                      Nomes Não Encontrados ({preview.unmatchedNames.length})
+                    </h4>
+                    <p className="text-sm text-destructive-foreground/80 mt-1">
+                        As visitas para estes nomes não serão importadas. Verifique se o nome na planilha corresponde exatamente ao nome no aplicativo (erros de digitação, nomes do meio, etc.).
+                    </p>
+                    <div className="mt-3 max-h-28 overflow-y-auto rounded bg-background/20 p-2">
+                      <ul className="list-disc pl-5 space-y-1">
+                      {preview.unmatchedNames.map((name, index) => (
+                          <li key={index} className="text-sm text-destructive-foreground font-mono">{name}</li>
+                      ))}
+                      </ul>
+                    </div>
+                </div>
+                )}
+                
                 {preview.newGroups.length > 0 && (
                 <div>
                     <h4 className="text-base font-semibold text-foreground">
