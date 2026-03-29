@@ -157,19 +157,43 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortBy, setSortBy] = useState('visit-desc');
   
+  // State for import functionality
+  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPreview>(null);
+  const [importUrl, setImportUrl] = useState('');
+  const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
+
+  // Load filters from localStorage on initial client render
+  useEffect(() => {
+    const savedGroup = localStorage.getItem('list-filter-group');
+    if (savedGroup) {
+      setSelectedGroup(savedGroup);
+    }
+    const savedStatus = localStorage.getItem('list-filter-status');
+    if (savedStatus) {
+      setSelectedStatus(savedStatus);
+    }
+    const savedSort = localStorage.getItem('list-filter-sort');
+    if (savedSort) {
+      setSortBy(savedSort);
+    }
+  }, []); // Empty dependency array ensures this runs once on mount
+
+  // Save filters to localStorage whenever they change
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem('list-filter-group', selectedGroup);
+      localStorage.setItem('list-filter-status', selectedStatus);
+      localStorage.setItem('list-filter-sort', sortBy);
+    }
+  }, [selectedGroup, selectedStatus, sortBy, isClient]);
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
     text: '',
     fieldGroup: '',
     status: 'regular',
   });
-  
-  // State for import functionality
-  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
-  const [importPreview, setImportPreview] = useState<ImportPreview>(null);
-  const [importUrl, setImportUrl] = useState('');
-  const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<{ handler: (preview: ImportPreview) => Promise<void> }>({ handler: async () => {} });
 
 
   useEffect(() => {
@@ -308,14 +332,14 @@ export default function Home() {
         .replace(/\s+/g, ' '); // Collapse multiple spaces
   }
 
-  const handleConfirmImport = async (preview: ImportPreview) => {
+  const handleConfirmImport = async (preview: ImportPreview | null) => {
     if (!dataOwnerId || !firestore || !preview) return;
     
     try {
         if (preview.toCreate.length === 0 && preview.toUpdate.length === 0 && preview.newGroups.length === 0) {
           toast({ title: "Nenhuma alteração para importar." });
         } else {
-          await services.batchImportData(firestore, dataOwnerId, preview);
+          await services.batchImportData(firestore, dataOwnerId, preview.toCreate, preview.toUpdate, preview.newGroups);
           toast({
               title: "Importação concluída!",
               description: `${preview.toCreate.length + preview.toUpdate.length} pessoas e ${preview.newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
@@ -356,7 +380,7 @@ export default function Home() {
         phoneMobile: ['phonemobile', 'telefone celular'],
         phoneHome: ['phonehome', 'telefone residencial'],
         personId: ['personid'],
-        moved: ['moved', 'mudou-se', 'removed'],
+        moved: ['moved', 'mudou-se', 'removed', 'removido'],
         active: ['active', 'ativo'],
         regular: ['regular'],
         lastVisit: ['lastvisit', 'última visita'],
@@ -405,13 +429,9 @@ export default function Home() {
 
         const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : undefined;
         
-        // Status determination logic based on user's specific rules.
-        // Rule 1: 'Moved' column determines 'removido' status. This has the highest priority.
-        // Any 'DateOfRemoved' column is explicitly ignored for status calculation.
         if (movedValue === 'true' || movedValue === 'verdadeiro') {
             item.status = 'removido';
         } else {
-            // Only if not 'removido', check other statuses.
             const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : undefined;
             const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : undefined;
 
@@ -420,8 +440,6 @@ export default function Home() {
             } else if (regularValue === 'false' || regularValue === 'falso') {
                 item.status = 'irregular';
             } else {
-                // If any of the main status columns existed, and none of the negative conditions were met,
-                // the person is considered 'regular'.
                 if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
                     item.status = 'regular';
                 }
@@ -475,8 +493,10 @@ export default function Home() {
       };
 
       for (const item of importedResult) {
-          const existing = (item.personId ? existingNamesByPersonId.get(item.personId) : undefined) 
-                          || (item.text ? existingNamesByName.get(normalizeName(item.text)) : undefined);
+          let existing = item.personId ? existingNamesByPersonId.get(item.personId) : undefined;
+          if (!existing && item.text) {
+              existing = existingNamesByName.get(normalizeName(item.text));
+          }
                           
           if (existing) {
               const changes: string[] = [];
@@ -539,7 +559,6 @@ export default function Home() {
       
       const previewData = { toCreate, toUpdate, newGroups };
       setImportPreview(previewData);
-      setConfirmAction({ handler: () => handleConfirmImport(previewData) });
       setIsImportConfirmOpen(true);
 
     } catch (error) {
@@ -867,12 +886,12 @@ export default function Home() {
         </DialogContent>
       </Dialog>
       
-      {importPreview && <ImportConfirmationDialog
+       <ImportConfirmationDialog
         isOpen={isImportConfirmOpen}
         onOpenChange={setIsImportConfirmOpen}
         preview={importPreview}
-        onConfirm={() => confirmAction.handler(importPreview)}
-      />}
+        onConfirm={() => handleConfirmImport(importPreview)}
+      />
       <InstallPwaBanner />
     </div>
   );
