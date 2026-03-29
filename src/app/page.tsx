@@ -357,14 +357,9 @@ export default function Home() {
       const importedResult: ImportedName[] = rows.slice(1).map(row => {
         const values = row.split(separator).map(v => v.trim().replace(/"/g, ''));
         
-        let text = '';
-        const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
-
-        if (displayNameIndex !== -1 && values[displayNameIndex]) {
-            text = values[displayNameIndex];
-        } else if (fullName.trim()) {
-            text = fullName.trim();
-        }
+        const combinedName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ').trim();
+        const displayName = displayNameIndex !== -1 ? values[displayNameIndex] : '';
+        const text = combinedName || displayName;
 
         let status: Name['status'];
 
@@ -404,13 +399,15 @@ export default function Home() {
                     }
                     const parsedDate = new Date(year, month, day);
                     if (!isNaN(parsedDate.getTime())) {
-                        importedVisitDate = parsedDate.toISOString();
+                        const tzOffset = parsedDate.getTimezoneOffset() * 60000;
+                        importedVisitDate = new Date(parsedDate.getTime() - tzOffset).toISOString();
                     }
                 }
             } else {
                 const parsedDate = new Date(lastVisitValue);
                 if (!isNaN(parsedDate.getTime())) {
-                    importedVisitDate = parsedDate.toISOString();
+                    const tzOffset = parsedDate.getTimezoneOffset() * 60000;
+                    importedVisitDate = new Date(parsedDate.getTime() - tzOffset).toISOString();
                 }
             }
         }
