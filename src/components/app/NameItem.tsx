@@ -36,12 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -341,18 +335,14 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                       <Input id="visitors" value={visitorInput} onChange={(e) => setVisitorInput(e.target.value)} className="col-span-3" placeholder="Ex: João e Maria"/>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                      <Label className="text-right">Data</Label>
-                      <Popover>
-                          <PopoverTrigger asChild>
-                              <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !dateInput && "text-muted-foreground")}>
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {dateInput ? format(dateInput, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                              <Calendar mode="single" selected={dateInput} onSelect={setDateInput} initialFocus />
-                          </PopoverContent>
-                      </Popover>
+                      <Label htmlFor="visit-date" className="text-right">Data</Label>
+                      <Input
+                        id="visit-date"
+                        type="date"
+                        className="col-span-3"
+                        value={dateInput ? format(dateInput, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => setDateInput(e.target.value ? new Date(e.target.value.replace(/-/g, '/')) : undefined)}
+                      />
                   </div>
               </div>
               <DialogFooter>
