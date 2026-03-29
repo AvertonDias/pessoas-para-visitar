@@ -353,7 +353,8 @@ export default function Home() {
         let status: Name['status'];
 
         // Rule 1: REMOVIDO
-        const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
+        const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
+        const isMoved = movedValue === 'true' || movedValue === 'verdadeiro';
 
         if (isMoved) {
           status = 'removido';
