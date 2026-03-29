@@ -309,17 +309,16 @@ export default function Home() {
   }
 
   const handleConfirmImport = async (preview: ImportPreview) => {
-    if (!dataOwnerId || !firestore) return;
-    const { toCreate, toUpdate, newGroups } = preview;
-
+    if (!dataOwnerId || !firestore || !preview) return;
+    
     try {
-        if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
+        if (preview.toCreate.length === 0 && preview.toUpdate.length === 0 && preview.newGroups.length === 0) {
           toast({ title: "Nenhuma alteração para importar." });
         } else {
           await services.batchImportData(firestore, dataOwnerId, preview);
           toast({
               title: "Importação concluída!",
-              description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
+              description: `${preview.toCreate.length + preview.toUpdate.length} pessoas e ${preview.newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
           });
         }
     } catch (error: any) {
@@ -357,7 +356,7 @@ export default function Home() {
         phoneMobile: ['phonemobile', 'telefone celular'],
         phoneHome: ['phonehome', 'telefone residencial'],
         personId: ['personid'],
-        moved: ['moved', 'mudou-se'],
+        moved: ['moved', 'mudou-se', 'removed'],
         active: ['active', 'ativo'],
         regular: ['regular'],
         lastVisit: ['lastvisit', 'última visita'],
@@ -405,21 +404,30 @@ export default function Home() {
         if (phone) item.phone = phone;
 
         const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : undefined;
-        const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : undefined;
-        const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : undefined;
         
-        // Logic based on user's specification. Only apply if at least one status column is present.
-        if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
-            if (movedValue === 'true' || movedValue === 'verdadeiro') {
-              item.status = 'removido';
-            } else if (activeValue === 'false' || activeValue === 'falso') {
-              item.status = 'inativo';
+        // Status determination logic based on user's specific rules.
+        // Rule 1: 'Moved' column determines 'removido' status. This has the highest priority.
+        // Any 'DateOfRemoved' column is explicitly ignored for status calculation.
+        if (movedValue === 'true' || movedValue === 'verdadeiro') {
+            item.status = 'removido';
+        } else {
+            // Only if not 'removido', check other statuses.
+            const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : undefined;
+            const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : undefined;
+
+            if (activeValue === 'false' || activeValue === 'falso') {
+                item.status = 'inativo';
             } else if (regularValue === 'false' || regularValue === 'falso') {
-              item.status = 'irregular';
+                item.status = 'irregular';
             } else {
-              item.status = 'regular';
+                // If any of the main status columns existed, and none of the negative conditions were met,
+                // the person is considered 'regular'.
+                if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
+                    item.status = 'regular';
+                }
             }
         }
+
 
         const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
         if (lastVisitValue) {
