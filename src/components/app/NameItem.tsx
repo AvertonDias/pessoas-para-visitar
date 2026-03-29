@@ -162,7 +162,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   return (
     <>
       <Collapsible className="rounded-md bg-card border data-[state=open]:bg-secondary/20 transition-colors duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 p-3">
+          <div className="flex flex-col p-3">
             <CollapsibleTrigger className="flex-grow text-left">
               <p className="font-medium text-foreground">{name.text}</p>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
@@ -175,7 +175,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
               </div>
             </CollapsibleTrigger>
             
-            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-2">
+            <div className="flex w-full items-center justify-between gap-2 mt-2 pt-2 sm:mt-0 sm:pt-0 sm:absolute sm:right-3 sm:top-3 sm:w-auto">
                 <div className="flex items-center gap-2">
                     {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
                     <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
@@ -334,7 +334,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
               <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="visitors" className="text-right">Visitado por:</Label>
-                      <Input id="visitors" value={visitorInput} onChange={(e) => setVisitorInput(e.target.value)} className="col-span-3" placeholder="Ex: João e Maria"/>
+                      <Input id="visitors" value={visitorInput} onChange={(e) => setVisitorInput(e.target.value)} className="col-span-3" placeholder="Ex: João e Ricardo"/>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="visit-date" className="text-right">Data</Label>
