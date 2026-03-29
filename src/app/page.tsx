@@ -380,7 +380,8 @@ export default function Home() {
         phoneMobile: ['phonemobile', 'telefone celular'],
         phoneHome: ['phonehome', 'telefone residencial'],
         personId: ['personid'],
-        moved: ['moved', 'mudou-se', 'removed', 'removido'],
+        removed: ['removed'], // Prioritize this column
+        moved: ['moved', 'mudou-se'], // Fallback column
         active: ['active', 'ativo'],
         regular: ['regular'],
         lastVisit: ['lastvisit', 'última visita'],
@@ -397,6 +398,7 @@ export default function Home() {
       const phoneMobileIndex = getIndex(nameKeys.phoneMobile);
       const phoneHomeIndex = getIndex(nameKeys.phoneHome);
       const personIdIndex = getIndex(nameKeys.personId);
+      const removedIndex = getIndex(nameKeys.removed);
       const movedIndex = getIndex(nameKeys.moved);
       const activeIndex = getIndex(nameKeys.active);
       const regularIndex = getIndex(nameKeys.regular);
@@ -427,9 +429,23 @@ export default function Home() {
         const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
         if (phone) item.phone = phone;
 
-        const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : undefined;
-        
-        if (movedValue === 'true' || movedValue === 'verdadeiro') {
+        let isConsideredRemoved = false;
+        // Prioritize 'Removed' column (Col 41) as per user's latest instruction
+        if (removedIndex !== -1) {
+            const removedValue = values[removedIndex]?.toLowerCase();
+            if (removedValue === 'true' || removedValue === 'verdadeiro') {
+                isConsideredRemoved = true;
+            }
+        } 
+        // Fallback to 'Moved' if 'Removed' column doesn't exist, as per previous instructions
+        else if (movedIndex !== -1) {
+            const movedValue = values[movedIndex]?.toLowerCase();
+            if (movedValue === 'true' || movedValue === 'verdadeiro') {
+                isConsideredRemoved = true;
+            }
+        }
+
+        if (isConsideredRemoved) {
             item.status = 'removido';
         } else {
             const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : undefined;
@@ -440,7 +456,8 @@ export default function Home() {
             } else if (regularValue === 'false' || regularValue === 'falso') {
                 item.status = 'irregular';
             } else {
-                if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
+                const hasAnyStatusColumn = removedIndex !== -1 || movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1;
+                if (hasAnyStatusColumn) {
                     item.status = 'regular';
                 }
             }
