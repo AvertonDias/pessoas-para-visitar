@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { FieldGroup } from '@/app/page';
+import type { FieldGroup } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 
 interface FieldGroupItemProps {

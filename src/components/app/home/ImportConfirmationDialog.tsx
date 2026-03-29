@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { ImportedName, Name, ImportUpdate } from "@/app/page";
+import type { ImportedName, Name, ImportUpdate } from "@/lib/types";
 
 interface ImportConfirmationDialogProps {
   isOpen: boolean;

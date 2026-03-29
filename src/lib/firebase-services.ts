@@ -14,7 +14,7 @@ import {
   deleteField,
   type Firestore,
 } from 'firebase/firestore';
-import type { Name, UserProfile, FieldGroup, ImportedName, ImportUpdate, Visit } from '@/app/page';
+import type { Name, UserProfile, FieldGroup, ImportedName, ImportUpdate, Visit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';

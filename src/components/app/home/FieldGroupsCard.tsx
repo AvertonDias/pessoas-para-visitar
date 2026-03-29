@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FieldGroupItem } from '@/components/app/FieldGroupItem';
 import { Plus, Tag } from 'lucide-react';
 import { useState } from 'react';
-import { FieldGroup } from '@/app/page';
+import type { FieldGroup } from '@/lib/types';
 
 interface FieldGroupsCardProps {
   isAdmin: boolean;

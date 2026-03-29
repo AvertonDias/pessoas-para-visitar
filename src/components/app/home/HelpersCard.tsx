@@ -8,7 +8,7 @@ import { Users, Trash2, Link as LinkIcon, Copy, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import * as services from '@/lib/firebase-services';
-import type { Helper } from '@/app/page';
+import type { Helper } from '@/lib/types';
 import { PerformingUser } from '@/lib/audit-log-services';
 
 import {

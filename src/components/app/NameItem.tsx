@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Name, Visit, FieldGroup } from '@/app/page';
+import type { Name, Visit, FieldGroup } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, History, Calendar as CalendarIcon } from 'lucide-react';

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { NameItem } from '@/components/app/NameItem';
 import { Users } from 'lucide-react';
-import type { Name, FieldGroup } from '@/app/page';
+import type { Name, FieldGroup } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';

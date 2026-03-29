@@ -10,20 +10,8 @@ import { FieldGroupsCard } from '@/components/app/home/FieldGroupsCard';
 import { HelpersCard } from '@/components/app/home/HelpersCard';
 import { ImportCard } from '@/components/app/home/ImportCard';
 import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { AddNameDialog } from '@/components/app/home/AddNameDialog';
+import { GeneratePdfDialog } from '@/components/app/home/GeneratePdfDialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
@@ -38,68 +26,13 @@ import { fetchCsvFromUrl } from '@/app/actions';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PerformingUser } from '@/lib/audit-log-services';
+import type { Name, FieldGroup, UserProfile, Helper, ImportedName, ImportUpdate, ImportPreview } from '@/lib/types';
 
 declare module 'jspdf' {
     interface jsPDF {
         autoTable: (options: any) => jsPDF;
     }
 }
-
-export type Visit = {
-  id: string;
-  date: string;
-  visitors: string;
-  observations?: string;
-};
-
-export type Name = {
-  id: string;
-  personId?: string;
-  text: string;
-  address?: string;
-  phone?: string;
-  status: 'regular' | 'irregular' | 'inativo' | 'removido';
-  fieldGroup: string;
-  visitHistory: Visit[];
-};
-
-export type FieldGroup = {
-  id: string;
-  name: string;
-};
-
-export type UserProfile = {
-  id: string;
-  name?: string;
-  email: string;
-  role: 'admin' | 'helper';
-  adminId?: string;
-  importUrl?: string;
-};
-
-export type Helper = {
-  id: string;
-  name?: string;
-  email: string;
-};
-
-export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory' | 'fieldGroup'>> & {
-    fieldGroup?: string;
-    importedVisitDate?: string;
-};
-
-export type ImportUpdate = {
-  existing: Name;
-  newData: ImportedName;
-  changes: string[];
-};
-
-type ImportPreview = {
-    toCreate: ImportedName[];
-    toUpdate: ImportUpdate[];
-    newGroups: string[];
-    unmatchedNames: string[];
-} | null;
 
 export default function Home() {
   const { toast } = useToast();
@@ -199,8 +132,8 @@ export default function Home() {
 
   // State for PDF dialog
   const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
-  const [pdfSortBy, setPdfSortBy] = useState('visit-desc');
-  const [pdfSelectedGroups, setPdfSelectedGroups] = useState<string[]>([]);
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
 
   // Load filters from localStorage on initial client render
@@ -226,13 +159,6 @@ export default function Home() {
     }
   }, [selectedGroup, selectedStatus, sortBy, isClient]);
   
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [draftName, setDraftName] = useState<{text: string, fieldGroup: string, status: Name['status']}>({
-    text: '',
-    fieldGroup: '',
-    status: 'regular',
-  });
-
 
   useEffect(() => {
     if (dataOwnerProfile && dataOwnerProfile.importUrl) {
@@ -240,15 +166,7 @@ export default function Home() {
     }
   }, [dataOwnerProfile]);
 
-  useEffect(() => {
-    // When opening the dialog, initialize selected groups to all groups
-    if (isPdfDialogOpen) {
-      setPdfSelectedGroups(fieldGroups.map(g => g.id).concat('no-group'));
-    }
-  }, [isPdfDialogOpen, fieldGroups]);
-
-
-  const addName = () => {
+  const addName = (draftName: { text: string, fieldGroup: string, status: Name['status'] }) => {
     if (!dataOwnerId || !firestore || !performingUser) return;
     if (draftName.text.trim() === '') {
       toast({
@@ -272,11 +190,6 @@ export default function Home() {
     });
     setIsAddDialogOpen(false);
   };
-  
-  const handleOpenAddDialog = () => {
-    setDraftName({ text: '', fieldGroup: '', status: 'regular' });
-    setIsAddDialogOpen(true);
-  }
 
   const addGroup = (groupName: string) => {
     if (!dataOwnerId || !firestore || !performingUser) return;
@@ -875,11 +788,7 @@ export default function Home() {
     }
   }, [userLoading, user, router]);
 
-  const handleOpenPdfDialog = () => {
-    setIsPdfDialogOpen(true);
-  }
-
-  const generateNamesPdf = () => {
+  const generateNamesPdf = (pdfSortBy: string, pdfSelectedGroups: string[]) => {
     const filteredForPdf = names.filter(name => {
       if (pdfSelectedGroups.length === 0) {
         return false;
@@ -992,10 +901,10 @@ export default function Home() {
             {mobileView === 'pessoas' && (
               <div className="space-y-8 mt-4">
                 <ManageNamesCard
-                  onAddNameClick={handleOpenAddDialog}
+                  onAddNameClick={() => setIsAddDialogOpen(true)}
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
-                  onGeneratePdfClick={handleOpenPdfDialog}
+                  onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
                 />
                 <NameListCard
                   names={names}
@@ -1046,10 +955,10 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <div className="lg:col-span-2 space-y-8">
               <ManageNamesCard
-                onAddNameClick={handleOpenAddDialog}
+                onAddNameClick={() => setIsAddDialogOpen(true)}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                onGeneratePdfClick={handleOpenPdfDialog}
+                onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
               />
               <NameListCard
                 names={names}
@@ -1110,66 +1019,12 @@ export default function Home() {
         accept=".csv"
       />
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Adicionar Novo Nome</DialogTitle>
-            <DialogDescription>
-              Insira os detalhes para o novo nome.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name-add" className="text-right">Nome</Label>
-              <Input
-                id="name-add"
-                value={draftName.text}
-                onChange={(e) => setDraftName(prev => ({ ...prev, text: e.target.value }))}
-                className="col-span-3"
-                autoFocus
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fieldgroup-add" className="text-right">Grupo</Label>
-              <Select
-                value={draftName.fieldGroup}
-                onValueChange={(value) => setDraftName(prev => ({ ...prev, fieldGroup: value === '---' ? '' : value }))}
-              >
-                <SelectTrigger id="fieldgroup-add" className="col-span-3">
-                  <SelectValue placeholder="Não designado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="---">Não designado</SelectItem>
-                  {fieldGroups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status-add" className="text-right">Status</Label>
-              <Select
-                value={draftName.status}
-                onValueChange={(value: Name['status']) => setDraftName(prev => ({ ...prev, status: value }))}
-              >
-                <SelectTrigger id="status-add" className="col-span-3">
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="regular">Regular</SelectItem>
-                  <SelectItem value="irregular">Irregular</SelectItem>
-                  <SelectItem value="inativo">Inativo</SelectItem>
-                  <SelectItem value="removido">Removido</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={addName}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddNameDialog 
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAddName={addName}
+        fieldGroups={fieldGroups}
+      />
       
        <ImportConfirmationDialog
         isOpen={isImportConfirmOpen}
@@ -1178,97 +1033,12 @@ export default function Home() {
         onConfirm={importMode === 'full' ? () => handleConfirmImport(importPreview) : handleConfirmVisitsImport}
       />
 
-       <Dialog open={isPdfDialogOpen} onOpenChange={setIsPdfDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-            <DialogTitle>Gerar Relatório PDF da Lista</DialogTitle>
-            <DialogDescription>
-                Escolha os filtros e a ordem para o relatório em PDF.
-            </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="pdf-groups" className="text-right">
-                    Grupos
-                    </Label>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="col-span-3 justify-start text-left font-normal">
-                                {pdfSelectedGroups.length === fieldGroups.length + 1
-                                    ? "Todos os grupos"
-                                    : pdfSelectedGroups.length === 0
-                                    ? "Nenhum selecionado"
-                                    : `${pdfSelectedGroups.length} selecionados`
-                                }
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56" align="end">
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
-                                <Label htmlFor="select-all-groups" className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 font-normal">
-                                    <Checkbox
-                                        id="select-all-groups"
-                                        checked={pdfSelectedGroups.length === fieldGroups.length + 1}
-                                        onCheckedChange={(checked) => {
-                                            if (checked) {
-                                                setPdfSelectedGroups(fieldGroups.map(g => g.id).concat('no-group'));
-                                            } else {
-                                                setPdfSelectedGroups([]);
-                                            }
-                                        }}
-                                    />
-                                    <span>Todos os grupos</span>
-                                </Label>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {fieldGroups.map(group => (
-                                <DropdownMenuCheckboxItem
-                                    key={group.id}
-                                    checked={pdfSelectedGroups.includes(group.id)}
-                                    onCheckedChange={checked => {
-                                        setPdfSelectedGroups(prev => 
-                                            checked ? [...prev, group.id] : prev.filter(id => id !== group.id)
-                                        )
-                                    }}
-                                >
-                                    {group.name}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                            <DropdownMenuCheckboxItem
-                                key="no-group"
-                                checked={pdfSelectedGroups.includes('no-group')}
-                                onCheckedChange={checked => {
-                                    setPdfSelectedGroups(prev => 
-                                        checked ? [...prev, 'no-group'] : prev.filter(id => id !== 'no-group')
-                                    )
-                                }}
-                            >
-                                Sem grupo
-                            </DropdownMenuCheckboxItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="pdf-sort-by" className="text-right">
-                    Ordenar por
-                    </Label>
-                    <Select value={pdfSortBy} onValueChange={(value) => setPdfSortBy(value)}>
-                    <SelectTrigger id="pdf-sort-by" className="col-span-3">
-                        <SelectValue placeholder="Ordenar por..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
-                        <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
-                        <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPdfDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={generateNamesPdf}>Gerar PDF</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
+       <GeneratePdfDialog 
+        isOpen={isPdfDialogOpen}
+        onOpenChange={setIsPdfDialogOpen}
+        onGeneratePdf={generateNamesPdf}
+        fieldGroups={fieldGroups}
+       />
 
       <InstallPwaBanner />
     </div>

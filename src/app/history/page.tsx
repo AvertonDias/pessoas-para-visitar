@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy } from 'firebase/firestore';
-import type { UserProfile } from '@/app/page';
+import type { UserProfile } from '@/lib/types';
 import { Header } from '@/components/app/Header';
 import { Card } from '@/components/ui/card';
 import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon } from 'lucide-react';

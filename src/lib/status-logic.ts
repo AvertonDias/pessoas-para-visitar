@@ -1,6 +1,6 @@
 'use client';
 
-import type { Visit, Name } from '@/app/page';
+import type { Visit, Name } from '@/lib/types';
 import { subMonths, isAfter } from 'date-fns';
 
 /**
