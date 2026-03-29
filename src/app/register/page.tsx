@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sheep, Eye, EyeOff } from 'lucide-react';
+import { HandHeart, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { processRegistration } from '@/lib/firebase-services';
 
@@ -129,7 +129,7 @@ function RegisterForm() {
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <Sheep className="h-12 w-12 text-primary" />
+          <HandHeart className="h-12 w-12 text-primary" />
         </div>
         <CardTitle className="text-2xl">Crie seu Acesso</CardTitle>
         <CardDescription>
@@ -251,7 +251,7 @@ export default function RegisterPage() {
         <Card className="w-full max-w-sm">
           <CardHeader>
             <div className="flex justify-center mb-4">
-              <Sheep className="h-12 w-12 text-primary" />
+              <HandHeart className="h-12 w-12 text-primary" />
             </div>
             <CardTitle className="text-2xl">Carregando...</CardTitle>
           </CardHeader>

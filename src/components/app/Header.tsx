@@ -1,6 +1,6 @@
 'use client';
 
-import { Sheep, LogOut, BarChart } from 'lucide-react';
+import { HandHeart, LogOut, BarChart } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ export function Header() {
     <header className="w-full bg-primary text-primary-foreground py-4 sm:py-6 shadow-md">
       <div className="container mx-auto flex items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-3">
-          <Sheep className="h-8 w-8 sm:h-10 sm:w-10" />
+          <HandHeart className="h-8 w-8 sm:h-10 sm:w-10" />
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
             Pessoas para visitar
           </h1>
