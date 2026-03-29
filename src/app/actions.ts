@@ -38,24 +38,25 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
         const response = await fetch(downloadUrl, {
             redirect: 'follow',
         });
+        
+        const responseText = await response.text();
+        const contentType = response.headers.get('content-type') || '';
+
+        // First, check if the content is HTML. This usually indicates an interstitial page (login, permission error, large file warning).
+        if (contentType.includes('text/html')) {
+             // Check for Google Drive's large file warning page, which can return 200 OK.
+            if (responseText.includes('id="uc-download-link"')) {
+                return { success: false, error: 'O arquivo é muito grande ou requer confirmação para download no Google Drive. Por favor, faça o download manual e importe o arquivo.' };
+            }
+            // For any other HTML page (like a login screen), assume it's a permission issue.
+            return { success: false, error: 'O link não retornou um arquivo CSV. Verifique se o link de compartilhamento está como "Qualquer pessoa com o link".' };
+        }
 
         if (!response.ok) {
-            const text = await response.text();
-            if (text.includes('id="uc-download-link"')) {
-                 return { success: false, error: 'O arquivo é muito grande ou requer confirmação para download no Google Drive. Por favor, faça o download manual e importe o arquivo.' };
-            }
             return { success: false, error: `Falha ao buscar o arquivo (Status: ${response.status}). Verifique se o link é público e direto para o arquivo CSV.` };
         }
-        
-        const contentType = response.headers.get('content-type') || '';
-        const csvText = await response.text();
 
-        // Check if the response is likely an HTML error page, even with a 200 OK status
-        if (contentType.includes('text/html') && csvText.trim().toLowerCase().startsWith('<!doctype html')) {
-             return { success: false, error: 'O link não retornou um arquivo CSV. Verifique se o link de compartilhamento está como "Qualquer pessoa com o link".' };
-        }
-
-        return { success: true, data: csvText };
+        return { success: true, data: responseText };
     } catch (error) {
         console.error('Error fetching CSV from URL:', error);
         return { success: false, error: 'Ocorreu um erro de rede ao tentar buscar o arquivo. Verifique sua conexão e o link.' };
