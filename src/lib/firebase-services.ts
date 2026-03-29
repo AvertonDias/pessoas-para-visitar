@@ -242,23 +242,15 @@ export const removeHelper = (db: Firestore, helperId: string) => {
 export const batchImportData = async (
   db: Firestore,
   userId: string,
-  dataToImport: ImportedName[],
-  existingGroups: FieldGroup[],
-  existingNames: Name[]
+  toCreate: ImportedName[],
+  toUpdate: ImportUpdate[],
+  newGroups: string[]
 ) => {
   const batch = writeBatch(db);
+  const namesCollectionRef = collection(db, 'users', userId, 'names');
 
-  // 1. Create new groups if they don't exist
-  const existingGroupNames = new Set(existingGroups.map(g => g.name.toLowerCase()));
-  const newGroupsToCreate = new Set<string>();
-
-  dataToImport.forEach(item => {
-    if (item.fieldGroup && !existingGroupNames.has(item.fieldGroup.toLowerCase())) {
-      newGroupsToCreate.add(item.fieldGroup);
-    }
-  });
-
-  newGroupsToCreate.forEach(groupName => {
+  // 1. Create new groups
+  newGroups.forEach(groupName => {
     const groupRef = doc(collection(db, 'users', userId, 'fieldGroups'));
     batch.set(groupRef, {
       name: groupName,
@@ -266,97 +258,75 @@ export const batchImportData = async (
     });
   });
 
-  // 2. Prepare for name import/update
-  const namesCollectionRef = collection(db, 'users', userId, 'names');
-  const existingNamesByPersonId = new Map<string, Name>();
-  existingNames.forEach(name => {
-    if (name.personId && name.personId.trim() !== '') {
-      existingNamesByPersonId.set(name.personId, name);
-    }
-  });
-  const existingNamesByName = new Map<string, Name>();
-    existingNames.forEach(name => {
-    existingNamesByName.set(name.text.toLowerCase().trim(), name);
-  });
+  // 2. Process new names to create
+  toCreate.forEach(item => {
+    if (!item.text) return;
 
-  // 3. Process each item for import or update
-  dataToImport.forEach(item => {
-    if (!item.text) { // Ensure name text exists
-      return;
-    }
+    const nameRef = doc(namesCollectionRef);
     
-    const existingMatch = (item.personId ? existingNamesByPersonId.get(item.personId) : undefined) 
-                          || existingNamesByName.get(item.text.toLowerCase().trim());
+    const visitHistory = item.importedVisitDate ? [{
+      id: doc(collection(db, 'temp-ids')).id,
+      date: item.importedVisitDate,
+      visitors: 'Importado'
+    }] : [];
     
-    if (existingMatch) {
-      // UPDATE: Found existing name by personId
-      const nameRef = doc(namesCollectionRef, existingMatch.id);
-      const updatePayload: Partial<Omit<Name, 'id'>> = {
-        text: item.text,
-        address: item.address || '',
-        phone: item.phone || '',
-        fieldGroup: item.fieldGroup || '',
-        status: item.status, // Prioritize status from the CSV file
-      };
-      
-      let finalHistory = existingMatch.visitHistory || [];
-      if (item.importedVisitDate) {
-        const newVisitDate = new Date(item.importedVisitDate);
-        const visitExists = finalHistory.some(visit => {
-            const existingDate = new Date(visit.date);
-            return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
-                   existingDate.getUTCMonth() === newVisitDate.getUTCMonth() &&
-                   existingDate.getUTCDate() === newVisitDate.getUTCDate();
-        });
+    batch.set(nameRef, {
+      personId: item.personId || '',
+      text: item.text,
+      status: item.status || 'regular',
+      fieldGroup: item.fieldGroup || '',
+      address: item.address || '',
+      phone: item.phone || '',
+      createdAt: serverTimestamp(),
+      visitHistory: visitHistory
+    });
+  });
 
-        if (!visitExists) {
-            finalHistory = [
-                ...finalHistory,
-                {
-                    id: doc(collection(db, 'temp-ids')).id,
-                    date: item.importedVisitDate,
-                    visitors: 'Importado'
-                }
-            ];
-            updatePayload.visitHistory = finalHistory;
-        }
-      }
+  // 3. Process existing names to update
+  toUpdate.forEach(({ existing, newData }) => {
+    const nameRef = doc(namesCollectionRef, existing.id);
+    const updatePayload: { [key: string]: any } = {};
 
-      batch.update(nameRef, updatePayload);
+    if (newData.text !== undefined) updatePayload.text = newData.text;
+    if (newData.address !== undefined) updatePayload.address = newData.address;
+    if (newData.phone !== undefined) updatePayload.phone = newData.phone;
+    if (newData.fieldGroup !== undefined) updatePayload.fieldGroup = newData.fieldGroup;
+    if (newData.status !== undefined) updatePayload.status = newData.status;
 
-    } else {
-      // CREATE: No match found, create a new name
-      const nameRef = doc(namesCollectionRef);
-      const visitHistory = item.importedVisitDate ? [{
-        id: doc(collection(db, 'temp-ids')).id,
-        date: item.importedVisitDate,
-        visitors: 'Importado'
-      }] : [];
-      
-      const status = item.status || 'regular'; // Prioritize status from the CSV file
-
-      batch.set(nameRef, {
-        personId: item.personId || '',
-        text: item.text,
-        status: status,
-        fieldGroup: item.fieldGroup || '',
-        address: item.address || '',
-        phone: item.phone || '',
-        createdAt: serverTimestamp(),
-        visitHistory: visitHistory
+    let finalHistory = existing.visitHistory || [];
+    if (newData.importedVisitDate) {
+      const newVisitDate = new Date(newData.importedVisitDate);
+      const visitExists = finalHistory.some(visit => {
+          const existingDate = new Date(visit.date);
+          return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
+                 existingDate.getUTCMonth() === newVisitDate.getUTCMonth() &&
+                 existingDate.getUTCDate() === newVisitDate.getUTCDate();
       });
+
+      if (!visitExists) {
+          finalHistory = [
+              ...finalHistory,
+              {
+                  id: doc(collection(db, 'temp-ids')).id,
+                  date: newData.importedVisitDate,
+                  visitors: 'Importado'
+              }
+          ];
+          updatePayload.visitHistory = finalHistory;
+      }
+    }
+    
+    if (Object.keys(updatePayload).length > 0) {
+      batch.update(nameRef, updatePayload);
     }
   });
-
 
   // 4. Commit the batch
   try {
     await batch.commit();
   } catch (error) {
-    // Re-throw the original error to be caught by the UI layer.
-    // This provides more specific error information than creating a generic permission error.
-    console.error("Firebase batch commit failed:", error); // Log the true error for debugging.
-    throw error; // Rethrow it to the calling function in the UI.
+    console.error("Firebase batch commit failed:", error);
+    throw error;
   }
 };
 

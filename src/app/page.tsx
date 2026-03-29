@@ -64,8 +64,9 @@ export type Helper = {
   email: string;
 };
 
-export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory'>> & {
-  importedVisitDate?: string;
+export type ImportedName = Partial<Omit<Name, 'id' | 'visitHistory' | 'fieldGroup'>> & {
+    fieldGroup?: string;
+    importedVisitDate?: string;
 };
 
 export type ImportUpdate = {
@@ -349,78 +350,74 @@ export default function Home() {
       const regularIndex = getIndex(nameKeys.regular);
       const lastVisitIndex = getIndex(nameKeys.lastVisit);
 
-      if (displayNameIndex === -1 && firstNameIndex === -1 && lastNameIndex === -1 && lastVisitIndex === -1 && personIdIndex === -1) {
-          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter uma coluna de nome (ex: 'DisplayName') ou data (ex: 'Data')." });
+      if (displayNameIndex === -1 && firstNameIndex === -1 && lastNameIndex === -1 && lastVisitIndex === -1 && personIdIndex === -1 && getIndex(nameKeys.displayName) === -1) {
+          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter uma coluna de nome (ex: 'DisplayName' ou 'Nome') ou data (ex: 'Data')." });
           return;
       }
 
       const importedResult: ImportedName[] = rows.slice(1).map(row => {
         const values = row.split(separator).map(v => v.trim().replace(/"/g, ''));
         
+        const item: ImportedName = {};
+        
         const combinedName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ').trim();
         const displayName = displayNameIndex !== -1 ? values[displayNameIndex] : '';
         const text = combinedName || displayName;
+        if(text) item.text = text;
 
-        let status: Name['status'];
+        if (personIdIndex !== -1) item.personId = values[personIdIndex];
+        if (groupIndex !== -1) item.fieldGroup = values[groupIndex];
+        if (addressIndex !== -1) item.address = values[addressIndex];
+        
+        const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
+        if (phoneMobileIndex !== -1 || phoneHomeIndex !== -1) item.phone = phone;
 
-        const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
-        const isMoved = movedValue === 'true' || movedValue === 'verdadeiro';
+        if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
+            const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
+            const isMoved = movedValue === 'true' || movedValue === 'verdadeiro';
 
-        const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : '';
-        const isActive = activeValue === 'true' || activeValue === 'verdadeiro';
+            const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : '';
+            const isActive = activeValue === 'true' || activeValue === 'verdadeiro';
 
-        const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : '';
-        const isRegular = regularValue === 'true' || regularValue === 'verdadeiro';
+            const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : '';
+            const isRegular = regularValue === 'true' || regularValue === 'verdadeiro';
 
-        // Strict order of checks as requested by user.
-        if (isMoved) {
-          status = 'removido';
-        } else if (activeIndex !== -1 && !isActive) {
-          status = 'inativo';
-        } else if (regularIndex !== -1 && !isRegular) {
-          status = 'irregular';
-        } else {
-          status = 'regular';
+            if (isMoved) {
+              item.status = 'removido';
+            } else if (activeIndex !== -1 && !isActive) {
+              item.status = 'inativo';
+            } else if (regularIndex !== -1 && !isRegular) {
+              item.status = 'irregular';
+            } else {
+              item.status = 'regular';
+            }
         }
 
-        const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
-
         const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
-        let importedVisitDate: string | undefined;
         if (lastVisitValue) {
             const parts = lastVisitValue.split('/');
+            let parsedDate: Date;
             if (parts.length === 3) {
                 const day = parseInt(parts[0], 10);
                 const month = parseInt(parts[1], 10) - 1;
                 let year = parseInt(parts[2], 10);
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    if (year < 100) {
-                        year += 2000;
-                    }
-                    const parsedDate = new Date(year, month, day);
-                    if (!isNaN(parsedDate.getTime())) {
-                        const tzOffset = parsedDate.getTimezoneOffset() * 60000;
-                        importedVisitDate = new Date(parsedDate.getTime() - tzOffset).toISOString();
-                    }
+                    if (year < 100) year += 2000;
+                    parsedDate = new Date(Date.UTC(year, month, day));
+                } else {
+                    parsedDate = new Date(lastVisitValue);
                 }
             } else {
-                const parsedDate = new Date(lastVisitValue);
-                if (!isNaN(parsedDate.getTime())) {
-                    const tzOffset = parsedDate.getTimezoneOffset() * 60000;
-                    importedVisitDate = new Date(parsedDate.getTime() - tzOffset).toISOString();
-                }
+                parsedDate = new Date(lastVisitValue);
+            }
+
+            if (!isNaN(parsedDate.getTime())) {
+                const tzOffset = new Date().getTimezoneOffset() * 60000;
+                item.importedVisitDate = new Date(parsedDate.getTime() + tzOffset).toISOString();
             }
         }
 
-        return {
-          personId: personIdIndex !== -1 ? values[personIdIndex] : '',
-          text: text,
-          fieldGroup: groupIndex !== -1 ? values[groupIndex] : '',
-          address: addressIndex !== -1 ? values[addressIndex] : '',
-          phone: phone,
-          status: status,
-          importedVisitDate: importedVisitDate,
-        };
+        return item;
       }).filter(item => item.text || item.personId);
 
       const existingNamesByPersonId = new Map<string, Name>();
@@ -452,15 +449,15 @@ export default function Home() {
               const effectiveNewData = { ...item };
               
               if (!visitsOnly) {
-                if (existing.status === 'removido' && item.status !== 'regular' && item.status !== 'irregular') {
+                if (existing.status === 'removido' && item.status && item.status !== 'regular' && item.status !== 'irregular') {
                   effectiveNewData.status = 'removido';
                 }
 
                 if (effectiveNewData.text && effectiveNewData.text !== existing.text) changes.push(formatChange('Nome', existing.text, effectiveNewData.text));
-                if ((effectiveNewData.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, effectiveNewData.address));
-                if ((effectiveNewData.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, effectiveNewData.phone));
-                if ((effectiveNewData.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, effectiveNewData.fieldGroup));
-                if (effectiveNewData.status !== existing.status) changes.push(formatChange('Status', existing.status, effectiveNewData.status));
+                if (effectiveNewData.address !== undefined && effectiveNewData.address !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, effectiveNewData.address));
+                if (effectiveNewData.phone !== undefined && effectiveNewData.phone !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, effectiveNewData.phone));
+                if (effectiveNewData.fieldGroup !== undefined && effectiveNewData.fieldGroup !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, effectiveNewData.fieldGroup));
+                if (effectiveNewData.status && effectiveNewData.status !== existing.status) changes.push(formatChange('Status', existing.status, effectiveNewData.status));
               }
               
               if (effectiveNewData.importedVisitDate) {
@@ -594,18 +591,15 @@ export default function Home() {
                 toast({ title: "Nenhuma visita nova para importar." });
             }
         } else {
-            const dataToImport = [
-              ...importPreview.toCreate,
-              ...importPreview.toUpdate.map(u => u.newData)
-            ];
+            const { toCreate, toUpdate, newGroups } = importPreview;
 
-            if (dataToImport.length === 0 && importPreview.newGroups.length === 0) {
+            if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
               toast({ title: "Nenhuma alteração para importar." });
             } else {
-              await services.batchImportData(firestore, dataOwnerId, dataToImport, fieldGroups, names);
+              await services.batchImportData(firestore, dataOwnerId, toCreate, toUpdate, newGroups);
               toast({
                   title: "Importação concluída!",
-                  description: `${dataToImport.length} pessoas foram importadas e/ou atualizadas com sucesso.`,
+                  description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
               });
             }
         }
