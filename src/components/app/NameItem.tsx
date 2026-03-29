@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Name, Visit } from '@/app/page';
+import type { Name, Visit, FieldGroup } from '@/app/page';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, History, Calendar as CalendarIcon } from 'lucide-react';
@@ -45,7 +45,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { calculateStatusFromHistory } from '@/lib/status-logic';
 import {
   Collapsible,
   CollapsibleContent,
@@ -56,7 +55,7 @@ interface NameItemProps {
   name: Name;
   updateName: (id: string, data: Partial<Omit<Name, 'id'>>) => void;
   deleteName: (id: string) => void;
-  fieldGroups: string[];
+  fieldGroups: FieldGroup[];
 }
 
 export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItemProps) {
@@ -216,7 +215,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                                 <SelectContent>
                                     <SelectItem value="---">Não designado</SelectItem>
                                     {fieldGroups.map((group) => (
-                                        <SelectItem key={group} value={group}>{group}</SelectItem>
+                                        <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

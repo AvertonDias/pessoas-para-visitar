@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { NameItem } from '@/components/app/NameItem';
 import { Users } from 'lucide-react';
-import type { Name } from '@/app/page';
+import type { Name, FieldGroup } from '@/app/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 
@@ -14,7 +14,7 @@ interface NameListCardProps {
   searchTerm: string;
   updateName: (id: string, newNameData: Partial<Omit<Name, 'id'>>) => void;
   deleteName: (id: string) => void;
-  fieldGroups: string[];
+  fieldGroups: FieldGroup[];
   adminName?: string;
   selectedGroup: string;
   setSelectedGroup: (value: string) => void;
@@ -64,8 +64,8 @@ export function NameListCard({
               <SelectItem value="all">Todos os grupos</SelectItem>
               <Separator />
               {fieldGroups.map((group) => (
-                <SelectItem key={group} value={group}>
-                  {group}
+                <SelectItem key={group.id} value={group.name}>
+                  {group.name}
                 </SelectItem>
               ))}
               <SelectItem value="--none--">Sem grupo</SelectItem>

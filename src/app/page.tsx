@@ -79,7 +79,6 @@ type ImportPreview = {
     toCreate: ImportedName[];
     toUpdate: ImportUpdate[];
     newGroups: string[];
-    unmatchedNames: string[];
 } | null;
 
 export default function Home() {
@@ -308,32 +307,19 @@ export default function Home() {
         .replace(/\s+/g, ' '); // Collapse multiple spaces
   }
 
-  const handleConfirmImport = async (visitsOnly: boolean, preview: ImportPreview) => {
-    if (!dataOwnerId || !firestore || !preview) return;
+  const handleConfirmImport = async () => {
+    if (!dataOwnerId || !firestore || !importPreview) return;
+    const { toCreate, toUpdate, newGroups } = importPreview;
 
     try {
-        if (visitsOnly) {
-             if (preview.toUpdate.length > 0) {
-                await services.batchUpdateVisits(firestore, dataOwnerId, preview.toUpdate);
-                toast({
-                    title: "Importação de visitas concluída!",
-                    description: `${preview.toUpdate.length} pessoas tiveram seu histórico de visitas atualizado.`,
-                });
-            } else {
-                toast({ title: "Nenhuma visita nova para importar." });
-            }
+        if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
+          toast({ title: "Nenhuma alteração para importar." });
         } else {
-            const { toCreate, toUpdate, newGroups } = preview;
-
-            if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
-              toast({ title: "Nenhuma alteração para importar." });
-            } else {
-              await services.batchImportData(firestore, dataOwnerId, toCreate, toUpdate, newGroups);
-              toast({
-                  title: "Importação concluída!",
-                  description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
-              });
-            }
+          await services.batchImportData(firestore, dataOwnerId, toCreate, toUpdate, newGroups);
+          toast({
+              title: "Importação concluída!",
+              description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
+          });
         }
     } catch (error: any) {
         console.error("Error during batch import:", error);
@@ -407,12 +393,12 @@ export default function Home() {
         const text = combinedName || displayName;
         if(text) item.text = text;
 
-        if (personIdIndex !== -1) item.personId = values[personIdIndex];
-        if (groupIndex !== -1) item.fieldGroup = values[groupIndex];
-        if (addressIndex !== -1) item.address = values[addressIndex];
+        if (personIdIndex !== -1 && values[personIdIndex]) item.personId = values[personIdIndex];
+        if (groupIndex !== -1 && values[groupIndex]) item.fieldGroup = values[groupIndex];
+        if (addressIndex !== -1 && values[addressIndex]) item.address = values[addressIndex];
         
         const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
-        if (phoneMobileIndex !== -1 || phoneHomeIndex !== -1) item.phone = phone;
+        if (phone) item.phone = phone;
 
         if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
             const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
@@ -445,7 +431,7 @@ export default function Home() {
                 let year = parseInt(parts[2], 10);
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
                     if (year < 100) year += 2000;
-                    parsedDate = new Date(Date.UTC(year, month, day));
+                    parsedDate = new Date(year, month, day);
                 } else {
                     parsedDate = new Date(lastVisitValue);
                 }
@@ -454,13 +440,12 @@ export default function Home() {
             }
 
             if (!isNaN(parsedDate.getTime())) {
-                const tzOffset = new Date().getTimezoneOffset() * 60000;
-                item.importedVisitDate = new Date(parsedDate.getTime() + tzOffset).toISOString();
+                item.importedVisitDate = parsedDate.toISOString();
             }
         }
 
         return item;
-      }).filter(item => item.text || item.personId);
+      }).filter(item => (item.text || item.personId));
 
       const existingNamesByPersonId = new Map<string, Name>();
       names.forEach(name => {
@@ -475,10 +460,9 @@ export default function Home() {
 
       const toCreate: ImportedName[] = [];
       const toUpdate: ImportUpdate[] = [];
-      const unmatchedNames: string[] = [];
       const formatChange = (label: string, from: any, to: any) => {
-          const fromStr = from || 'vazio';
-          const toStr = to || 'vazio';
+          const fromStr = from === undefined || from === null || from === '' ? 'vazio' : from;
+          const toStr = to === undefined || to === null || to === '' ? 'vazio' : to;
           return `${label}: de "${fromStr}" para "${toStr}"`;
       };
 
@@ -490,31 +474,25 @@ export default function Home() {
               const changes: string[] = [];
               const updatePayload: ImportedName = {};
               
-              if (!visitsOnly) {
-                const itemStatus = (existing.status === 'removido' && item.status && item.status !== 'regular' && item.status !== 'irregular') 
-                    ? 'removido' 
-                    : item.status;
-
-                if (item.text && normalizeName(item.text) !== normalizeName(existing.text)) {
-                    changes.push(formatChange('Nome', existing.text, item.text));
-                    updatePayload.text = item.text;
-                }
-                if (item.address !== undefined && item.address !== (existing.address || '')) {
-                    changes.push(formatChange('Endereço', existing.address, item.address));
-                    updatePayload.address = item.address;
-                }
-                if (item.phone !== undefined && item.phone !== (existing.phone || '')) {
-                    changes.push(formatChange('Telefone', existing.phone, item.phone));
-                    updatePayload.phone = item.phone;
-                }
-                if (item.fieldGroup !== undefined && item.fieldGroup !== (existing.fieldGroup || '')) {
-                    changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
-                    updatePayload.fieldGroup = item.fieldGroup;
-                }
-                if (itemStatus && itemStatus !== existing.status) {
-                    changes.push(formatChange('Status', existing.status, itemStatus));
-                    updatePayload.status = itemStatus;
-                }
+              if (item.text && normalizeName(item.text) !== normalizeName(existing.text)) {
+                  changes.push(formatChange('Nome', existing.text, item.text));
+                  updatePayload.text = item.text;
+              }
+              if (item.address !== undefined && item.address !== (existing.address || '')) {
+                  changes.push(formatChange('Endereço', existing.address, item.address));
+                  updatePayload.address = item.address;
+              }
+              if (item.phone !== undefined && item.phone !== (existing.phone || '')) {
+                  changes.push(formatChange('Telefone', existing.phone, item.phone));
+                  updatePayload.phone = item.phone;
+              }
+              if (item.fieldGroup !== undefined && item.fieldGroup !== (existing.fieldGroup || '')) {
+                  changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
+                  updatePayload.fieldGroup = item.fieldGroup;
+              }
+              if (item.status && item.status !== existing.status) {
+                  changes.push(formatChange('Status', existing.status, item.status));
+                  updatePayload.status = item.status;
               }
               
               if (item.importedVisitDate) {
@@ -535,19 +513,15 @@ export default function Home() {
                   toUpdate.push({ existing, newData: updatePayload, changes });
               }
           } else {
-              if (!visitsOnly) {
-                toCreate.push(item);
-              } else {
-                if (item.text) unmatchedNames.push(item.text);
-              }
+              toCreate.push(item);
           }
       }
 
       const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
       const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
-      const newGroups = visitsOnly ? [] : [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
+      const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
 
-      if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0 && unmatchedNames.length === 0) {
+      if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
           toast({
               title: "Nenhuma alteração detectada",
               description: "Os dados no arquivo são idênticos aos dados existentes.",
@@ -555,9 +529,9 @@ export default function Home() {
           return;
       }
       
-      const previewData = { toCreate, toUpdate, newGroups, unmatchedNames };
+      const previewData = { toCreate, toUpdate, newGroups };
       setImportPreview(previewData);
-      setConfirmAction({ handler: () => handleConfirmImport(visitsOnly, previewData) });
+      setConfirmAction({ handler: () => handleConfirmImport() });
       setIsImportConfirmOpen(true);
 
     } catch (error) {
@@ -581,7 +555,6 @@ export default function Home() {
   
   const handleImportFromUrl = async () => {
     if (isImportingFromUrl) return;
-
     if (!importUrl) {
       toast({
         variant: 'destructive',
@@ -591,7 +564,6 @@ export default function Home() {
       return;
     }
     if (!dataOwnerId || !firestore) return;
-
     setIsImportingFromUrl(true);
     try {
       if (userProfile && importUrl !== userProfile.importUrl) {
@@ -601,9 +573,7 @@ export default function Home() {
           description: "Esta URL será usada para futuras sincronizações.",
         });
       }
-      
       const result = await fetchCsvFromUrl(importUrl);
-      
       if (result.success && result.data) {
         processCsvText(result.data, false);
       } else {
@@ -720,7 +690,7 @@ export default function Home() {
                   searchTerm={searchTerm}
                   updateName={updateName}
                   deleteName={deleteName}
-                  fieldGroups={fieldGroups.map(fg => fg.name)}
+                  fieldGroups={fieldGroups}
                   adminName={adminProfile?.name}
                   selectedGroup={selectedGroup}
                   setSelectedGroup={setSelectedGroup}
@@ -773,7 +743,7 @@ export default function Home() {
                 searchTerm={searchTerm}
                 updateName={updateName}
                 deleteName={deleteName}
-                fieldGroups={fieldGroups.map(fg => fg.name)}
+                fieldGroups={fieldGroups}
                 adminName={adminProfile?.name}
                 selectedGroup={selectedGroup}
                 setSelectedGroup={setSelectedGroup}
