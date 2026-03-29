@@ -6,9 +6,8 @@ import { collection, query, doc, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/app/page';
 import { Header } from '@/components/app/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { History, ArrowLeft, User, FileText, Tag, Trash2, Edit, Import } from 'lucide-react';
+import { History, User, FileText, Tag, Trash2, Edit, Import } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -88,12 +87,6 @@ export default function HistoryPage() {
                 <History className="h-8 w-8 text-primary" />
                 Histórico de Alterações
             </h1>
-            <Button asChild variant="outline">
-                <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar para a Lista
-                </Link>
-            </Button>
         </div>
 
         {isLoading ? (

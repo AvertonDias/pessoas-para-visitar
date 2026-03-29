@@ -6,9 +6,8 @@ import { collection, query, doc } from 'firebase/firestore';
 import type { Name, UserProfile } from '@/app/page';
 import { Header } from '@/components/app/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, ArrowLeft, FileText } from 'lucide-react';
+import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, FileText } from 'lucide-react';
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -186,18 +185,10 @@ export default function StatsPage() {
                 <BarChart className="h-8 w-8 text-primary" />
                 Estatísticas
             </h1>
-            <div className="flex items-center gap-2">
-                <Button onClick={generateStatsPdf}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Gerar PDF
-                </Button>
-                <Button asChild variant="outline">
-                    <Link href="/">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Voltar para a Lista
-                    </Link>
-                </Button>
-            </div>
+            <Button onClick={generateStatsPdf}>
+                <FileText className="mr-2 h-4 w-4" />
+                Gerar PDF
+            </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
