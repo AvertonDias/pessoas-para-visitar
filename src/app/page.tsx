@@ -388,8 +388,12 @@ export default function Home() {
         const values = row.split(separator).map(v => v.trim().replace(/"/g, ''));
         const item: ImportedName = {};
         
-        const combinedName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ').trim();
+        const firstName = values[firstNameIndex];
+        const middleName = values[middleNameIndex];
+        const lastName = values[lastNameIndex];
+        const combinedName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
         const displayName = values[displayNameIndex];
+        
         const text = combinedName || displayName;
         if(text) item.text = text;
 
@@ -404,14 +408,17 @@ export default function Home() {
         const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : undefined;
         const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : undefined;
         
-        if (movedValue === 'true' || movedValue === 'verdadeiro') {
-          item.status = 'removido';
-        } else if (activeValue === 'false' || activeValue === 'falso') {
-          item.status = 'inativo';
-        } else if (regularValue === 'false' || regularValue === 'falso') {
-          item.status = 'irregular';
-        } else if (movedValue !== undefined || activeValue !== undefined || regularValue !== undefined) {
-           item.status = 'regular';
+        // Logic based on user's specification. Only apply if at least one status column is present.
+        if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
+            if (movedValue === 'true' || movedValue === 'verdadeiro') {
+              item.status = 'removido';
+            } else if (activeValue === 'false' || activeValue === 'falso') {
+              item.status = 'inativo';
+            } else if (regularValue === 'false' || regularValue === 'falso') {
+              item.status = 'irregular';
+            } else {
+              item.status = 'regular';
+            }
         }
 
         const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
