@@ -75,7 +75,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     if (!latest) return visit;
     const latestDate = new Date(latest.date);
     const visitDate = new Date(visit.date);
-    return isAfter(visitDate, latestDate) ? visit : latest;
+    return isAfter(visitDate, latest) ? visit : latest;
   }, null);
 
   const handleUpdate = () => {
@@ -107,13 +107,15 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   }
   
   const onOpenChange = (open: boolean) => {
-    if (!open) {
-      // Reset state if dialog is closed without saving
+    if (open) {
+      // When opening, ensure all state is fresh and correct
       setEditText(name.text);
       setEditAddress(name.address || '');
       setEditPhone(name.phone || '');
-      setEditFieldGroup(name.fieldGroup || '');
       setEditStatus(name.status);
+      // This is the fix: find the group ID, even if name.fieldGroup stores a name (old data)
+      const currentGroupId = fieldGroups.find(g => g.id === name.fieldGroup || g.name === name.fieldGroup)?.id || '';
+      setEditFieldGroup(currentGroupId);
     }
     setIsEditDialogOpen(open);
   }
@@ -159,6 +161,8 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     const newHistory = (name.visitHistory || []).filter(v => v.id !== visitId);
     updateName(name.id, { visitHistory: newHistory });
   };
+  
+  const groupForDisplay = fieldGroups.find(g => g.id === name.fieldGroup);
 
 
   return (
@@ -176,7 +180,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                     <span>Nenhuma visita</span>
                   )}
                 </div>
-                {name.fieldGroup && <Badge variant="outline" className="font-normal">{name.fieldGroup}</Badge>}
+                {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
                 <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
               </div>
             </CollapsibleTrigger>
@@ -217,7 +221,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                                     <SelectContent>
                                         <SelectItem value="---">Não designado</SelectItem>
                                         {fieldGroups.map((group) => (
-                                            <SelectItem key={group.id} value={group.name}>{group.name}</SelectItem>
+                                            <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

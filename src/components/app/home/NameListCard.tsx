@@ -67,11 +67,11 @@ export function NameListCard({
                 <SelectItem value="all">Todos os grupos</SelectItem>
                 <Separator />
                 {fieldGroups.map((group) => (
-                  <SelectItem key={group.id} value={group.name}>
+                  <SelectItem key={group.id} value={group.id}>
                     {group.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="--none--">Sem grupo</SelectItem>
+                <SelectItem value="">Sem grupo</SelectItem>
               </SelectContent>
             </Select>
           </div>

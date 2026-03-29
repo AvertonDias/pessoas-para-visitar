@@ -149,9 +149,9 @@ export default function Home() {
 
   const groupCounts = useMemo(() => {
     return names.reduce((acc, name) => {
-      const groupName = fieldGroups.find(g => g.id === name.fieldGroup)?.name;
-      if (groupName) {
-        acc[groupName] = (acc[groupName] || 0) + 1;
+      const group = fieldGroups.find(g => g.id === name.fieldGroup);
+      if (group) {
+        acc[group.name] = (acc[group.name] || 0) + 1;
       }
       return acc;
     }, {} as { [key: string]: number });
@@ -803,7 +803,11 @@ export default function Home() {
   const filteredNames = useMemo(() => {
     const filtered = names.filter(name => {
       const matchesSearch = name.text.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesGroup = selectedGroup === 'all' || name.fieldGroup === selectedGroup;
+      
+      const matchesGroup = selectedGroup === 'all' 
+        || name.fieldGroup === selectedGroup 
+        || (selectedGroup === '' && !name.fieldGroup);
+        
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
     });
