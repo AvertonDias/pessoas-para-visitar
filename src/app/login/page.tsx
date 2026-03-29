@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListTodo } from 'lucide-react';
+import { Sheep } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -87,7 +87,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <div className="flex justify-center mb-4">
-            <ListTodo className="h-12 w-12 text-primary" />
+            <Sheep className="h-12 w-12 text-primary" />
         </div>
           <CardTitle className="text-2xl">Bem-vindo de volta!</CardTitle>
           <CardDescription>Faça login para continuar no ListaNomes.</CardDescription>
