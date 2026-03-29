@@ -352,24 +352,24 @@ export default function Home() {
 
         let status: Name['status'];
 
-        // Rule 1: REMOVIDO
         const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
         const isMoved = movedValue === 'true' || movedValue === 'verdadeiro';
 
         if (isMoved) {
           status = 'removido';
         } else {
-          // Rule 2: INATIVO
-          const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
+          const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : '';
+          const isActive = activeValue === 'true' || activeValue === 'verdadeiro';
+          
           if (activeIndex !== -1 && !isActive) {
             status = 'inativo';
           } else {
-            // Rule 3: IRREGULAR
-            const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
+            const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : '';
+            const isRegular = regularValue === 'true' || regularValue === 'verdadeiro';
+
             if (regularIndex !== -1 && !isRegular) {
               status = 'irregular';
             } else {
-              // Rule 4: REGULAR
               status = 'regular';
             }
           }
@@ -416,6 +416,11 @@ export default function Home() {
           const existing = item.personId ? existingNamesMap.get(item.personId) : undefined;
           if (existing) {
               const changes: string[] = [];
+
+              if (existing.status === 'removido' && item.status === 'inativo') {
+                item.status = 'removido';
+              }
+
               if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
               if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
               if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
