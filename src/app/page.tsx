@@ -349,8 +349,8 @@ export default function Home() {
       const regularIndex = getIndex(nameKeys.regular);
       const lastVisitIndex = getIndex(nameKeys.lastVisit);
 
-      if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
-          toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter uma coluna como 'Nome' ou 'DisplayName'." });
+      if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1) && lastVisitIndex === -1) {
+          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter uma coluna como 'Nome' ou 'Data'." });
           return;
       }
 
@@ -407,7 +407,7 @@ export default function Home() {
                         year += 2000;
                     }
                     // Create date in local timezone to avoid off-by-one errors when converting back from UTC
-                    const parsedDate = new Date(year, month, day);
+                    const parsedDate = new Date(Date.UTC(year, month, day));
                     if (!isNaN(parsedDate.getTime())) {
                         importedVisitDate = parsedDate.toISOString();
                     }
@@ -554,9 +554,6 @@ export default function Home() {
       }
       
       const result = await fetchCsvFromUrl(importUrl);
-
-      // Stop loading indicator immediately after fetch.
-      setIsImportingFromUrl(false);
       
       if (result.success && result.data) {
         processCsvText(result.data, false);
@@ -568,14 +565,14 @@ export default function Home() {
         });
       }
     } catch (error) {
-      // Also turn off loading indicator on error.
-      setIsImportingFromUrl(false);
       console.error('Failed to save URL or import from URL', error);
       toast({
         variant: 'destructive',
         title: 'Erro na Sincronização',
         description: 'Não foi possível salvar a URL ou importar os dados. Verifique o link e suas permissões de acesso.',
       });
+    } finally {
+      setIsImportingFromUrl(false);
     }
   };
 
