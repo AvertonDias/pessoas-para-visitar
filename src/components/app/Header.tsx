@@ -1,13 +1,16 @@
 'use client';
 
-import { ListTodo, LogOut } from 'lucide-react';
+import { ListTodo, LogOut, BarChart } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export function Header() {
   const auth = useAuth();
   const { user } = useUser();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     if (auth) {
@@ -24,17 +27,32 @@ export function Header() {
             Pessoas para visitar
           </h1>
         </div>
-        {user && (
-          <Button
-            variant="ghost"
-            onClick={handleSignOut}
-            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
-            aria-label="Sair"
-          >
-            <LogOut className="h-5 w-5 md:mr-2" />
-            <span className="hidden md:inline">Sair</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+            {user && pathname === '/' && (
+                 <Button
+                    asChild
+                    variant="ghost"
+                    className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+                    aria-label="Estatísticas"
+                  >
+                    <Link href="/stats">
+                        <BarChart className="h-5 w-5 md:mr-2" />
+                        <span className="hidden md:inline">Estatísticas</span>
+                    </Link>
+                </Button>
+            )}
+            {user && (
+              <Button
+                variant="ghost"
+                onClick={handleSignOut}
+                className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+                aria-label="Sair"
+              >
+                <LogOut className="h-5 w-5 md:mr-2" />
+                <span className="hidden md:inline">Sair</span>
+              </Button>
+            )}
+        </div>
       </div>
     </header>
   );
