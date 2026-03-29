@@ -270,9 +270,13 @@ export const batchImportData = async (
   const namesCollectionRef = collection(db, 'users', userId, 'names');
   const existingNamesByPersonId = new Map<string, Name>();
   existingNames.forEach(name => {
-    if (name.personId) {
+    if (name.personId && name.personId.trim() !== '') {
       existingNamesByPersonId.set(name.personId, name);
     }
+  });
+  const existingNamesByName = new Map<string, Name>();
+    existingNames.forEach(name => {
+    existingNamesByName.set(name.text.toLowerCase().trim(), name);
   });
 
   // 3. Process each item for import or update
@@ -280,9 +284,9 @@ export const batchImportData = async (
     if (!item.text) { // Ensure name text exists
       return;
     }
-
-    const importedPersonId = item.personId || '';
-    const existingMatch = importedPersonId ? existingNamesByPersonId.get(importedPersonId) : undefined;
+    
+    const existingMatch = (item.personId ? existingNamesByPersonId.get(item.personId) : undefined) 
+                          || existingNamesByName.get(item.text.toLowerCase().trim());
     
     if (existingMatch) {
       // UPDATE: Found existing name by personId
@@ -300,9 +304,9 @@ export const batchImportData = async (
         const newVisitDate = new Date(item.importedVisitDate);
         const visitExists = finalHistory.some(visit => {
             const existingDate = new Date(visit.date);
-            return existingDate.getFullYear() === newVisitDate.getFullYear() &&
-                   existingDate.getMonth() === newVisitDate.getMonth() &&
-                   existingDate.getDate() === newVisitDate.getDate();
+            return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
+                   existingDate.getUTCMonth() === newVisitDate.getUTCMonth() &&
+                   existingDate.getUTCDate() === newVisitDate.getUTCDate();
         });
 
         if (!visitExists) {
@@ -332,7 +336,7 @@ export const batchImportData = async (
       const status = item.status || 'regular'; // Prioritize status from the CSV file
 
       batch.set(nameRef, {
-        personId: importedPersonId,
+        personId: item.personId || '',
         text: item.text,
         status: status,
         fieldGroup: item.fieldGroup || '',
