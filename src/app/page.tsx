@@ -12,7 +12,7 @@ import { ImportCard } from '@/components/app/home/ImportCard';
 import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
 import { AddNameDialog } from '@/components/app/home/AddNameDialog';
 import { GeneratePdfDialog } from '@/components/app/home/GeneratePdfDialog';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,7 +36,7 @@ declare module 'jspdf' {
 
 export default function Home() {
   const { toast } = useToast();
-  const { user, isUserLoading: userLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   
@@ -683,7 +683,7 @@ export default function Home() {
         processFullCsv(text);
       }
     };
-    reader.readAsText(file, 'utf-8');
+    reader.readAsText(file, 'latin1');
     event.target.value = '';
   };
   
@@ -780,13 +780,13 @@ export default function Home() {
     return filtered;
   }, [names, searchTerm, selectedGroup, selectedStatus, sortBy]);
 
-  const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
+  const isLoading = isUserLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
   useEffect(() => {
-    if (!userLoading && !user) {
+    if (!isUserLoading && !user) {
       router.replace('/login');
     }
-  }, [userLoading, user, router]);
+  }, [isUserLoading, user, router]);
 
   const generateNamesPdf = (pdfSortBy: string, pdfSelectedGroups: string[]) => {
     const filteredForPdf = names.filter(name => {
@@ -889,68 +889,74 @@ export default function Home() {
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
         {isMobile ? (
-          <div className="space-y-4">
-            <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as any)} className="w-full">
-              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} rounded-xl bg-muted p-1`}>
-                <TabsTrigger value="pessoas" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Pessoas</TabsTrigger>
-                <TabsTrigger value="grupos" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Grupos</TabsTrigger>
-                {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md">Ajudantes</TabsTrigger>}
+          <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as any)} className="w-full">
+              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-xl bg-muted p-1`}>
+                  <TabsTrigger value="pessoas" className="rounded-lg">Pessoas</TabsTrigger>
+                  <TabsTrigger value="grupos" className="rounded-lg">Grupos</TabsTrigger>
+                  <TabsContent value="gerenciar">
+                    <TabsList>
+                      <TabsTrigger value="gerenciar-nomes">Nomes</TabsTrigger>
+                      <TabsTrigger value="gerenciar-ajudantes">Ajudantes</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="gerenciar-nomes">
+                        <ManageNamesCard
+                            onAddNameClick={() => setIsAddDialogOpen(true)}
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
+                        />
+                    </TabsContent>
+                    {isAdmin && (
+                        <TabsContent value="gerenciar-ajudantes">
+                            <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
+                        </TabsContent>
+                    )}
+                </TabsContent>
+
+                  {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg">Ajudantes</TabsTrigger>}
               </TabsList>
-            </Tabs>
-            
-            {mobileView === 'pessoas' && (
-              <div className="space-y-8 mt-4">
-                <ManageNamesCard
-                  onAddNameClick={() => setIsAddDialogOpen(true)}
-                  searchTerm={searchTerm}
-                  setSearchTerm={setSearchTerm}
-                  onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
-                />
-                <NameListCard
-                  names={names}
-                  filteredNames={filteredNames}
-                  searchTerm={searchTerm}
-                  updateName={updateName}
-                  deleteName={deleteName}
-                  fieldGroups={fieldGroups}
-                  adminName={adminProfile?.name}
-                  selectedGroup={selectedGroup}
-                  setSelectedGroup={setSelectedGroup}
-                  selectedStatus={selectedStatus}
-                  setSelectedStatus={setSelectedStatus}
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
-                />
-              </div>
-            )}
 
-            {mobileView === 'grupos' && (
-              <div className="space-y-8 mt-4">
-                 <FieldGroupsCard
-                    isAdmin={isAdmin}
-                    onAddGroup={addGroup}
+              <TabsContent value="pessoas" className="mt-4">
+                  <NameListCard
+                    names={names}
+                    filteredNames={filteredNames}
+                    searchTerm={searchTerm}
+                    updateName={updateName}
+                    deleteName={deleteName}
                     fieldGroups={fieldGroups}
-                    updateGroup={updateGroup}
-                    deleteGroup={deleteGroup}
-                    groupCounts={groupCounts}
+                    adminName={adminProfile?.name}
+                    selectedGroup={selectedGroup}
+                    setSelectedGroup={setSelectedGroup}
+                    selectedStatus={selectedStatus}
+                    setSelectedStatus={setSelectedStatus}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
                   />
-              </div>
-            )}
-
-             {isAdmin && user && mobileView === 'ajudantes' && (
-              <div className="space-y-8 mt-4">
-                 <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
-                 <ImportCard
-                    onImportClick={() => fileInputRef.current?.click()}
-                    onImportVisitsClick={() => visitsFileInputRef.current?.click()}
-                    onImportFromUrl={() => handleImportFromUrl()}
-                    isImportingFromUrl={isImportingFromUrl}
-                    importUrl={importUrl}
-                    setImportUrl={setImportUrl}
+              </TabsContent>
+              <TabsContent value="grupos" className="mt-4">
+                  <FieldGroupsCard
+                      isAdmin={isAdmin}
+                      onAddGroup={addGroup}
+                      fieldGroups={fieldGroups}
+                      updateGroup={updateGroup}
+                      deleteGroup={deleteGroup}
+                      groupCounts={groupCounts}
                   />
-              </div>
-            )}
-          </div>
+              </TabsContent>
+              {isAdmin && user && (
+                  <TabsContent value="ajudantes" className="mt-4 space-y-4">
+                      <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
+                      <ImportCard
+                          onImportClick={() => fileInputRef.current?.click()}
+                          onImportVisitsClick={() => visitsFileInputRef.current?.click()}
+                          onImportFromUrl={() => handleImportFromUrl()}
+                          isImportingFromUrl={isImportingFromUrl}
+                          importUrl={importUrl}
+                          setImportUrl={setImportUrl}
+                      />
+                  </TabsContent>
+              )}
+          </Tabs>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <div className="lg:col-span-2 space-y-8">
