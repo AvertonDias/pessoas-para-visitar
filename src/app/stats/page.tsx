@@ -140,7 +140,6 @@ export default function StatsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.statusCounts.regular}</div>
-                    <p className="text-xs text-muted-foreground">Visitados nos últimos 3 meses</p>
                 </CardContent>
             </Card>
             <Card>
@@ -150,7 +149,6 @@ export default function StatsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.statusCounts.irregular}</div>
-                    <p className="text-xs text-muted-foreground">Visitados entre 3 e 6 meses</p>
                 </CardContent>
             </Card>
             <Card>
@@ -160,7 +158,6 @@ export default function StatsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.statusCounts.inativo}</div>
-                    <p className="text-xs text-muted-foreground">Não visitados há mais de 6 meses</p>
                 </CardContent>
             </Card>
             <Card>
@@ -170,7 +167,6 @@ export default function StatsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.statusCounts.removido}</div>
-                    <p className="text-xs text-muted-foreground">Marcados como removidos</p>
                 </CardContent>
             </Card>
         </div>
