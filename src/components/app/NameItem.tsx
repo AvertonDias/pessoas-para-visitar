@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, History, Calendar as CalendarIcon } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,12 +101,10 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   
   const onOpenChange = (open: boolean) => {
     if (open) {
-      // When opening, ensure all state is fresh and correct
       setEditText(name.text);
       setEditAddress(name.address || '');
       setEditPhone(name.phone || '');
       setEditStatus(name.status);
-      // This is the fix: find the group ID, even if name.fieldGroup stores a name (old data)
       const currentGroupId = fieldGroups.find(g => g.id === name.fieldGroup || g.name === name.fieldGroup)?.id || '';
       setEditFieldGroup(currentGroupId);
     }
@@ -162,7 +159,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   return (
     <>
       <Collapsible className="rounded-md bg-card border data-[state=open]:bg-secondary/20 transition-colors duration-200">
-          <div className="flex flex-col p-3">
+          <div className="flex flex-col p-3 sm:relative">
             <CollapsibleTrigger className="flex-grow text-left">
               <p className="font-medium text-foreground">{name.text}</p>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
@@ -175,7 +172,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
               </div>
             </CollapsibleTrigger>
             
-            <div className="flex w-full items-center justify-between gap-2 mt-2 pt-2 sm:mt-0 sm:pt-0 sm:absolute sm:right-3 sm:top-3 sm:w-auto">
+            <div className="flex items-center justify-between mt-2 pt-2 border-t sm:border-t-0 sm:pt-0 sm:mt-0 sm:absolute sm:right-3 sm:top-3 sm:w-auto sm:gap-2">
                 <div className="flex items-center gap-2">
                     {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
                     <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
