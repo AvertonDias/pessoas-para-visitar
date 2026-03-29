@@ -120,6 +120,9 @@ export default function Home() {
     return doc(firestore, 'users', dataOwnerId);
   }, [firestore, dataOwnerId, user]);
   const { data: adminProfile, loading: adminProfileLoading } = useDoc<UserProfile>(adminProfileRef);
+  
+  const isAdmin = userProfile?.role !== 'helper';
+  const dataOwnerProfile = isAdmin ? userProfile : adminProfile;
 
   // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
@@ -197,10 +200,10 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (userProfile) {
-      setImportUrl(userProfile.importUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRObA7TvycM_5m_bAsSgJ2v9K2IqP-bnQ2ORj5rT2I8g-42wS3er_s-3GvOQ1-wT2hNlC1L7GvWd3kF/pub?output=csv&gid=0&single=true');
+    if (dataOwnerProfile) {
+      setImportUrl(dataOwnerProfile.importUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRObA7TvycM_5m_bAsSgJ2v9K2IqP-bnQ2ORj5rT2I8g-42wS3er_s-3GvOQ1-wT2hNlC1L7GvWd3kF/pub?output=csv&gid=0&single=true');
     }
-  }, [userProfile]);
+  }, [dataOwnerProfile]);
 
 
   const addName = () => {
@@ -610,7 +613,7 @@ export default function Home() {
     if (!dataOwnerId || !firestore) return;
     setIsImportingFromUrl(true);
     try {
-      if (userProfile && importUrl !== userProfile.importUrl) {
+      if (isAdmin && dataOwnerProfile && importUrl !== dataOwnerProfile.importUrl) {
         await services.updateUserProfile(firestore, dataOwnerId, { importUrl });
         toast({
           title: "URL de sincronização salva",
@@ -640,12 +643,12 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (userProfile && importUrl && !autoSyncAttempted.current && names.length > 0) {
+    if (isAdmin && dataOwnerProfile && importUrl && !autoSyncAttempted.current && names.length > 0) {
       autoSyncAttempted.current = true;
       handleImportFromUrl();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, importUrl, names.length > 0]);
+  }, [isAdmin, dataOwnerProfile, importUrl, names.length > 0]);
 
   const filteredNames = useMemo(() => {
     const filtered = names.filter(name => {
@@ -706,8 +709,6 @@ export default function Home() {
         </div>
       )
   }
-  
-  const isAdmin = userProfile?.role !== 'helper';
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
