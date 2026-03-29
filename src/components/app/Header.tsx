@@ -1,19 +1,114 @@
 'use client';
 
-import { HandHeart, LogOut, BarChart, History } from 'lucide-react';
+import { HandHeart, LogOut, BarChart, History, Users } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export function Header() {
   const auth = useAuth();
   const { user } = useUser();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
     }
+  };
+
+  const renderNavLinks = () => {
+    if (!user) return null;
+
+    if (pathname === '/') {
+      return (
+        <>
+          <Button
+            asChild
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+            aria-label="Estatísticas"
+          >
+            <Link href="/stats">
+              <BarChart className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Estatísticas</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+            aria-label="Histórico"
+          >
+            <Link href="/history">
+              <History className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Histórico</span>
+            </Link>
+          </Button>
+        </>
+      );
+    }
+
+    if (pathname === '/stats') {
+      return (
+        <>
+          <Button
+            asChild
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+            aria-label="Sua Lista"
+          >
+            <Link href="/">
+              <Users className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Sua Lista</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+            aria-label="Histórico"
+          >
+            <Link href="/history">
+              <History className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Histórico</span>
+            </Link>
+          </Button>
+        </>
+      );
+    }
+
+    if (pathname === '/history') {
+      return (
+        <>
+          <Button
+            asChild
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+            aria-label="Sua Lista"
+          >
+            <Link href="/">
+              <Users className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Sua Lista</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+            aria-label="Estatísticas"
+          >
+            <Link href="/stats">
+              <BarChart className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Estatísticas</span>
+            </Link>
+          </Button>
+        </>
+      );
+    }
+    
+    return null;
   };
 
   return (
@@ -26,32 +121,7 @@ export function Header() {
           </h1>
         </Link>
         <div className="flex items-center gap-2">
-            {user && (
-                 <Button
-                    asChild
-                    variant="ghost"
-                    className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
-                    aria-label="Estatísticas"
-                  >
-                    <Link href="/stats">
-                        <BarChart className="h-5 w-5 md:mr-2" />
-                        <span className="hidden md:inline">Estatísticas</span>
-                    </Link>
-                </Button>
-            )}
-             {user && (
-                 <Button
-                    asChild
-                    variant="ghost"
-                    className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
-                    aria-label="Histórico"
-                  >
-                    <Link href="/history">
-                        <History className="h-5 w-5 md:mr-2" />
-                        <span className="hidden md:inline">Histórico</span>
-                    </Link>
-                </Button>
-            )}
+            {renderNavLinks()}
             {user && (
               <Button
                 variant="ghost"
