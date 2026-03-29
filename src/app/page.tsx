@@ -416,7 +416,7 @@ export default function Home() {
           const existing = item.personId ? existingNamesMap.get(item.personId) : undefined;
           if (existing) {
               const changes: string[] = [];
-
+              
               if (existing.status === 'removido' && item.status === 'inativo') {
                 item.status = 'removido';
               }
@@ -497,7 +497,7 @@ export default function Home() {
 
     setIsImportingFromUrl(true);
     try {
-      if (importUrl !== userProfile?.importUrl) {
+      if (userProfile && importUrl !== userProfile.importUrl) {
         await services.updateUserProfile(firestore, dataOwnerId, { importUrl });
         toast({
           title: "URL de sincronização salva",
@@ -506,6 +506,10 @@ export default function Home() {
       }
       
       const result = await fetchCsvFromUrl(importUrl);
+
+      // Stop loading indicator immediately after fetch.
+      setIsImportingFromUrl(false);
+      
       if (result.success && result.data) {
         processCsvText(result.data);
       } else {
@@ -516,14 +520,14 @@ export default function Home() {
         });
       }
     } catch (error) {
+      // Also turn off loading indicator on error.
+      setIsImportingFromUrl(false);
       console.error('Failed to save URL or import from URL', error);
       toast({
         variant: 'destructive',
         title: 'Erro na Sincronização',
         description: 'Não foi possível salvar a URL ou importar os dados. Verifique o link e suas permissões de acesso.',
       });
-    } finally {
-      setIsImportingFromUrl(false);
     }
   };
 
