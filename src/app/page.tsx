@@ -41,7 +41,7 @@ export default function Home() {
   const router = useRouter();
   
   const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes'>('pessoas');
+  const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes' | 'gerenciar'>('pessoas');
   const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const visitsFileInputRef = useRef<HTMLInputElement>(null);
@@ -893,26 +893,7 @@ export default function Home() {
               <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-xl bg-muted p-1`}>
                   <TabsTrigger value="pessoas" className="rounded-lg">Pessoas</TabsTrigger>
                   <TabsTrigger value="grupos" className="rounded-lg">Grupos</TabsTrigger>
-                  <TabsContent value="gerenciar">
-                    <TabsList>
-                      <TabsTrigger value="gerenciar-nomes">Nomes</TabsTrigger>
-                      <TabsTrigger value="gerenciar-ajudantes">Ajudantes</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="gerenciar-nomes">
-                        <ManageNamesCard
-                            onAddNameClick={() => setIsAddDialogOpen(true)}
-                            searchTerm={searchTerm}
-                            setSearchTerm={setSearchTerm}
-                            onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
-                        />
-                    </TabsContent>
-                    {isAdmin && (
-                        <TabsContent value="gerenciar-ajudantes">
-                            <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
-                        </TabsContent>
-                    )}
-                </TabsContent>
-
+                  <TabsTrigger value="gerenciar" className="rounded-lg">Gerenciar</TabsTrigger>
                   {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg">Ajudantes</TabsTrigger>}
               </TabsList>
 
@@ -942,6 +923,14 @@ export default function Home() {
                       deleteGroup={deleteGroup}
                       groupCounts={groupCounts}
                   />
+              </TabsContent>
+              <TabsContent value="gerenciar" className="mt-4">
+                <ManageNamesCard
+                    onAddNameClick={() => setIsAddDialogOpen(true)}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
+                />
               </TabsContent>
               {isAdmin && user && (
                   <TabsContent value="ajudantes" className="mt-4 space-y-4">
