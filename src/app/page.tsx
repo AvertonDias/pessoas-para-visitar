@@ -314,7 +314,7 @@ export default function Home() {
         moved: ['moved', 'removed', 'removido'],
         active: ['active'],
         regular: ['regular'],
-        lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita'],
+        lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita', 'data'],
       };
       
       const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
@@ -334,7 +334,7 @@ export default function Home() {
       const lastVisitIndex = getIndex(nameKeys.lastVisit);
 
       if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
-          toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter 'DisplayName' ou 'FirstName' e 'LastName'." });
+          toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter uma coluna como 'Nome' ou 'DisplayName'." });
           return;
       }
 
@@ -380,10 +380,23 @@ export default function Home() {
         const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
         let importedVisitDate: string | undefined;
         if (lastVisitValue) {
-          const parsedDate = new Date(lastVisitValue);
-          if (!isNaN(parsedDate.getTime())) {
-            importedVisitDate = parsedDate.toISOString();
-          }
+            const parts = lastVisitValue.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    const parsedDate = new Date(Date.UTC(year, month, day));
+                    if (!isNaN(parsedDate.getTime())) {
+                        importedVisitDate = parsedDate.toISOString();
+                    }
+                }
+            } else {
+                const parsedDate = new Date(lastVisitValue);
+                if (!isNaN(parsedDate.getTime())) {
+                    importedVisitDate = parsedDate.toISOString();
+                }
+            }
         }
 
         return {
@@ -397,11 +410,15 @@ export default function Home() {
         };
       }).filter(item => item.text);
 
-      const existingNamesMap = new Map<string, Name>();
+      const existingNamesByPersonId = new Map<string, Name>();
       names.forEach(name => {
-          if (name.personId) {
-              existingNamesMap.set(name.personId, name);
+          if (name.personId && name.personId.trim() !== '') {
+              existingNamesByPersonId.set(name.personId, name);
           }
+      });
+      const existingNamesByName = new Map<string, Name>();
+        names.forEach(name => {
+        existingNamesByName.set(name.text.toLowerCase().trim(), name);
       });
 
       const toCreate: ImportedName[] = [];
@@ -413,7 +430,9 @@ export default function Home() {
       };
 
       for (const item of importedResult) {
-          const existing = item.personId ? existingNamesMap.get(item.personId) : undefined;
+          const existing = (item.personId ? existingNamesByPersonId.get(item.personId) : undefined) 
+                          || existingNamesByName.get(item.text.toLowerCase().trim());
+                          
           if (existing) {
               const changes: string[] = [];
               
@@ -431,9 +450,9 @@ export default function Home() {
                 const newVisitDate = new Date(item.importedVisitDate);
                 const visitExists = (existing.visitHistory || []).some(visit => {
                     const existingDate = new Date(visit.date);
-                    return existingDate.getFullYear() === newVisitDate.getFullYear() &&
-                           existingDate.getMonth() === newVisitDate.getMonth() &&
-                           existingDate.getDate() === newVisitDate.getDate();
+                    return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
+                           existingDate.getUTCMonth() === newVisitDate.getUTCMonth() &&
+                           existingDate.getUTCDate() === newVisitDate.getUTCDate();
                 });
                 if (!visitExists) {
                     changes.push(`Adicionar visita em: ${format(newVisitDate, "PPP", { locale: ptBR })}`);
@@ -624,7 +643,7 @@ export default function Home() {
   }, [userLoading, user, router]);
 
 
-  if (isLoading || !user || !isClient) {
+  if (isLoading || !isClient) {
       return (
         <div className="flex min-h-screen flex-col bg-background items-center justify-center">
             <p className="text-lg text-muted-foreground">Carregando...</p>
