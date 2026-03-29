@@ -6,7 +6,7 @@ import { collection, query, doc } from 'firebase/firestore';
 import type { Name, UserProfile } from '@/app/page';
 import { Header } from '@/components/app/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, ArrowLeft, FilePdf } from 'lucide-react';
+import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, ArrowLeft, FileText } from 'lucide-react';
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -188,7 +188,7 @@ export default function StatsPage() {
             </h1>
             <div className="flex items-center gap-2">
                 <Button onClick={generateStatsPdf}>
-                    <FilePdf className="mr-2 h-4 w-4" />
+                    <FileText className="mr-2 h-4 w-4" />
                     Gerar PDF
                 </Button>
                 <Button asChild variant="outline">

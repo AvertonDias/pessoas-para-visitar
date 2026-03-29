@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, UserPlus, X, FilePdf } from 'lucide-react';
+import { Search, UserPlus, X, FileText } from 'lucide-react';
 
 interface ManageNamesCardProps {
   onAddNameClick: () => void;
@@ -33,7 +33,7 @@ export function ManageNamesCard({
           Adicionar Novo Nome
         </Button>
         <Button onClick={onGeneratePdfClick} variant="outline" className="w-full">
-          <FilePdf className="h-4 w-4 mr-2" />
+          <FileText className="h-4 w-4 mr-2" />
           Gerar Relatório em PDF
         </Button>
         <div className="relative flex items-center pt-2">
