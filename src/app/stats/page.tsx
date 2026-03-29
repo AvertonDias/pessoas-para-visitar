@@ -6,7 +6,7 @@ import { collection, query, doc } from 'firebase/firestore';
 import type { Name, UserProfile } from '@/app/page';
 import { Header } from '@/components/app/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar } from 'lucide-react';
+import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle } from 'lucide-react';
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ export default function StatsPage() {
           last6Months: 0,
           last12Months: 0,
         },
+        neverVisited: 0,
       };
     }
 
@@ -62,6 +63,8 @@ export default function StatsPage() {
       },
       { regular: 0, irregular: 0, inativo: 0, removido: 0 }
     );
+
+    const neverVisited = names.filter(name => !name.visitHistory || name.visitHistory.length === 0).length;
 
     const now = new Date();
     const thisMonthStart = startOfMonth(now);
@@ -102,6 +105,7 @@ export default function StatsPage() {
         last6Months,
         last12Months,
       },
+      neverVisited,
     };
   }, [names]);
 
@@ -132,10 +136,10 @@ export default function StatsPage() {
             </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Regulares (Ativos)</CardTitle>
+                    <CardTitle className="text-sm font-medium">Regulares</CardTitle>
                     <UserCheck className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -167,6 +171,15 @@ export default function StatsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.statusCounts.removido}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Nunca Visitados</CardTitle>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.neverVisited}</div>
                 </CardContent>
             </Card>
         </div>
