@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 
@@ -112,11 +112,39 @@ interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
+type FirebaseServices = {
+  firebaseApp?: any;
+  auth?: any;
+  firestore?: any;
+  error?: 'API_KEY_MISSING' | 'API_KEY_INVALID' | null;
+};
+
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const firebaseServices = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
-    return initializeFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  const [firebaseServices, setFirebaseServices] = useState<FirebaseServices | null>(null);
+
+  useEffect(() => {
+    // This ensures Firebase is initialized only on the client side, after hydration.
+    setFirebaseServices(initializeFirebase());
+  }, []);
+
+  // During server-side rendering and initial client-side render before useEffect runs,
+  // we can show a loading state.
+  if (!firebaseServices) {
+    return (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+            backgroundColor: '#EBF3F8',
+            color: '#333',
+            fontFamily: 'sans-serif'
+        }}>
+            <p style={{fontSize: '1.2rem'}}>Carregando...</p>
+        </div>
+    );
+  }
 
   if (firebaseServices.error === 'API_KEY_MISSING') {
     return <MissingApiKeyMessage />;
@@ -127,8 +155,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   }
 
   // The type assertion is safe because if error is not 'API_KEY_MISSING', the services will exist.
-  const { firebaseApp, auth, firestore } = firebaseServices as { firebaseApp: any; auth: any; firestore: any; };
-
+  const { firebaseApp, auth, firestore } = firebaseServices;
 
   return (
     <FirebaseProvider
