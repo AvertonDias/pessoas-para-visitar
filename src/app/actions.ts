@@ -48,12 +48,12 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
             cache: 'no-store' // Fetch latest version always
         });
         
-        const responseText = await response.text();
         const contentType = response.headers.get('content-type') || '';
 
         // First, check if the content is HTML. This usually indicates an interstitial page (login, permission error, large file warning).
         if (contentType.includes('text/html')) {
-             // Check for Google Drive's large file warning page, which can return 200 OK.
+             const responseText = await response.text();
+            // Check for Google Drive's large file warning page, which can return 200 OK.
             if (responseText.includes('id="uc-download-link"')) {
                 return { success: false, error: 'O arquivo é muito grande ou requer confirmação para download no Google Drive. Por favor, faça o download manual e importe o arquivo.' };
             }
@@ -64,8 +64,14 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
         if (!response.ok) {
             return { success: false, error: `Falha ao buscar o arquivo (Status: ${response.status}). Verifique se o link é público e direto para o arquivo CSV.` };
         }
+        
+        // For non-HTML responses, decode using the correct encoding.
+        const buffer = await response.arrayBuffer();
+        const decoder = new TextDecoder('latin1');
+        const decodedText = decoder.decode(buffer);
 
-        return { success: true, data: responseText };
+        return { success: true, data: decodedText };
+
     } catch (error) {
         console.error('Error fetching CSV from URL:', error);
         return { success: false, error: 'Ocorreu um erro de rede ao tentar buscar o arquivo. Verifique sua conexão e o link.' };

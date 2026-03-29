@@ -172,19 +172,17 @@ export default function Home() {
 
   // Load filters from localStorage on initial client render
   useEffect(() => {
-    const savedGroup = localStorage.getItem('list-filter-group');
-    if (savedGroup) {
-      setSelectedGroup(savedGroup);
+    if (typeof window !== 'undefined') {
+        const savedGroup = localStorage.getItem('list-filter-group');
+        if (savedGroup) setSelectedGroup(savedGroup);
+        
+        const savedStatus = localStorage.getItem('list-filter-status');
+        if (savedStatus) setSelectedStatus(savedStatus);
+        
+        const savedSort = localStorage.getItem('list-filter-sort');
+        if (savedSort) setSortBy(savedSort);
     }
-    const savedStatus = localStorage.getItem('list-filter-status');
-    if (savedStatus) {
-      setSelectedStatus(savedStatus);
-    }
-    const savedSort = localStorage.getItem('list-filter-sort');
-    if (savedSort) {
-      setSortBy(savedSort);
-    }
-  }, []); // Empty dependency array ensures this runs once on mount
+  }, []);
 
   // Save filters to localStorage whenever they change
   useEffect(() => {
@@ -737,7 +735,7 @@ export default function Home() {
         processFullCsv(text);
       }
     };
-    reader.readAsText(file);
+    reader.readAsText(file, 'latin1');
     event.target.value = '';
   };
   
@@ -791,7 +789,7 @@ export default function Home() {
       handleImportFromUrl();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, dataOwnerProfile, names.length]);
+  }, [isAdmin, dataOwnerProfile, names.length > 0]);
 
   const filteredNames = useMemo(() => {
     const filtered = names.filter(name => {
@@ -803,7 +801,8 @@ export default function Home() {
       } else if (selectedGroup === '--none--') {
         matchesGroup = group === '';
       } else {
-        matchesGroup = group === selectedGroup;
+        const selectedGroupName = fieldGroups.find(g => g.id === selectedGroup)?.name;
+        matchesGroup = group === selectedGroupName;
       }
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
@@ -834,7 +833,7 @@ export default function Home() {
     });
 
     return filtered;
-  }, [names, searchTerm, selectedGroup, selectedStatus, sortBy]);
+  }, [names, searchTerm, selectedGroup, selectedStatus, sortBy, fieldGroups]);
 
   const isLoading = userLoading || profileLoading || namesLoading || groupsLoading || helpersLoading || adminProfileLoading;
   
