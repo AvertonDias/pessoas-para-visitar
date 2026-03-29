@@ -17,26 +17,35 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
         return { success: false, error: 'URL não fornecida.' };
     }
 
-    let fileId = '';
+    let downloadUrl = url;
     try {
         const urlObj = new URL(url);
+        // Handle Google Drive file URLs
         if (urlObj.hostname === 'drive.google.com') {
             const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
             if (match && match[1]) {
-                fileId = match[1];
+                downloadUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+        // Handle Google Sheets URLs (that are not already published CSVs)
+        else if (urlObj.hostname === 'docs.google.com' && url.includes('/spreadsheets/d/')) {
+            const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1] && !url.includes('/pub?')) {
+                 downloadUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+                 const gidMatch = url.match(/gid=(\d+)/);
+                 if (gidMatch && gidMatch[1]) {
+                    downloadUrl += `&gid=${gidMatch[1]}`;
+                 }
             }
         }
     } catch (e) {
         // Not a valid URL object, might be a direct link. Proceed.
     }
-
-    const downloadUrl = fileId 
-        ? `https://drive.google.com/uc?export=download&id=${fileId}`
-        : url;
-
+    
     try {
         const response = await fetch(downloadUrl, {
             redirect: 'follow',
+            cache: 'no-store' // Fetch latest version always
         });
         
         const responseText = await response.text();
@@ -49,7 +58,7 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
                 return { success: false, error: 'O arquivo é muito grande ou requer confirmação para download no Google Drive. Por favor, faça o download manual e importe o arquivo.' };
             }
             // For any other HTML page (like a login screen), assume it's a permission issue.
-            return { success: false, error: 'O link não retornou um arquivo CSV. Verifique se o link de compartilhamento está como "Qualquer pessoa com o link".' };
+            return { success: false, error: 'O link não retornou um arquivo CSV. Verifique se o link de compartilhamento está como "Qualquer pessoa com o link" ou se é um link de publicação da planilha.' };
         }
 
         if (!response.ok) {

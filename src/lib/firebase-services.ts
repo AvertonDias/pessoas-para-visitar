@@ -246,7 +246,20 @@ export const batchImportData = async (
   toUpdate: ImportUpdate[],
   newGroups: string[]
 ) => {
-  const batch = writeBatch(db);
+  const BATCH_LIMIT = 490; // Keep it safely under 500
+  let batch = writeBatch(db);
+  let operationCount = 0;
+  const batches: ReturnType<typeof writeBatch>[] = [batch];
+
+  const maybeCommitBatch = () => {
+    operationCount++;
+    if (operationCount >= BATCH_LIMIT) {
+      batch = writeBatch(db);
+      batches.push(batch);
+      operationCount = 0;
+    }
+  };
+
   const namesCollectionRef = collection(db, 'users', userId, 'names');
 
   // 1. Create new groups
@@ -256,6 +269,7 @@ export const batchImportData = async (
       name: groupName,
       createdAt: serverTimestamp()
     });
+    maybeCommitBatch();
   });
 
   // 2. Process new names to create
@@ -280,6 +294,7 @@ export const batchImportData = async (
       createdAt: serverTimestamp(),
       visitHistory: visitHistory
     });
+    maybeCommitBatch();
   });
 
   // 3. Process existing names to update
@@ -315,12 +330,13 @@ export const batchImportData = async (
     
     if (Object.keys(updatePayload).length > 0) {
       batch.update(nameRef, updatePayload);
+      maybeCommitBatch();
     }
   });
 
-  // 4. Commit the batch
+  // 4. Commit all batches in parallel
   try {
-    await batch.commit();
+    await Promise.all(batches.map(b => b.commit()));
   } catch (error) {
     console.error("Firebase batch commit failed:", error);
     throw error;
@@ -332,7 +348,19 @@ export const batchUpdateVisits = async (
   userId: string,
   updates: ImportUpdate[]
 ) => {
-  const batch = writeBatch(db);
+  const BATCH_LIMIT = 490; // Keep it safely under 500
+  let batch = writeBatch(db);
+  let operationCount = 0;
+  const batches: ReturnType<typeof writeBatch>[] = [batch];
+
+  const maybeCommitBatch = () => {
+    operationCount++;
+    if (operationCount >= BATCH_LIMIT) {
+      batch = writeBatch(db);
+      batches.push(batch);
+      operationCount = 0;
+    }
+  };
 
   updates.forEach(({ existing, newData }) => {
     if (!newData.importedVisitDate) return;
@@ -368,10 +396,11 @@ export const batchUpdateVisits = async (
     };
 
     batch.update(nameRef, updatePayload);
+    maybeCommitBatch();
   });
 
   try {
-    await batch.commit();
+    await Promise.all(batches.map(b => b.commit()));
   } catch (error) {
     console.error("Firebase batch update for visits failed:", error);
     throw error;
