@@ -19,6 +19,40 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 import { calculateStatusFromHistory } from './status-logic';
+import { logChange, type PerformingUser } from './audit-log-services';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+
+const formatChanges = (oldData: any, newData: any, groupMap: Map<string, string>): string[] => {
+    const changes: string[] = [];
+    if (newData.text !== undefined && newData.text !== oldData.text) {
+        changes.push(`Nome alterado para "${newData.text}"`);
+    }
+    if (newData.address !== undefined && newData.address !== (oldData.address || '')) {
+        changes.push(`Endereço alterado para "${newData.address}"`);
+    }
+    if (newData.phone !== undefined && newData.phone !== (oldData.phone || '')) {
+        changes.push(`Telefone alterado para "${newData.phone}"`);
+    }
+    if (newData.status !== undefined && newData.status !== oldData.status) {
+        changes.push(`Status alterado para "${newData.status}"`);
+    }
+    if (newData.fieldGroup !== undefined && newData.fieldGroup !== (oldData.fieldGroup || '')) {
+        const oldGroupName = groupMap.get(oldData.fieldGroup) || 'Sem grupo';
+        const newGroupName = groupMap.get(newData.fieldGroup) || 'Sem grupo';
+        changes.push(`Grupo alterado para "${newGroupName}"`);
+    }
+    if (newData.visitHistory && newData.visitHistory.length > oldData.visitHistory.length) {
+        const newVisit = newData.visitHistory[newData.visitHistory.length - 1];
+        changes.push(`Visita adicionada em ${format(new Date(newVisit.date), "PPP", { locale: ptBR })}`);
+    } else if (newData.visitHistory && newData.visitHistory.length < oldData.visitHistory.length) {
+        changes.push(`Uma visita foi removida.`);
+    }
+
+    return changes;
+}
+
 
 // User Profile and Registration
 export const processRegistration = async (db: Firestore, user: User, inviteToken?: string | null, registrationName?: string | null) => {
@@ -67,6 +101,12 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
     
     try {
         await batch.commit();
+        // Log this action to the admin's audit log
+        const adminProfileSnap = await getDoc(doc(db, 'users', adminId));
+        const adminProfile = adminProfileSnap.data();
+
+        logChange(db, adminId, {uid: user.uid, name: 'Sistema'}, 'create', 'helper', displayName || user.email || 'Novo Ajudante', 'Aceitou o convite.');
+
         return; // Success
     } catch(commitError) {
         console.error("Batch commit failed during invitation claim:", commitError);
@@ -90,10 +130,13 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   }
 };
 
-export const updateUserProfile = async (db: Firestore, userId: string, profileData: Partial<Omit<UserProfile, 'id'>>) => {
+export const updateUserProfile = async (db: Firestore, userId: string, profileData: Partial<Omit<UserProfile, 'id'>>, performingUser: PerformingUser) => {
   const userProfileRef = doc(db, 'users', userId);
   try {
     await updateDoc(userProfileRef, profileData);
+    if(profileData.importUrl) {
+      logChange(db, userId, performingUser, 'update', 'sync-url', 'URL de Sincronização', `URL alterada para: ${profileData.importUrl}`);
+    }
   } catch (serverError: any) {
     const permissionError = new FirestorePermissionError({
       path: userProfileRef.path,
@@ -108,7 +151,7 @@ export const updateUserProfile = async (db: Firestore, userId: string, profileDa
 
 // Names
 
-export const addName = (db: Firestore, userId: string, nameData: Omit<Name, 'id' | 'visitHistory'>) => {
+export const addName = (db: Firestore, userId: string, nameData: Omit<Name, 'id' | 'visitHistory'>, performingUser: PerformingUser) => {
   const namesCollection = collection(db, 'users', userId, 'names');
   const data = {
     ...nameData,
@@ -116,6 +159,9 @@ export const addName = (db: Firestore, userId: string, nameData: Omit<Name, 'id'
     visitHistory: [],
   };
   addDoc(namesCollection, data)
+    .then(() => {
+        logChange(db, userId, performingUser, 'create', 'name', nameData.text, `Adicionado ao grupo "${nameData.fieldGroup || 'Sem grupo'}" com status "${nameData.status}".`);
+    })
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: namesCollection.path,
@@ -126,41 +172,64 @@ export const addName = (db: Firestore, userId: string, nameData: Omit<Name, 'id'
     });
 };
 
-export const updateName = (db: Firestore, userId: string, nameId: string, nameData: Partial<Omit<Name, 'id'>>) => {
+export const updateName = async (db: Firestore, userId: string, nameId: string, nameData: Partial<Omit<Name, 'id'>>, performingUser: PerformingUser, fieldGroups: FieldGroup[]) => {
   const nameRef = doc(db, 'users', userId, 'names', nameId);
-  updateDoc(nameRef, nameData)
-    .catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: nameRef.path,
-        operation: 'update',
-        requestResourceData: nameData
-      });
-      errorEmitter.emit('permission-error', permissionError);
+  try {
+    const oldDocSnap = await getDoc(nameRef);
+    if (!oldDocSnap.exists()) {
+      console.error("Attempted to update a non-existent name.");
+      return;
+    }
+    const oldData = { ...oldDocSnap.data(), id: oldDocSnap.id } as Name;
+
+    await updateDoc(nameRef, nameData);
+
+    const groupMap = new Map(fieldGroups.map(g => [g.id, g.name]));
+    const changeDetails = formatChanges(oldData, nameData, groupMap);
+    if (changeDetails.length > 0) {
+      logChange(db, userId, performingUser, 'update', 'name', nameData.text || oldData.text, changeDetails.join('; '));
+    }
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: nameRef.path,
+      operation: 'update',
+      requestResourceData: nameData
     });
+    errorEmitter.emit('permission-error', permissionError);
+  }
 };
 
-export const deleteName = (db: Firestore, userId: string, nameId: string) => {
+export const deleteName = async (db: Firestore, userId: string, nameId: string, performingUser: PerformingUser) => {
   const nameRef = doc(db, 'users', userId, 'names', nameId);
-  deleteDoc(nameRef)
-    .catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: nameRef.path,
-        operation: 'delete',
-      });
-      errorEmitter.emit('permission-error', permissionError);
+  try {
+    const docSnap = await getDoc(nameRef);
+    if (docSnap.exists()) {
+        const nameText = docSnap.data().text;
+        await deleteDoc(nameRef);
+        logChange(db, userId, performingUser, 'delete', 'name', nameText);
+    }
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: nameRef.path,
+      operation: 'delete',
     });
+    errorEmitter.emit('permission-error', permissionError);
+  }
 };
 
 
 // Field Groups
 
-export const addFieldGroup = (db: Firestore, userId: string, groupName: string) => {
+export const addFieldGroup = (db: Firestore, userId: string, groupName: string, performingUser: PerformingUser) => {
   const groupsCollection = collection(db, 'users', userId, 'fieldGroups');
   const data = {
     name: groupName,
     createdAt: serverTimestamp(),
   };
   addDoc(groupsCollection, data)
+    .then(() => {
+        logChange(db, userId, performingUser, 'create', 'group', groupName);
+    })
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: groupsCollection.path,
@@ -171,30 +240,44 @@ export const addFieldGroup = (db: Firestore, userId: string, groupName: string) 
     });
 };
 
-export const updateFieldGroup = (db: Firestore, userId: string, groupId: string, newName: string) => {
+export const updateFieldGroup = async (db: Firestore, userId: string, groupId: string, newName: string, performingUser: PerformingUser) => {
   const groupRef = doc(db, 'users', userId, 'fieldGroups', groupId);
   const data = { name: newName };
-  updateDoc(groupRef, data)
-    .catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: groupRef.path,
-        operation: 'update',
-        requestResourceData: data
-      });
-      errorEmitter.emit('permission-error', permissionError);
+  try {
+    const oldDocSnap = await getDoc(groupRef);
+    if (oldDocSnap.exists()) {
+        const oldName = oldDocSnap.data().name;
+        if (oldName !== newName) {
+            await updateDoc(groupRef, data);
+            logChange(db, userId, performingUser, 'update', 'group', newName, `Nome alterado de "${oldName}" para "${newName}".`);
+        }
+    }
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: groupRef.path,
+      operation: 'update',
+      requestResourceData: data
     });
+    errorEmitter.emit('permission-error', permissionError);
+  }
 };
 
-export const deleteFieldGroup = (db: Firestore, userId: string, groupId: string) => {
+export const deleteFieldGroup = async (db: Firestore, userId: string, groupId: string, performingUser: PerformingUser) => {
   const groupRef = doc(db, 'users', userId, 'fieldGroups', groupId);
-  deleteDoc(groupRef)
-    .catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: groupRef.path,
-        operation: 'delete',
-      });
-      errorEmitter.emit('permission-error', permissionError);
+  try {
+    const docSnap = await getDoc(groupRef);
+    if (docSnap.exists()) {
+        const groupName = docSnap.data().name;
+        await deleteDoc(groupRef);
+        logChange(db, userId, performingUser, 'delete', 'group', groupName);
+    }
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: groupRef.path,
+      operation: 'delete',
     });
+    errorEmitter.emit('permission-error', permissionError);
+  }
 };
 
 // Helpers & Invitations
@@ -222,11 +305,14 @@ export const createInvitation = async (db: Firestore, adminId: string): Promise<
   }
 };
 
-export const removeHelper = (db: Firestore, helperId: string) => {
+export const removeHelper = (db: Firestore, helperId: string, performingUser: PerformingUser) => {
   const userProfileRef = doc(db, 'users', helperId);
   // This removes their adminId, reverting them to a standard 'admin' of their own (likely empty) data.
   const data = { role: 'admin', adminId: deleteField() };
   updateDoc(userProfileRef, data)
+     .then(() => {
+        logChange(db, performingUser.uid, performingUser, 'delete', 'helper', 'Acesso de Ajudante', `Acesso removido para o usuário ${helperId}.`);
+     })
      .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: userProfileRef.path,
@@ -245,7 +331,8 @@ export const batchImportData = async (
   toCreate: ImportedName[],
   toUpdate: ImportUpdate[],
   newGroups: string[],
-  fieldGroups: FieldGroup[]
+  fieldGroups: FieldGroup[],
+  performingUser: PerformingUser,
 ) => {
   const BATCH_LIMIT = 490; // Keep it safely under 500
   let batch = writeBatch(db);
@@ -293,14 +380,13 @@ export const batchImportData = async (
       visitors: 'Importado'
     }] : [];
     
-    // Find the group ID from the name
     const groupId = item.fieldGroup ? groupNameToIdMap.get(item.fieldGroup.toLowerCase()) || '' : '';
 
     batch.set(nameRef, {
       personId: item.personId || '',
       text: item.text,
       status: item.status || 'regular',
-      fieldGroup: groupId, // Use the ID here
+      fieldGroup: groupId,
       address: item.address || '',
       phone: item.phone || '',
       createdAt: serverTimestamp(),
@@ -314,7 +400,6 @@ export const batchImportData = async (
     const nameRef = doc(namesCollectionRef, existing.id);
     const updatePayload: { [key: string]: any } = { ...newData };
 
-    // Find the group ID from the name if it's being updated
     if (typeof updatePayload.fieldGroup === 'string') {
         const groupName = updatePayload.fieldGroup;
         updatePayload.fieldGroup = groupName ? (groupNameToIdMap.get(groupName.toLowerCase()) || '') : '';
@@ -355,6 +440,8 @@ export const batchImportData = async (
   // 5. Commit all batches in parallel
   try {
     await Promise.all(batches.map(b => b.commit()));
+    const summary = `${toCreate.length} criados, ${toUpdate.length} atualizados, ${newGroups.length} novos grupos.`;
+    logChange(db, userId, performingUser, 'import', 'name', `Importação de ${toCreate.length + toUpdate.length} nomes`, summary);
   } catch (error) {
     console.error("Firebase batch commit failed:", error);
     throw error;
@@ -364,7 +451,8 @@ export const batchImportData = async (
 export const batchUpdateVisits = async (
   db: Firestore,
   userId: string,
-  updates: ImportUpdate[]
+  updates: ImportUpdate[],
+  performingUser: PerformingUser,
 ) => {
   const BATCH_LIMIT = 490; // Keep it safely under 500
   let batch = writeBatch(db);
@@ -419,6 +507,7 @@ export const batchUpdateVisits = async (
 
   try {
     await Promise.all(batches.map(b => b.commit()));
+    logChange(db, userId, performingUser, 'import', 'visit', `Importação de ${updates.length} visitas`);
   } catch (error) {
     console.error("Firebase batch update for visits failed:", error);
     throw error;

@@ -1,6 +1,6 @@
 'use client';
 
-import { HandHeart, LogOut, BarChart } from 'lucide-react';
+import { HandHeart, LogOut, BarChart, History } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,19 @@ export function Header() {
                     <Link href="/stats">
                         <BarChart className="h-5 w-5 md:mr-2" />
                         <span className="hidden md:inline">Estatísticas</span>
+                    </Link>
+                </Button>
+            )}
+             {user && pathname === '/' && (
+                 <Button
+                    asChild
+                    variant="ghost"
+                    className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
+                    aria-label="Histórico"
+                  >
+                    <Link href="/history">
+                        <History className="h-5 w-5 md:mr-2" />
+                        <span className="hidden md:inline">Histórico</span>
                     </Link>
                 </Button>
             )}

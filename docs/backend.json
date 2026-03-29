@@ -1,5 +1,61 @@
 {
   "entities": {
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Represents a record of a change made in the system.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who performed the action."
+        },
+        "userName": {
+          "type": "string",
+          "description": "The name of the user who performed the action."
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "create",
+            "update",
+            "delete",
+            "import"
+          ],
+          "description": "The type of action performed."
+        },
+        "entityType": {
+          "type": "string",
+          "enum": [
+            "name",
+            "group",
+            "visit",
+            "helper",
+            "sync-url"
+          ],
+          "description": "The type of entity that was changed."
+        },
+        "entityName": {
+          "type": "string",
+          "description": "The name/text of the entity that was changed, for display."
+        },
+        "details": {
+          "type": "string",
+          "description": "A sentence describing the changes."
+        },
+        "timestamp": {
+          "type": "object",
+          "description": "The timestamp of when the change was made."
+        }
+      },
+      "required": [
+        "userId",
+        "userName",
+        "action",
+        "entityType",
+        "entityName",
+        "timestamp"
+      ]
+    },
     "UserProfile": {
       "title": "User Profile",
       "type": "object",
@@ -203,6 +259,16 @@
         }
       },
       {
+        "path": "/users/{userId}/auditLogs/{logId}",
+        "definition": {
+          "entityName": "AuditLog",
+          "schema": {
+            "$ref": "#/backend/entities/AuditLog"
+          },
+          "description": "Stores a log of all changes made by users or helpers."
+        }
+      },
+      {
         "path": "/invitations/{invitationId}",
         "definition": {
           "entityName": "Invitation",
@@ -213,6 +279,6 @@
         }
       }
     ],
-    "reasoning": "The data structure now includes a top-level `/users/{userId}` collection to store user profiles with role-based access control information (`role`, `adminId`). Data collections like `nomes` and `fieldGroups` remain nested under `/users/{ownerId}` to maintain clear data ownership. A new root-level `invitations` collection manages the helper invitation workflow via shareable tokens. This structure allows for secure, delegated access using Firestore's path-based security and `get()` calls in rules to verify helper status."
+    "reasoning": "The data structure now includes a top-level `/users/{userId}` collection to store user profiles with role-based access control information (`role`, `adminId`). Data collections like `nomes` and `fieldGroups` remain nested under `/users/{ownerId}` to maintain clear data ownership. A new root-level `invitations` collection manages the helper invitation workflow via shareable tokens. A new nested `auditLogs` collection is added under each user to track all data modifications for transparency. This structure allows for secure, delegated access using Firestore's path-based security and `get()` calls in rules to verify helper status."
   }
 }

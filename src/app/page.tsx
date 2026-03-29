@@ -37,6 +37,7 @@ import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
 import { fetchCsvFromUrl } from '@/app/actions';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { PerformingUser } from '@/lib/audit-log-services';
 
 declare module 'jspdf' {
     interface jsPDF {
@@ -130,6 +131,14 @@ export default function Home() {
     }
     // Default to own UID for admins or helpers in an inconsistent state
     return user.uid;
+  }, [user, userProfile]);
+
+  const performingUser: PerformingUser | null = useMemo(() => {
+    if (!user || !userProfile) return null;
+    return {
+      uid: user.uid,
+      name: userProfile.name || user.email || 'Usuário Anônimo',
+    };
   }, [user, userProfile]);
   
   // Fetch admin profile if current user is a helper
@@ -239,7 +248,7 @@ export default function Home() {
 
 
   const addName = () => {
-    if (!dataOwnerId || !firestore) return;
+    if (!dataOwnerId || !firestore || !performingUser) return;
     if (draftName.text.trim() === '') {
       toast({
         variant: "destructive",
@@ -255,7 +264,7 @@ export default function Home() {
       address: '',
       phone: '',
     };
-    services.addName(firestore, dataOwnerId, newNameToAdd);
+    services.addName(firestore, dataOwnerId, newNameToAdd, performingUser);
     toast({
       title: "Nome adicionado",
       description: `${draftName.text.trim()} foi adicionado à lista.`,
@@ -269,11 +278,11 @@ export default function Home() {
   }
 
   const addGroup = (groupName: string) => {
-    if (!dataOwnerId || !firestore) return;
+    if (!dataOwnerId || !firestore || !performingUser) return;
 
     const newGroupName = groupName.trim();
     if (newGroupName && !fieldGroups.some(g => g.name === newGroupName)) {
-      services.addFieldGroup(firestore, dataOwnerId, newGroupName);
+      services.addFieldGroup(firestore, dataOwnerId, newGroupName, performingUser);
       toast({
         title: "Grupo adicionado",
         description: `O grupo "${newGroupName}" foi criado.`,
@@ -288,9 +297,9 @@ export default function Home() {
   };
   
   const deleteGroup = (groupId: string) => {
-    if (!dataOwnerId || !firestore) return;
+    if (!dataOwnerId || !firestore || !performingUser) return;
     
-    services.deleteFieldGroup(firestore, dataOwnerId, groupId);
+    services.deleteFieldGroup(firestore, dataOwnerId, groupId, performingUser);
 
     // Remove the group from any names that have it assigned.
     names.forEach(name => {
@@ -307,7 +316,7 @@ export default function Home() {
   };
 
   const updateGroup = (groupId: string, newName: string): boolean => {
-    if (!dataOwnerId || !firestore) return false;
+    if (!dataOwnerId || !firestore || !performingUser) return false;
     const oldGroup = fieldGroups.find(g => g.id === groupId);
     if (!oldGroup) return false;
 
@@ -325,20 +334,8 @@ export default function Home() {
       return false;
     }
     
-    services.updateFieldGroup(firestore, dataOwnerId, groupId, trimmedNewName);
+    services.updateFieldGroup(firestore, dataOwnerId, groupId, trimmedNewName, performingUser);
 
-    // Update names associated with the old group name
-    names.forEach(name => {
-      if (name.fieldGroup === oldGroup.id) {
-        // This logic is slightly flawed as we compare oldGroup.name before, but here we would need to update using id
-        // Correcting this to pass the new group ID would be a larger refactor.
-        // Assuming group names are unique for now, which the UI tries to enforce.
-        // The correct approach is to just update the group document, and names reference the group by ID.
-        // For now, let's assume `name.fieldGroup` stores the ID.
-        updateName(name.id, { fieldGroup: groupId });
-      }
-    });
-    
     toast({
         title: "Grupo atualizado",
         description: `O grupo "${oldGroup.name}" foi renomeado para "${trimmedNewName}".`,
@@ -347,13 +344,13 @@ export default function Home() {
   };
 
   const updateName = (id: string, newNameData: Partial<Omit<Name, 'id'>>) => {
-    if (!dataOwnerId || !firestore) return;
-    services.updateName(firestore, dataOwnerId, id, newNameData);
+    if (!dataOwnerId || !firestore || !performingUser) return;
+    services.updateName(firestore, dataOwnerId, id, newNameData, performingUser, fieldGroups);
   };
 
   const deleteName = (id: string) => {
-    if (!dataOwnerId || !firestore) return;
-    services.deleteName(firestore, dataOwnerId, id);
+    if (!dataOwnerId || !firestore || !performingUser) return;
+    services.deleteName(firestore, dataOwnerId, id, performingUser);
     toast({
         title: "Nome removido",
         description: `O nome foi removido da lista.`,
@@ -372,13 +369,13 @@ export default function Home() {
   }
 
   const handleConfirmImport = async (preview: ImportPreview | null) => {
-    if (!dataOwnerId || !firestore || !preview) return;
+    if (!dataOwnerId || !firestore || !preview || !performingUser) return;
     
     try {
         if (preview.toCreate.length === 0 && preview.toUpdate.length === 0 && preview.newGroups.length === 0) {
           toast({ title: "Nenhuma alteração para importar." });
         } else {
-          await services.batchImportData(firestore, dataOwnerId, preview.toCreate, preview.toUpdate, preview.newGroups, fieldGroups);
+          await services.batchImportData(firestore, dataOwnerId, preview.toCreate, preview.toUpdate, preview.newGroups, fieldGroups, performingUser);
           toast({
               title: "Importação concluída!",
               description: `${preview.toCreate.length + preview.toUpdate.length} pessoas e ${preview.newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
@@ -398,10 +395,10 @@ export default function Home() {
   };
 
   const handleConfirmVisitsImport = async () => {
-    if (!dataOwnerId || !firestore || stagedVisitsUpdates.length === 0) return;
+    if (!dataOwnerId || !firestore || stagedVisitsUpdates.length === 0 || !performingUser) return;
     
     try {
-        await services.batchUpdateVisits(firestore, dataOwnerId, stagedVisitsUpdates);
+        await services.batchUpdateVisits(firestore, dataOwnerId, stagedVisitsUpdates, performingUser);
         toast({
             title: "Importação de visitas concluída!",
             description: `${stagedVisitsUpdates.length} visitas foram adicionadas com sucesso.`,
@@ -788,13 +785,13 @@ export default function Home() {
       });
       return;
     }
-    if (!dataOwnerId || !firestore) return;
+    if (!dataOwnerId || !firestore || !performingUser) return;
     setIsImportingFromUrl(true);
     setImportMode('full');
 
     try {
       if (isAdmin && finalUrl !== (dataOwnerProfile?.importUrl || '')) {
-        await services.updateUserProfile(firestore, dataOwnerId, { importUrl: finalUrl });
+        await services.updateUserProfile(firestore, dataOwnerId, { importUrl: finalUrl }, performingUser);
         toast({
           title: "URL de sincronização salva",
           description: "Esta URL será usada para futuras sincronizações.",
@@ -1032,7 +1029,7 @@ export default function Home() {
 
              {isAdmin && user && mobileView === 'ajudantes' && (
               <div className="space-y-8 mt-4">
-                 <HelpersCard ownerId={user.uid} helpers={helpers} />
+                 <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
                  <ImportCard
                     onImportClick={() => fileInputRef.current?.click()}
                     onImportVisitsClick={() => visitsFileInputRef.current?.click()}
@@ -1081,7 +1078,7 @@ export default function Home() {
               />
               {isAdmin && user && (
                 <>
-                  <HelpersCard ownerId={user.uid} helpers={helpers} />
+                  <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
                   <ImportCard
                     onImportClick={() => fileInputRef.current?.click()}
                     onImportVisitsClick={() => visitsFileInputRef.current?.click()}

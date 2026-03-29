@@ -9,6 +9,7 @@ import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import * as services from '@/lib/firebase-services';
 import type { Helper } from '@/app/page';
+import { PerformingUser } from '@/lib/audit-log-services';
 
 import {
   AlertDialog,
@@ -34,9 +35,10 @@ import { Label } from '@/components/ui/label';
 interface HelpersCardProps {
   ownerId: string;
   helpers: Helper[];
+  performingUser: PerformingUser | null;
 }
 
-export function HelpersCard({ ownerId, helpers }: HelpersCardProps) {
+export function HelpersCard({ ownerId, helpers, performingUser }: HelpersCardProps) {
   const [inviteLink, setInviteLink] = useState('');
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -73,8 +75,8 @@ export function HelpersCard({ ownerId, helpers }: HelpersCardProps) {
   };
 
   const handleRemoveHelper = (helper: Helper) => {
-    if (!firestore) return;
-    services.removeHelper(firestore, helper.id);
+    if (!firestore || !performingUser) return;
+    services.removeHelper(firestore, helper.id, performingUser);
     toast({
         title: 'Ajudante Removido',
         description: `${helper.name || helper.email} não tem mais acesso à sua lista.`,
