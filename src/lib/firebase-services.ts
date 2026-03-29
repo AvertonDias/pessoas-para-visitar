@@ -81,12 +81,27 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   if (!userProfileSnap.exists()) {
       // Only create a new admin profile if one doesn't exist.
       // This prevents an existing helper from overwriting their role by re-registering.
-      const profile: Omit<UserProfile, 'id'> = {
+      const profile: Omit<UserProfile, 'id' | 'importUrl'> = {
         email: user.email!,
         name: displayName ?? undefined,
         role: 'admin',
       };
       await setDoc(userProfileRef, profile);
+  }
+};
+
+export const updateUserProfile = async (db: Firestore, userId: string, profileData: Partial<Omit<UserProfile, 'id'>>) => {
+  const userProfileRef = doc(db, 'users', userId);
+  try {
+    await updateDoc(userProfileRef, profileData);
+  } catch (serverError: any) {
+    const permissionError = new FirestorePermissionError({
+      path: userProfileRef.path,
+      operation: 'update',
+      requestResourceData: profileData
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    throw serverError;
   }
 };
 

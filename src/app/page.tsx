@@ -55,6 +55,7 @@ export type UserProfile = {
   email: string;
   role: 'admin' | 'helper';
   adminId?: string;
+  importUrl?: string;
 };
 
 export type Helper = {
@@ -163,6 +164,12 @@ export default function Home() {
   } | null>(null);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
+
+  useEffect(() => {
+    if (userProfile?.importUrl) {
+      setImportUrl(userProfile.importUrl);
+    }
+  }, [userProfile]);
 
 
   const addName = () => {
@@ -471,12 +478,22 @@ export default function Home() {
       toast({
         variant: 'destructive',
         title: 'URL é necessária',
-        description: 'Por favor, insira uma URL do Google Drive.',
+        description: 'Por favor, insira uma URL para sincronizar.',
       });
       return;
     }
+    if (!dataOwnerId || !firestore) return;
+
     setIsImportingFromUrl(true);
     try {
+      if (importUrl !== userProfile?.importUrl) {
+        await services.updateUserProfile(firestore, dataOwnerId, { importUrl });
+        toast({
+          title: "URL de sincronização salva",
+          description: "Esta URL será usada para futuras sincronizações.",
+        });
+      }
+      
       const result = await fetchCsvFromUrl(importUrl);
       if (result.success && result.data) {
         processCsvText(result.data);
@@ -488,11 +505,11 @@ export default function Home() {
         });
       }
     } catch (error) {
-      console.error('Failed to import from URL', error);
+      console.error('Failed to save URL or import from URL', error);
       toast({
         variant: 'destructive',
         title: 'Erro na Sincronização',
-        description: 'Não foi possível importar da URL fornecida.',
+        description: 'Não foi possível salvar a URL ou importar os dados. Verifique o link e suas permissões de acesso.',
       });
     } finally {
       setIsImportingFromUrl(false);

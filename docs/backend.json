@@ -24,6 +24,10 @@
         "adminId": {
           "type": "string",
           "description": "If the user is a helper, this is the UID of their admin."
+        },
+        "importUrl": {
+          "type": "string",
+          "description": "The URL of the CSV file to be used for automatic synchronization."
         }
       },
       "required": [
