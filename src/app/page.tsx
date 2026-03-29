@@ -75,6 +75,13 @@ export type ImportUpdate = {
   changes: string[];
 };
 
+type ImportPreview = {
+    toCreate: ImportedName[];
+    toUpdate: ImportUpdate[];
+    newGroups: string[];
+    unmatchedNames: string[];
+} | null;
+
 export default function Home() {
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
@@ -160,12 +167,7 @@ export default function Home() {
   
   // State for import functionality
   const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
-  const [importPreview, setImportPreview] = useState<{
-    toCreate: ImportedName[];
-    toUpdate: ImportUpdate[];
-    newGroups: string[];
-    unmatchedNames: string[];
-  } | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview>(null);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ handler: () => Promise<void> }>({ handler: async () => {} });
@@ -305,6 +307,46 @@ export default function Home() {
         .replace(/[\u0300-\u036f]/g, "") // Remove accents
         .replace(/\s+/g, ' '); // Collapse multiple spaces
   }
+
+  const handleConfirmImport = async (visitsOnly: boolean, preview: ImportPreview) => {
+    if (!dataOwnerId || !firestore || !preview) return;
+
+    try {
+        if (visitsOnly) {
+             if (preview.toUpdate.length > 0) {
+                await services.batchUpdateVisits(firestore, dataOwnerId, preview.toUpdate);
+                toast({
+                    title: "Importação de visitas concluída!",
+                    description: `${preview.toUpdate.length} pessoas tiveram seu histórico de visitas atualizado.`,
+                });
+            } else {
+                toast({ title: "Nenhuma visita nova para importar." });
+            }
+        } else {
+            const { toCreate, toUpdate, newGroups } = preview;
+
+            if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
+              toast({ title: "Nenhuma alteração para importar." });
+            } else {
+              await services.batchImportData(firestore, dataOwnerId, toCreate, toUpdate, newGroups);
+              toast({
+                  title: "Importação concluída!",
+                  description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
+              });
+            }
+        }
+    } catch (error: any) {
+        console.error("Error during batch import:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro na importação",
+            description: error.message || "Ocorreu um erro inesperado ao salvar os dados. Tente novamente.",
+        });
+    } finally {
+        setIsImportConfirmOpen(false);
+        setImportPreview(null);
+    }
+  };
 
   const processCsvText = (text: string, visitsOnly: boolean = false) => {
     try {
@@ -453,7 +495,7 @@ export default function Home() {
                     ? 'removido' 
                     : item.status;
 
-                if (item.text && item.text !== existing.text) {
+                if (item.text && normalizeName(item.text) !== normalizeName(existing.text)) {
                     changes.push(formatChange('Nome', existing.text, item.text));
                     updatePayload.text = item.text;
                 }
@@ -512,9 +554,10 @@ export default function Home() {
           });
           return;
       }
-
-      setImportPreview({ toCreate, toUpdate, newGroups, unmatchedNames });
-      setConfirmAction({ handler: () => handleConfirmImport(visitsOnly) });
+      
+      const previewData = { toCreate, toUpdate, newGroups, unmatchedNames };
+      setImportPreview(previewData);
+      setConfirmAction({ handler: () => handleConfirmImport(visitsOnly, previewData) });
       setIsImportConfirmOpen(true);
 
     } catch (error) {
@@ -591,47 +634,6 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, importUrl, names.length > 0]);
-
-  const handleConfirmImport = async (visitsOnly: boolean) => {
-    if (!dataOwnerId || !firestore || !importPreview) return;
-
-    try {
-        if (visitsOnly) {
-             if (importPreview.toUpdate.length > 0) {
-                await services.batchUpdateVisits(firestore, dataOwnerId, importPreview.toUpdate);
-                toast({
-                    title: "Importação de visitas concluída!",
-                    description: `${importPreview.toUpdate.length} pessoas tiveram seu histórico de visitas atualizado.`,
-                });
-            } else {
-                toast({ title: "Nenhuma visita nova para importar." });
-            }
-        } else {
-            const { toCreate, toUpdate, newGroups } = importPreview;
-
-            if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
-              toast({ title: "Nenhuma alteração para importar." });
-            } else {
-              await services.batchImportData(firestore, dataOwnerId, toCreate, toUpdate, newGroups);
-              toast({
-                  title: "Importação concluída!",
-                  description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
-              });
-            }
-        }
-    } catch (error: any) {
-        console.error("Error during batch import:", error);
-        toast({
-            variant: "destructive",
-            title: "Erro na importação",
-            description: error.message || "Ocorreu um erro inesperado ao salvar os dados. Tente novamente.",
-        });
-    } finally {
-        setIsImportConfirmOpen(false);
-        setImportPreview(null);
-    }
-  };
-
 
   const filteredNames = useMemo(() => {
     const filtered = names.filter(name => {
