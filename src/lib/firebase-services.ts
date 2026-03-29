@@ -244,7 +244,8 @@ export const batchImportData = async (
   userId: string,
   toCreate: ImportedName[],
   toUpdate: ImportUpdate[],
-  newGroups: string[]
+  newGroups: string[],
+  fieldGroups: FieldGroup[]
 ) => {
   const BATCH_LIMIT = 490; // Keep it safely under 500
   let batch = writeBatch(db);
@@ -259,20 +260,28 @@ export const batchImportData = async (
       operationCount = 0;
     }
   };
+  
+  // 1. Build a map of existing group names to their IDs
+  const groupNameToIdMap = new Map<string, string>();
+  fieldGroups.forEach(group => {
+      groupNameToIdMap.set(group.name.toLowerCase(), group.id);
+  });
 
   const namesCollectionRef = collection(db, 'users', userId, 'names');
 
-  // 1. Create new groups
+  // 2. Create new groups and add them to the map
   newGroups.forEach(groupName => {
     const groupRef = doc(collection(db, 'users', userId, 'fieldGroups'));
     batch.set(groupRef, {
       name: groupName,
       createdAt: serverTimestamp()
     });
+    // Add the new group to our map for immediate use
+    groupNameToIdMap.set(groupName.toLowerCase(), groupRef.id);
     maybeCommitBatch();
   });
 
-  // 2. Process new names to create
+  // 3. Process new names to create
   toCreate.forEach(item => {
     if (!item.text) return;
 
@@ -284,11 +293,14 @@ export const batchImportData = async (
       visitors: 'Importado'
     }] : [];
     
+    // Find the group ID from the name
+    const groupId = item.fieldGroup ? groupNameToIdMap.get(item.fieldGroup.toLowerCase()) || '' : '';
+
     batch.set(nameRef, {
       personId: item.personId || '',
       text: item.text,
       status: item.status || 'regular',
-      fieldGroup: item.fieldGroup || '',
+      fieldGroup: groupId, // Use the ID here
       address: item.address || '',
       phone: item.phone || '',
       createdAt: serverTimestamp(),
@@ -297,10 +309,16 @@ export const batchImportData = async (
     maybeCommitBatch();
   });
 
-  // 3. Process existing names to update
+  // 4. Process existing names to update
   toUpdate.forEach(({ existing, newData }) => {
     const nameRef = doc(namesCollectionRef, existing.id);
     const updatePayload: { [key: string]: any } = { ...newData };
+
+    // Find the group ID from the name if it's being updated
+    if (typeof updatePayload.fieldGroup === 'string') {
+        const groupName = updatePayload.fieldGroup;
+        updatePayload.fieldGroup = groupName ? (groupNameToIdMap.get(groupName.toLowerCase()) || '') : '';
+    }
 
     let finalHistory = existing.visitHistory || [];
     let historyChanged = false;
@@ -334,7 +352,7 @@ export const batchImportData = async (
     }
   });
 
-  // 4. Commit all batches in parallel
+  // 5. Commit all batches in parallel
   try {
     await Promise.all(batches.map(b => b.commit()));
   } catch (error) {
