@@ -7,6 +7,7 @@ import { Users } from 'lucide-react';
 import type { Name, FieldGroup } from '@/app/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 
 interface NameListCardProps {
   names: Name[];
@@ -55,46 +56,56 @@ export function NameListCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
-          <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filtrar por grupo..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os grupos</SelectItem>
-              <Separator />
-              {fieldGroups.map((group) => (
-                <SelectItem key={group.id} value={group.name}>
-                  {group.name}
-                </SelectItem>
-              ))}
-              <SelectItem value="--none--">Sem grupo</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="filter-group">Grupo</Label>
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+              <SelectTrigger id="filter-group">
+                <SelectValue placeholder="Filtrar por grupo..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os grupos</SelectItem>
+                <Separator />
+                {fieldGroups.map((group) => (
+                  <SelectItem key={group.id} value={group.name}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="--none--">Sem grupo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filtrar por status..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <Separator />
-              <SelectItem value="regular">Regular</SelectItem>
-              <SelectItem value="irregular">Irregular</SelectItem>
-              <SelectItem value="inativo">Inativo</SelectItem>
-              <SelectItem value="removido">Removido</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="filter-status">Status</Label>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger id="filter-status">
+                <SelectValue placeholder="Filtrar por status..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <Separator />
+                <SelectItem value="regular">Regular</SelectItem>
+                <SelectItem value="irregular">Irregular</SelectItem>
+                <SelectItem value="inativo">Inativo</SelectItem>
+                <SelectItem value="removido">Removido</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
-              <SelectValue placeholder="Ordenar por..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
-              <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="sort-by">Ordenar por</Label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger id="sort-by">
+                <SelectValue placeholder="Ordenar por..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
+                <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
+                <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="space-y-2">
           <AnimatePresence>

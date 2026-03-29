@@ -169,7 +169,8 @@ export default function Home() {
   const [importPreview, setImportPreview] = useState<ImportPreview>(null);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<{ handler: () => Promise<void> }>({ handler: async () => {} });
+  const [confirmAction, setConfirmAction] = useState<{ handler: (preview: ImportPreview) => Promise<void> }>({ handler: async () => {} });
+
 
   useEffect(() => {
     if (userProfile) {
@@ -307,15 +308,15 @@ export default function Home() {
         .replace(/\s+/g, ' '); // Collapse multiple spaces
   }
 
-  const handleConfirmImport = async () => {
-    if (!dataOwnerId || !firestore || !importPreview) return;
-    const { toCreate, toUpdate, newGroups } = importPreview;
+  const handleConfirmImport = async (preview: ImportPreview) => {
+    if (!dataOwnerId || !firestore) return;
+    const { toCreate, toUpdate, newGroups } = preview;
 
     try {
         if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
           toast({ title: "Nenhuma alteração para importar." });
         } else {
-          await services.batchImportData(firestore, dataOwnerId, toCreate, toUpdate, newGroups);
+          await services.batchImportData(firestore, dataOwnerId, preview);
           toast({
               title: "Importação concluída!",
               description: `${toCreate.length + toUpdate.length} pessoas e ${newGroups.length} grupos foram importados e/ou atualizados com sucesso.`,
@@ -334,7 +335,7 @@ export default function Home() {
     }
   };
 
-  const processCsvText = (text: string, visitsOnly: boolean = false) => {
+  const processCsvText = (text: string) => {
     try {
       const rows = text.split('\n').map(row => row.trim()).filter(row => row);
       if (rows.length < 2) {
@@ -347,19 +348,19 @@ export default function Home() {
       const header = headerLine.split(separator).map(h => h.trim().replace(/"/g, '').toLowerCase());
       
       const nameKeys = {
-        displayName: ['displayname', 'nome completo', 'nome'],
-        firstName: ['firstname'],
-        middleName: ['middlename'],
-        lastName: ['lastname'],
-        group: ['groupname'],
-        address: ['address'],
-        phoneMobile: ['phonemobile'],
-        phoneHome: ['phonehome'],
+        displayName: ['displayname', 'nome de exibição'],
+        firstName: ['firstname', 'primeiro nome'],
+        middleName: ['middlename', 'nome do meio'],
+        lastName: ['lastname', 'sobrenome'],
+        group: ['groupname', 'grupo'],
+        address: ['address', 'endereço'],
+        phoneMobile: ['phonemobile', 'telefone celular'],
+        phoneHome: ['phonehome', 'telefone residencial'],
         personId: ['personid'],
-        moved: ['moved', 'removed'],
-        active: ['active'],
+        moved: ['moved', 'mudou-se'],
+        active: ['active', 'ativo'],
         regular: ['regular'],
-        lastVisit: ['lastvisit', 'data'],
+        lastVisit: ['lastvisit', 'última visita'],
       };
       
       const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
@@ -377,19 +378,18 @@ export default function Home() {
       const activeIndex = getIndex(nameKeys.active);
       const regularIndex = getIndex(nameKeys.regular);
       const lastVisitIndex = getIndex(nameKeys.lastVisit);
-
-      if (displayNameIndex === -1 && firstNameIndex === -1 && lastNameIndex === -1 && lastVisitIndex === -1 && personIdIndex === -1 && getIndex(nameKeys.displayName) === -1) {
-          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter uma coluna de nome (ex: 'DisplayName' ou 'Nome') ou data (ex: 'Data')." });
+      
+      if (firstNameIndex === -1 && lastNameIndex === -1 && displayNameIndex === -1) {
+          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter colunas de nome (ex: 'FirstName'/'LastName' ou 'DisplayName')." });
           return;
       }
 
       const importedResult: ImportedName[] = rows.slice(1).map(row => {
         const values = row.split(separator).map(v => v.trim().replace(/"/g, ''));
-        
         const item: ImportedName = {};
         
         const combinedName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ').trim();
-        const displayName = displayNameIndex !== -1 ? values[displayNameIndex] : '';
+        const displayName = values[displayNameIndex];
         const text = combinedName || displayName;
         if(text) item.text = text;
 
@@ -400,25 +400,18 @@ export default function Home() {
         const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
         if (phone) item.phone = phone;
 
-        if (movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1) {
-            const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
-            const isMoved = movedValue === 'true' || movedValue === 'verdadeiro';
-
-            const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : '';
-            const isActive = activeValue === 'true' || activeValue === 'verdadeiro';
-
-            const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : '';
-            const isRegular = regularValue === 'true' || regularValue === 'verdadeiro';
-
-            if (isMoved) {
-              item.status = 'removido';
-            } else if (activeIndex !== -1 && !isActive) {
-              item.status = 'inativo';
-            } else if (regularIndex !== -1 && !isRegular) {
-              item.status = 'irregular';
-            } else {
-              item.status = 'regular';
-            }
+        const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : undefined;
+        const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : undefined;
+        const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : undefined;
+        
+        if (movedValue === 'true' || movedValue === 'verdadeiro') {
+          item.status = 'removido';
+        } else if (activeValue === 'false' || activeValue === 'falso') {
+          item.status = 'inativo';
+        } else if (regularValue === 'false' || regularValue === 'falso') {
+          item.status = 'irregular';
+        } else if (movedValue !== undefined || activeValue !== undefined || regularValue !== undefined) {
+           item.status = 'regular';
         }
 
         const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
@@ -431,7 +424,7 @@ export default function Home() {
                 let year = parseInt(parts[2], 10);
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
                     if (year < 100) year += 2000;
-                    parsedDate = new Date(year, month, day);
+                    parsedDate = new Date(Date.UTC(year, month, day, 12)); // Set to midday UTC
                 } else {
                     parsedDate = new Date(lastVisitValue);
                 }
@@ -512,7 +505,7 @@ export default function Home() {
               if (changes.length > 0) {
                   toUpdate.push({ existing, newData: updatePayload, changes });
               }
-          } else {
+          } else if (item.text) {
               toCreate.push(item);
           }
       }
@@ -531,7 +524,7 @@ export default function Home() {
       
       const previewData = { toCreate, toUpdate, newGroups };
       setImportPreview(previewData);
-      setConfirmAction({ handler: () => handleConfirmImport() });
+      setConfirmAction({ handler: () => handleConfirmImport(previewData) });
       setIsImportConfirmOpen(true);
 
     } catch (error) {
@@ -540,14 +533,14 @@ export default function Home() {
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, visitsOnly: boolean) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      processCsvText(text, visitsOnly);
+      processCsvText(text);
     };
     reader.readAsText(file);
     event.target.value = '';
@@ -575,7 +568,7 @@ export default function Home() {
       }
       const result = await fetchCsvFromUrl(importUrl);
       if (result.success && result.data) {
-        processCsvText(result.data, false);
+        processCsvText(result.data);
       } else {
         toast({
           variant: 'destructive',
@@ -596,8 +589,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Automatically trigger sync from URL on initial load once the user profile and a URL are ready.
-    // This will use the saved URL or the default one. It runs only once per session.
     if (userProfile && importUrl && !autoSyncAttempted.current && names.length > 0) {
       autoSyncAttempted.current = true;
       handleImportFromUrl();
@@ -623,6 +614,10 @@ export default function Home() {
 
     // Then, sort the filtered names
     filtered.sort((a, b) => {
+      if (sortBy === 'name-asc') {
+        return a.text.localeCompare(b.text);
+      }
+
       const dateA = getMostRecentVisitDate(a.visitHistory).getTime();
       const dateB = getMostRecentVisitDate(b.visitHistory).getTime();
       
@@ -784,14 +779,14 @@ export default function Home() {
       <input
         type="file"
         ref={fileInputRef}
-        onChange={(e) => handleFileChange(e, false)}
+        onChange={(e) => handleFileChange(e)}
         className="hidden"
         accept=".csv"
       />
       <input
         type="file"
         ref={visitsFileInputRef}
-        onChange={(e) => handleFileChange(e, true)}
+        onChange={(e) => handleFileChange(e)}
         className="hidden"
         accept=".csv"
       />
@@ -857,12 +852,12 @@ export default function Home() {
         </DialogContent>
       </Dialog>
       
-      <ImportConfirmationDialog
+      {importPreview && <ImportConfirmationDialog
         isOpen={isImportConfirmOpen}
         onOpenChange={setIsImportConfirmOpen}
         preview={importPreview}
-        onConfirm={confirmAction.handler}
-      />
+        onConfirm={() => confirmAction.handler(importPreview)}
+      />}
       <InstallPwaBanner />
     </div>
   );
