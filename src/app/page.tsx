@@ -84,6 +84,7 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes'>('pessoas');
   const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoSyncAttempted = useRef(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -474,6 +475,8 @@ export default function Home() {
   };
   
   const handleImportFromUrl = async () => {
+    if (isImportingFromUrl) return;
+
     if (!importUrl) {
       toast({
         variant: 'destructive',
@@ -515,6 +518,16 @@ export default function Home() {
       setIsImportingFromUrl(false);
     }
   };
+
+  useEffect(() => {
+    // Automatically trigger sync from URL on initial load if available
+    // and if we haven't tried it yet in this session.
+    if (userProfile?.importUrl && !autoSyncAttempted.current) {
+      autoSyncAttempted.current = true;
+      handleImportFromUrl();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile]);
 
   const handleConfirmImport = async () => {
     if (!dataOwnerId || !firestore || !importPreview) return;
