@@ -13,24 +13,18 @@ export function initializeFirebase() {
       return { error: 'API_KEY_MISSING' };
   }
   
-  if (getApps().length) {
-    const app = getApp();
-    return { ...getSdks(app), error: null };
-  }
-  
-  // In a deployed Firebase App Hosting environment, initializeApp() will automatically
-  // use the correct configuration. In a local environment, it will fallback to
-  // using the firebaseConfig object.
-  let firebaseApp;
-  try {
-    // Attempt to initialize via Firebase App Hosting environment variables
-    firebaseApp = initializeApp();
-  } catch (e) {
-    // This will use the config from src/firebase/config.ts, which reads from .env.local
-    firebaseApp = initializeApp(firebaseConfig);
-  }
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-  return { ...getSdks(firebaseApp), error: null };
+  try {
+    // getAuth() can throw if the API key is invalid on initialization.
+    return { ...getSdks(app), error: null };
+  } catch (e: any) {
+    if (e.code === 'auth/invalid-api-key') {
+      return { error: 'API_KEY_INVALID' };
+    }
+    // Re-throw other unexpected errors so they are not silently swallowed.
+    throw e;
+  }
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
