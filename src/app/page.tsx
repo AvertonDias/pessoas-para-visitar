@@ -683,7 +683,7 @@ export default function Home() {
         processFullCsv(text);
       }
     };
-    reader.readAsText(file, 'utf-8');
+    reader.readAsText(file, 'latin1');
     event.target.value = '';
   };
   
