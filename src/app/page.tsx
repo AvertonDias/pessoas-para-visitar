@@ -446,22 +446,37 @@ export default function Home() {
                           
           if (existing) {
               const changes: string[] = [];
-              const effectiveNewData = { ...item };
+              const updatePayload: ImportedName = {};
               
               if (!visitsOnly) {
-                if (existing.status === 'removido' && item.status && item.status !== 'regular' && item.status !== 'irregular') {
-                  effectiveNewData.status = 'removido';
-                }
+                const itemStatus = (existing.status === 'removido' && item.status && item.status !== 'regular' && item.status !== 'irregular') 
+                    ? 'removido' 
+                    : item.status;
 
-                if (effectiveNewData.text && effectiveNewData.text !== existing.text) changes.push(formatChange('Nome', existing.text, effectiveNewData.text));
-                if (effectiveNewData.address !== undefined && effectiveNewData.address !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, effectiveNewData.address));
-                if (effectiveNewData.phone !== undefined && effectiveNewData.phone !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, effectiveNewData.phone));
-                if (effectiveNewData.fieldGroup !== undefined && effectiveNewData.fieldGroup !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, effectiveNewData.fieldGroup));
-                if (effectiveNewData.status && effectiveNewData.status !== existing.status) changes.push(formatChange('Status', existing.status, effectiveNewData.status));
+                if (item.text && item.text !== existing.text) {
+                    changes.push(formatChange('Nome', existing.text, item.text));
+                    updatePayload.text = item.text;
+                }
+                if (item.address !== undefined && item.address !== (existing.address || '')) {
+                    changes.push(formatChange('Endereço', existing.address, item.address));
+                    updatePayload.address = item.address;
+                }
+                if (item.phone !== undefined && item.phone !== (existing.phone || '')) {
+                    changes.push(formatChange('Telefone', existing.phone, item.phone));
+                    updatePayload.phone = item.phone;
+                }
+                if (item.fieldGroup !== undefined && item.fieldGroup !== (existing.fieldGroup || '')) {
+                    changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
+                    updatePayload.fieldGroup = item.fieldGroup;
+                }
+                if (itemStatus && itemStatus !== existing.status) {
+                    changes.push(formatChange('Status', existing.status, itemStatus));
+                    updatePayload.status = itemStatus;
+                }
               }
               
-              if (effectiveNewData.importedVisitDate) {
-                const newVisitDate = new Date(effectiveNewData.importedVisitDate);
+              if (item.importedVisitDate) {
+                const newVisitDate = new Date(item.importedVisitDate);
                 const visitExists = (existing.visitHistory || []).some(visit => {
                     const existingDate = new Date(visit.date);
                     return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
@@ -470,11 +485,12 @@ export default function Home() {
                 });
                 if (!visitExists) {
                     changes.push(`Adicionar visita em: ${format(newVisitDate, "PPP", { locale: ptBR })}`);
+                    updatePayload.importedVisitDate = item.importedVisitDate;
                 }
               }
 
               if (changes.length > 0) {
-                  toUpdate.push({ existing, newData: effectiveNewData, changes });
+                  toUpdate.push({ existing, newData: updatePayload, changes });
               }
           } else {
               if (!visitsOnly) {

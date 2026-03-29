@@ -285,34 +285,31 @@ export const batchImportData = async (
   // 3. Process existing names to update
   toUpdate.forEach(({ existing, newData }) => {
     const nameRef = doc(namesCollectionRef, existing.id);
-    const updatePayload: { [key: string]: any } = {};
-
-    if (newData.text !== undefined) updatePayload.text = newData.text;
-    if (newData.address !== undefined) updatePayload.address = newData.address;
-    if (newData.phone !== undefined) updatePayload.phone = newData.phone;
-    if (newData.fieldGroup !== undefined) updatePayload.fieldGroup = newData.fieldGroup;
-    if (newData.status !== undefined) updatePayload.status = newData.status;
+    const updatePayload: { [key: string]: any } = { ...newData };
 
     let finalHistory = existing.visitHistory || [];
-    if (newData.importedVisitDate) {
-      const newVisitDate = new Date(newData.importedVisitDate);
-      const visitExists = finalHistory.some(visit => {
-          const existingDate = new Date(visit.date);
-          return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
-                 existingDate.getUTCMonth() === newVisitDate.getUTCMonth() &&
-                 existingDate.getUTCDate() === newVisitDate.getUTCDate();
-      });
+    let historyChanged = false;
+    
+    if (updatePayload.importedVisitDate) {
+      const newVisitDateStr = updatePayload.importedVisitDate;
+      delete updatePayload.importedVisitDate; // Not a real Firestore field
 
-      if (!visitExists) {
-          finalHistory = [
-              ...finalHistory,
-              {
-                  id: doc(collection(db, 'temp-ids')).id,
-                  date: newData.importedVisitDate,
-                  visitors: 'Importado'
-              }
-          ];
-          updatePayload.visitHistory = finalHistory;
+      finalHistory = [
+        ...finalHistory,
+        {
+          id: doc(collection(db, 'temp-ids')).id,
+          date: newVisitDateStr,
+          visitors: 'Importado'
+        }
+      ];
+      updatePayload.visitHistory = finalHistory;
+      historyChanged = true;
+    }
+    
+    if (historyChanged && updatePayload.status === undefined && existing.status !== 'removido') {
+      const newStatus = calculateStatusFromHistory(finalHistory);
+      if (newStatus !== existing.status) {
+        updatePayload.status = newStatus;
       }
     }
     
