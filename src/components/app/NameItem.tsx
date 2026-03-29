@@ -152,24 +152,13 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
         newHistory = [...(name.visitHistory || []), newVisit];
     }
 
-    let newStatus = name.status;
-    if (name.status !== 'removido') {
-      newStatus = calculateStatusFromHistory(newHistory);
-    }
-
-    updateName(name.id, { visitHistory: newHistory, status: newStatus });
+    updateName(name.id, { visitHistory: newHistory });
     setIsVisitDialogOpen(false);
   };
 
   const handleDeleteVisit = (visitId: string) => {
     const newHistory = (name.visitHistory || []).filter(v => v.id !== visitId);
-    
-    let newStatus = name.status;
-    if (name.status !== 'removido') {
-      newStatus = calculateStatusFromHistory(newHistory);
-    }
-
-    updateName(name.id, { visitHistory: newHistory, status: newStatus });
+    updateName(name.id, { visitHistory: newHistory });
   };
 
 
