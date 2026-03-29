@@ -748,7 +748,8 @@ export default function Home() {
   };
   
   const handleImportFromUrl = async (urlToUse?: string) => {
-    const finalUrl = urlToUse || importUrl;
+    const finalUrl = urlToUse || (dataOwnerProfile?.importUrl || '');
+
     if (isImportingFromUrl) return;
     if (!finalUrl) {
       toast({
@@ -763,7 +764,7 @@ export default function Home() {
     setImportMode('full');
 
     try {
-      if (isAdmin && !urlToUse && dataOwnerProfile && finalUrl !== dataOwnerProfile.importUrl) {
+      if (isAdmin && !urlToUse && finalUrl !== dataOwnerProfile?.importUrl) {
         await services.updateUserProfile(firestore, dataOwnerId, { importUrl: finalUrl });
         toast({
           title: "URL de sincronização salva",
@@ -798,7 +799,7 @@ export default function Home() {
       handleImportFromUrl(dataOwnerProfile.importUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, dataOwnerProfile, names.length > 0]);
+  }, [isAdmin, dataOwnerProfile, names.length]);
 
   const filteredNames = useMemo(() => {
     const filtered = names.filter(name => {
@@ -806,7 +807,7 @@ export default function Home() {
       
       const matchesGroup = selectedGroup === 'all' 
         || name.fieldGroup === selectedGroup 
-        || (selectedGroup === '' && !name.fieldGroup);
+        || (selectedGroup === 'no-group' && !name.fieldGroup);
         
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;

@@ -71,7 +71,7 @@ export function NameListCard({
                     {group.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="">Sem grupo</SelectItem>
+                <SelectItem value="no-group">Sem grupo</SelectItem>
               </SelectContent>
             </Select>
           </div>
