@@ -314,7 +314,6 @@ export default function Home() {
         moved: ['moved', 'removed', 'removido'],
         active: ['active'],
         regular: ['regular'],
-        dateOfRemoved: ['dateofremoved'],
         lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita'],
       };
       
@@ -332,7 +331,6 @@ export default function Home() {
       const movedIndex = getIndex(nameKeys.moved);
       const activeIndex = getIndex(nameKeys.active);
       const regularIndex = getIndex(nameKeys.regular);
-      const dateOfRemovedIndex = getIndex(nameKeys.dateOfRemoved);
       const lastVisitIndex = getIndex(nameKeys.lastVisit);
 
       if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
@@ -353,22 +351,26 @@ export default function Home() {
         }
 
         let status: Name['status'];
-        const hasMovedFlag = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
-        const hasDateOfRemoved = dateOfRemovedIndex !== -1 && !!values[dateOfRemovedIndex];
-        const isMoved = hasMovedFlag || hasDateOfRemoved;
+
+        // Rule 1: REMOVIDO
+        const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
 
         if (isMoved) {
           status = 'removido';
         } else {
+          // Rule 2: INATIVO
           const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
-          const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
-
           if (activeIndex !== -1 && !isActive) {
             status = 'inativo';
-          } else if (regularIndex !== -1 && !isRegular) {
-            status = 'irregular';
           } else {
-            status = 'regular';
+            // Rule 3: IRREGULAR
+            const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
+            if (regularIndex !== -1 && !isRegular) {
+              status = 'irregular';
+            } else {
+              // Rule 4: REGULAR
+              status = 'regular';
+            }
           }
         }
 
