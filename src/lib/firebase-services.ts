@@ -295,6 +295,22 @@ export const deleteFieldGroup = async (db: Firestore, userId: string, groupId: s
   }
 };
 
+// Audit Logs
+export const deleteAuditLog = async (db: Firestore, ownerId: string, logId: string) => {
+  const logRef = doc(db, 'users', ownerId, 'auditLogs', logId);
+  try {
+    await deleteDoc(logRef);
+  } catch (serverError) {
+    const permissionError = new FirestorePermissionError({
+      path: logRef.path,
+      operation: 'delete',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    console.error("Failed to delete audit log:", serverError);
+  }
+};
+
+
 // Helpers & Invitations
 
 export const createInvitation = async (db: Firestore, adminId: string): Promise<string> => {

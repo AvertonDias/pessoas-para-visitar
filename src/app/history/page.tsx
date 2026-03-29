@@ -5,13 +5,26 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@
 import { collection, query, doc, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/app/page';
 import { Header } from '@/components/app/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { History, User, FileText, Tag, Trash2, Edit, Import } from 'lucide-react';
-import Link from 'next/link';
+import { Card } from '@/components/ui/card';
+import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+import * as services from '@/lib/firebase-services';
 
 type AuditLog = {
     id: string;
@@ -39,13 +52,14 @@ const entityTypeIcons: { [key in AuditLog['entityType']]: React.ElementType } = 
     group: Tag,
     visit: History,
     helper: User,
-    'sync-url': Link,
+    'sync-url': LinkIcon,
 };
 
 
 export default function HistoryPage() {
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -60,6 +74,8 @@ export default function HistoryPage() {
     }
     return user.uid;
   }, [user, userProfile]);
+  
+  const isAdmin = userProfile?.role === 'admin';
 
   const auditLogsQuery = useMemoFirebase(() => {
     if (!dataOwnerId || !firestore) return null;
@@ -68,6 +84,15 @@ export default function HistoryPage() {
   const { data: logs, loading: logsLoading } = useCollection<AuditLog>(auditLogsQuery);
 
   const isLoading = userLoading || profileLoading || logsLoading;
+  
+  const handleDeleteLog = (logId: string) => {
+    if (!dataOwnerId || !firestore) return;
+    services.deleteAuditLog(firestore, dataOwnerId, logId);
+    toast({
+        title: 'Registro excluído',
+        description: 'O registro do histórico foi removido.',
+    });
+  };
 
   const getInitials = (name: string) => {
     if (!name) return '?';
@@ -124,6 +149,27 @@ export default function HistoryPage() {
                                         <p className="text-sm text-muted-foreground mt-2 pl-1">{log.details}</p>
                                     )}
                                 </div>
+                                {isAdmin && (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 -mt-1 -mr-1" aria-label="Remover registro do histórico">
+                                                <Trash2 className="h-4 w-4 text-destructive/70" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Tem certeza que deseja excluir este registro do histórico? Esta ação não pode ser desfeita.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteLog(log.id)}>Excluir</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
                             </div>
                         </Card>
                     );
