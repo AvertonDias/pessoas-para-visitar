@@ -162,7 +162,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   return (
     <>
       <Collapsible className="rounded-md bg-card border data-[state=open]:bg-secondary/20 transition-colors duration-200">
-          <div className="flex items-start justify-between gap-2 p-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 p-3">
             <CollapsibleTrigger className="flex-grow text-left">
               <p className="font-medium text-foreground">{name.text}</p>
               <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
@@ -179,7 +179,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
               </div>
             </CollapsibleTrigger>
             
-            <div className="flex flex-shrink-0">
+            <div className="flex flex-shrink-0 self-end sm:self-auto pt-2 sm:pt-0">
                 <Dialog open={isEditDialogOpen} onOpenChange={onOpenChange}>
                     <DialogTrigger asChild>
                         <Button size="icon" variant="ghost" aria-label={`Editar ${name.text}`}>
