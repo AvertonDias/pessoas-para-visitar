@@ -171,7 +171,7 @@ export default function Home() {
 
   useEffect(() => {
     if (userProfile) {
-      setImportUrl(userProfile.importUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRObA7TvycM_5m_bAsSgJ2v9K2IqP-bnQ2ORj5rT2I8g-42wS3er_s-3GvOQ1-wT2hNlC1L7GvWd3kF/pub?output=csv');
+      setImportUrl(userProfile.importUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRObA7TvycM_5m_bAsSgJ2v9K2IqP-bnQ2ORj5rT2I8g-42wS3er_s-3GvOQ1-wT2hNlC1L7GvWd3kF/pub?output=csv&gid=0&single=true');
     }
   }, [userProfile]);
 
@@ -318,19 +318,19 @@ export default function Home() {
       const header = headerLine.split(separator).map(h => h.trim().replace(/"/g, '').toLowerCase());
       
       const nameKeys = {
-        displayName: ['displayname', 'nome', 'nome completo', 'name'],
+        displayName: ['displayname', 'nome completo', 'nome'],
         firstName: ['firstname'],
         middleName: ['middlename'],
         lastName: ['lastname'],
-        group: ['groupname', 'grupo'],
-        address: ['address', 'endereço'],
-        phoneMobile: ['phonemobile', 'telefone'],
+        group: ['groupname'],
+        address: ['address'],
+        phoneMobile: ['phonemobile'],
         phoneHome: ['phonehome'],
         personId: ['personid'],
-        moved: ['moved', 'removed', 'removido'],
+        moved: ['moved', 'removed'],
         active: ['active'],
         regular: ['regular'],
-        lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita', 'data'],
+        lastVisit: ['lastvisit', 'data'],
       };
       
       const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
@@ -349,8 +349,8 @@ export default function Home() {
       const regularIndex = getIndex(nameKeys.regular);
       const lastVisitIndex = getIndex(nameKeys.lastVisit);
 
-      if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1) && lastVisitIndex === -1) {
-          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter uma coluna como 'Nome' ou 'Data'." });
+      if (displayNameIndex === -1 && firstNameIndex === -1 && lastNameIndex === -1 && lastVisitIndex === -1 && personIdIndex === -1) {
+          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter uma coluna de nome (ex: 'DisplayName') ou data (ex: 'Data')." });
           return;
       }
 
@@ -371,24 +371,21 @@ export default function Home() {
         const movedValue = movedIndex !== -1 ? values[movedIndex]?.toLowerCase() : '';
         const isMoved = movedValue === 'true' || movedValue === 'verdadeiro';
 
+        const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : '';
+        const isActive = activeValue === 'true' || activeValue === 'verdadeiro';
+
+        const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : '';
+        const isRegular = regularValue === 'true' || regularValue === 'verdadeiro';
+
+        // Strict order of checks as requested by user.
         if (isMoved) {
           status = 'removido';
+        } else if (activeIndex !== -1 && !isActive) {
+          status = 'inativo';
+        } else if (regularIndex !== -1 && !isRegular) {
+          status = 'irregular';
         } else {
-          const activeValue = activeIndex !== -1 ? values[activeIndex]?.toLowerCase() : '';
-          const isActive = activeValue === 'true' || activeValue === 'verdadeiro';
-          
-          if (activeIndex !== -1 && !isActive) {
-            status = 'inativo';
-          } else {
-            const regularValue = regularIndex !== -1 ? values[regularIndex]?.toLowerCase() : '';
-            const isRegular = regularValue === 'true' || regularValue === 'verdadeiro';
-
-            if (regularIndex !== -1 && !isRegular) {
-              status = 'irregular';
-            } else {
-              status = 'regular';
-            }
-          }
+          status = 'regular';
         }
 
         const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
@@ -402,12 +399,10 @@ export default function Home() {
                 const month = parseInt(parts[1], 10) - 1;
                 let year = parseInt(parts[2], 10);
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    // Handle 2-digit years, assuming they are in the 21st century
                     if (year < 100) {
                         year += 2000;
                     }
-                    // Create date in local timezone to avoid off-by-one errors when converting back from UTC
-                    const parsedDate = new Date(Date.UTC(year, month, day));
+                    const parsedDate = new Date(year, month, day);
                     if (!isNaN(parsedDate.getTime())) {
                         importedVisitDate = parsedDate.toISOString();
                     }
@@ -429,7 +424,7 @@ export default function Home() {
           status: status,
           importedVisitDate: importedVisitDate,
         };
-      }).filter(item => item.text);
+      }).filter(item => item.text || item.personId);
 
       const existingNamesByPersonId = new Map<string, Name>();
       names.forEach(name => {
@@ -453,25 +448,26 @@ export default function Home() {
 
       for (const item of importedResult) {
           const existing = (item.personId ? existingNamesByPersonId.get(item.personId) : undefined) 
-                          || existingNamesByName.get(normalizeName(item.text));
+                          || (item.text ? existingNamesByName.get(normalizeName(item.text)) : undefined);
                           
           if (existing) {
               const changes: string[] = [];
+              const effectiveNewData = { ...item };
               
               if (!visitsOnly) {
                 if (existing.status === 'removido' && item.status !== 'regular' && item.status !== 'irregular') {
-                  item.status = 'removido';
+                  effectiveNewData.status = 'removido';
                 }
 
-                if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
-                if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
-                if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
-                if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
-                if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
+                if (effectiveNewData.text && effectiveNewData.text !== existing.text) changes.push(formatChange('Nome', existing.text, effectiveNewData.text));
+                if ((effectiveNewData.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, effectiveNewData.address));
+                if ((effectiveNewData.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, effectiveNewData.phone));
+                if ((effectiveNewData.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, effectiveNewData.fieldGroup));
+                if (effectiveNewData.status !== existing.status) changes.push(formatChange('Status', existing.status, effectiveNewData.status));
               }
               
-              if (item.importedVisitDate) {
-                const newVisitDate = new Date(item.importedVisitDate);
+              if (effectiveNewData.importedVisitDate) {
+                const newVisitDate = new Date(effectiveNewData.importedVisitDate);
                 const visitExists = (existing.visitHistory || []).some(visit => {
                     const existingDate = new Date(visit.date);
                     return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
@@ -484,13 +480,13 @@ export default function Home() {
               }
 
               if (changes.length > 0) {
-                  toUpdate.push({ existing, newData: item, changes });
+                  toUpdate.push({ existing, newData: effectiveNewData, changes });
               }
           } else {
               if (!visitsOnly) {
                 toCreate.push(item);
               } else {
-                unmatchedNames.push(item.text);
+                if (item.text) unmatchedNames.push(item.text);
               }
           }
       }
@@ -579,12 +575,12 @@ export default function Home() {
   useEffect(() => {
     // Automatically trigger sync from URL on initial load once the user profile and a URL are ready.
     // This will use the saved URL or the default one. It runs only once per session.
-    if (userProfile && importUrl && !autoSyncAttempted.current) {
+    if (userProfile && importUrl && !autoSyncAttempted.current && names.length > 0) {
       autoSyncAttempted.current = true;
       handleImportFromUrl();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, importUrl]);
+  }, [userProfile, importUrl, names.length > 0]);
 
   const handleConfirmImport = async (visitsOnly: boolean) => {
     if (!dataOwnerId || !firestore || !importPreview) return;
