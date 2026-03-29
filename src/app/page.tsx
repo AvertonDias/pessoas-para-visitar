@@ -25,6 +25,7 @@ import { collection, query, doc, where } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 import { getMostRecentVisitDate } from '@/lib/status-logic';
 import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
+import { fetchCsvFromUrl } from '@/app/actions';
 
 export type Visit = {
   id: string;
@@ -160,6 +161,8 @@ export default function Home() {
     toUpdate: ImportUpdate[];
     newGroups: string[];
   } | null>(null);
+  const [importUrl, setImportUrl] = useState('');
+  const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
 
 
   const addName = () => {
@@ -280,6 +283,175 @@ export default function Home() {
     });
   };
 
+  const processCsvText = (text: string) => {
+    try {
+      const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+      if (rows.length < 2) {
+        toast({ variant: "destructive", title: "Arquivo CSV inválido", description: "O arquivo precisa ter um cabeçalho e pelo menos uma linha de dados." });
+        return;
+      }
+
+      const header = rows[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+      const dataRows = rows.slice(1);
+      
+      const nameKeys = {
+        displayName: ['displayname', 'nome', 'nome completo'],
+        firstName: ['firstname'],
+        middleName: ['middlename'],
+        lastName: ['lastname'],
+        group: ['groupname', 'grupo'],
+        address: ['address', 'endereço'],
+        phoneMobile: ['phonemobile', 'telefone'],
+        phoneHome: ['phonehome'],
+        personId: ['personid'],
+        moved: ['moved', 'removed', 'removido'],
+        active: ['active'],
+        regular: ['regular'],
+        dateOfRemoved: ['dateofremoved'],
+        lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita'],
+      };
+      
+      const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
+
+      const displayNameIndex = getIndex(nameKeys.displayName);
+      const firstNameIndex = getIndex(nameKeys.firstName);
+      const middleNameIndex = getIndex(nameKeys.middleName);
+      const lastNameIndex = getIndex(nameKeys.lastName);
+      const groupIndex = getIndex(nameKeys.group);
+      const addressIndex = getIndex(nameKeys.address);
+      const phoneMobileIndex = getIndex(nameKeys.phoneMobile);
+      const phoneHomeIndex = getIndex(nameKeys.phoneHome);
+      const personIdIndex = getIndex(nameKeys.personId);
+      const movedIndex = getIndex(nameKeys.moved);
+      const activeIndex = getIndex(nameKeys.active);
+      const regularIndex = getIndex(nameKeys.regular);
+      const dateOfRemovedIndex = getIndex(nameKeys.dateOfRemoved);
+      const lastVisitIndex = getIndex(nameKeys.lastVisit);
+
+      if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
+          toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter 'DisplayName' ou 'FirstName' e 'LastName'." });
+          return;
+      }
+
+      const importedResult: ImportedName[] = dataRows.map(row => {
+        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+        
+        let text = '';
+        const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
+
+        if (fullName.trim()) {
+          text = fullName.trim();
+        } else if (displayNameIndex !== -1 && values[displayNameIndex]) {
+          text = values[displayNameIndex];
+        }
+
+        let status: Name['status'];
+        const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
+
+        if (isMoved) {
+          status = 'removido';
+        } else {
+          const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
+          const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
+
+          if (activeIndex !== -1 && !isActive) {
+            status = 'inativo';
+          } else if (regularIndex !== -1 && !isRegular) {
+            status = 'irregular';
+          } else {
+            status = 'regular';
+          }
+        }
+
+        const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
+
+        const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
+        let importedVisitDate: string | undefined;
+        if (lastVisitValue) {
+          const parsedDate = new Date(lastVisitValue);
+          if (!isNaN(parsedDate.getTime())) {
+            importedVisitDate = parsedDate.toISOString();
+          }
+        }
+
+        return {
+          personId: personIdIndex !== -1 ? values[personIdIndex] : '',
+          text: text,
+          fieldGroup: groupIndex !== -1 ? values[groupIndex] : '',
+          address: addressIndex !== -1 ? values[addressIndex] : '',
+          phone: phone,
+          status: status,
+          importedVisitDate: importedVisitDate,
+        };
+      }).filter(item => item.text);
+
+      const existingNamesMap = new Map<string, Name>();
+      names.forEach(name => {
+          if (name.personId) {
+              existingNamesMap.set(name.personId, name);
+          }
+      });
+
+      const toCreate: ImportedName[] = [];
+      const toUpdate: ImportUpdate[] = [];
+      const formatChange = (label: string, from: any, to: any) => {
+          const fromStr = from || 'vazio';
+          const toStr = to || 'vazio';
+          return `${label}: de "${fromStr}" para "${toStr}"`;
+      };
+
+      for (const item of importedResult) {
+          const existing = item.personId ? existingNamesMap.get(item.personId) : undefined;
+          if (existing) {
+              const changes: string[] = [];
+              if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
+              if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
+              if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
+              if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
+              if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
+              
+              if (item.importedVisitDate) {
+                const newVisitDate = new Date(item.importedVisitDate);
+                const visitExists = (existing.visitHistory || []).some(visit => {
+                    const existingDate = new Date(visit.date);
+                    return existingDate.getFullYear() === newVisitDate.getFullYear() &&
+                           existingDate.getMonth() === newVisitDate.getMonth() &&
+                           existingDate.getDate() === newVisitDate.getDate();
+                });
+                if (!visitExists) {
+                    changes.push(`Adicionar visita em: ${format(newVisitDate, "PPP", { locale: ptBR })}`);
+                }
+              }
+
+              if (changes.length > 0) {
+                  toUpdate.push({ existing, newData: item, changes });
+              }
+          } else {
+              toCreate.push(item);
+          }
+      }
+
+      const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
+      const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
+      const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
+
+      if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
+          toast({
+              title: "Nenhuma alteração detectada",
+              description: "Os dados no arquivo são idênticos aos dados existentes.",
+          });
+          return;
+      }
+
+      setImportPreview({ toCreate, toUpdate, newGroups });
+      setIsImportConfirmOpen(true);
+
+    } catch (error) {
+      console.error("Error parsing CSV:", error);
+      toast({ variant: "destructive", title: "Erro ao ler arquivo", description: "Não foi possível processar o arquivo CSV. Verifique o formato." });
+    }
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -287,178 +459,45 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      try {
-        const rows = text.split('\n').map(row => row.trim()).filter(row => row);
-        if (rows.length < 2) {
-          toast({ variant: "destructive", title: "Arquivo CSV inválido", description: "O arquivo precisa ter um cabeçalho e pelo menos uma linha de dados." });
-          return;
-        }
-
-        const header = rows[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
-        const dataRows = rows.slice(1);
-        
-        const nameKeys = {
-          displayName: ['displayname', 'nome', 'nome completo'],
-          firstName: ['firstname'],
-          middleName: ['middlename'],
-          lastName: ['lastname'],
-          group: ['groupname', 'grupo'],
-          address: ['address', 'endereço'],
-          phoneMobile: ['phonemobile', 'telefone'],
-          phoneHome: ['phonehome'],
-          personId: ['personid'],
-          moved: ['moved', 'removed', 'removido'],
-          active: ['active'],
-          regular: ['regular'],
-          dateOfRemoved: ['dateofremoved'],
-          lastVisit: ['lastvisit', 'ultimavisita', 'datavisita', 'data da última visita'],
-        };
-        
-        const getIndex = (keys: string[]) => keys.map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
-
-        const displayNameIndex = getIndex(nameKeys.displayName);
-        const firstNameIndex = getIndex(nameKeys.firstName);
-        const middleNameIndex = getIndex(nameKeys.middleName);
-        const lastNameIndex = getIndex(nameKeys.lastName);
-        const groupIndex = getIndex(nameKeys.group);
-        const addressIndex = getIndex(nameKeys.address);
-        const phoneMobileIndex = getIndex(nameKeys.phoneMobile);
-        const phoneHomeIndex = getIndex(nameKeys.phoneHome);
-        const personIdIndex = getIndex(nameKeys.personId);
-        const movedIndex = getIndex(nameKeys.moved);
-        const activeIndex = getIndex(nameKeys.active);
-        const regularIndex = getIndex(nameKeys.regular);
-        const dateOfRemovedIndex = getIndex(nameKeys.dateOfRemoved);
-        const lastVisitIndex = getIndex(nameKeys.lastVisit);
-
-        if (displayNameIndex === -1 && (firstNameIndex === -1 || lastNameIndex === -1)) {
-            toast({ variant: "destructive", title: "Coluna de nome não encontrada", description: "O arquivo CSV precisa ter 'DisplayName' ou 'FirstName' e 'LastName'." });
-            return;
-        }
-
-        const importedResult: ImportedName[] = dataRows.map(row => {
-          const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
-          
-          let text = '';
-          const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
-
-          if (fullName.trim()) {
-            text = fullName.trim();
-          } else if (displayNameIndex !== -1 && values[displayNameIndex]) {
-            text = values[displayNameIndex];
-          }
-
-          let status: Name['status'];
-          const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
-
-          if (isMoved) {
-            status = 'removido';
-          } else {
-            const isActive = activeIndex !== -1 && values[activeIndex]?.toLowerCase() === 'true';
-            const isRegular = regularIndex !== -1 && values[regularIndex]?.toLowerCase() === 'true';
-
-            if (activeIndex !== -1 && !isActive) {
-              status = 'inativo';
-            } else if (regularIndex !== -1 && !isRegular) {
-              status = 'irregular';
-            } else {
-              status = 'regular';
-            }
-          }
-
-          const phone = (phoneMobileIndex !== -1 ? values[phoneMobileIndex] : '') || (phoneHomeIndex !== -1 ? values[phoneHomeIndex] : '');
-
-          const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
-          let importedVisitDate: string | undefined;
-          if (lastVisitValue) {
-            const parsedDate = new Date(lastVisitValue);
-            if (!isNaN(parsedDate.getTime())) {
-              importedVisitDate = parsedDate.toISOString();
-            }
-          }
-
-          return {
-            personId: personIdIndex !== -1 ? values[personIdIndex] : '',
-            text: text,
-            fieldGroup: groupIndex !== -1 ? values[groupIndex] : '',
-            address: addressIndex !== -1 ? values[addressIndex] : '',
-            phone: phone,
-            status: status,
-            importedVisitDate: importedVisitDate,
-          };
-        }).filter(item => item.text);
-
-        // Analyze changes for preview
-        const existingNamesMap = new Map<string, Name>();
-        names.forEach(name => {
-            if (name.personId) {
-                existingNamesMap.set(name.personId, name);
-            }
-        });
-
-        const toCreate: ImportedName[] = [];
-        const toUpdate: ImportUpdate[] = [];
-        const formatChange = (label: string, from: any, to: any) => {
-            const fromStr = from || 'vazio';
-            const toStr = to || 'vazio';
-            return `${label}: de "${fromStr}" para "${toStr}"`;
-        };
-
-        for (const item of importedResult) {
-            const existing = item.personId ? existingNamesMap.get(item.personId) : undefined;
-            if (existing) {
-                const changes: string[] = [];
-                if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
-                if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
-                if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
-                if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
-                if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
-                
-                if (item.importedVisitDate) {
-                  const newVisitDate = new Date(item.importedVisitDate);
-                  const visitExists = (existing.visitHistory || []).some(visit => {
-                      const existingDate = new Date(visit.date);
-                      return existingDate.getFullYear() === newVisitDate.getFullYear() &&
-                             existingDate.getMonth() === newVisitDate.getMonth() &&
-                             existingDate.getDate() === newVisitDate.getDate();
-                  });
-                  if (!visitExists) {
-                      changes.push(`Adicionar visita em: ${format(newVisitDate, "PPP", { locale: ptBR })}`);
-                  }
-                }
-
-                if (changes.length > 0) {
-                    toUpdate.push({ existing, newData: item, changes });
-                }
-            } else {
-                toCreate.push(item);
-            }
-        }
-
-        const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
-        const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
-        const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
-
-        if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
-            toast({
-                title: "Nenhuma alteração detectada",
-                description: "Os dados no arquivo CSV são idênticos aos dados existentes.",
-            });
-            return;
-        }
-
-        setImportPreview({ toCreate, toUpdate, newGroups });
-        setIsImportConfirmOpen(true);
-
-      } catch (error) {
-        console.error("Error parsing CSV:", error);
-        toast({ variant: "destructive", title: "Erro ao ler arquivo", description: "Não foi possível processar o arquivo CSV. Verifique o formato." });
-      }
+      processCsvText(text);
     };
     reader.readAsText(file);
     event.target.value = '';
   };
   
+  const handleImportFromUrl = async () => {
+    if (!importUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'URL é necessária',
+        description: 'Por favor, insira uma URL do Google Drive.',
+      });
+      return;
+    }
+    setIsImportingFromUrl(true);
+    try {
+      const result = await fetchCsvFromUrl(importUrl);
+      if (result.success && result.data) {
+        processCsvText(result.data);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao buscar da URL',
+          description: result.error || 'Ocorreu um erro desconhecido.',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to import from URL', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro na Sincronização',
+        description: 'Não foi possível importar da URL fornecida.',
+      });
+    } finally {
+      setIsImportingFromUrl(false);
+    }
+  };
+
   const handleConfirmImport = async () => {
     if (!dataOwnerId || !firestore || !importPreview) return;
     
@@ -607,7 +646,13 @@ export default function Home() {
              {isAdmin && mobileView === 'ajudantes' && (
               <div className="space-y-8 mt-4">
                  <HelpersCard ownerId={user.uid} helpers={helpers} />
-                 <ImportCard onImportClick={() => fileInputRef.current?.click()}/>
+                 <ImportCard
+                    onImportClick={() => fileInputRef.current?.click()}
+                    onImportFromUrl={handleImportFromUrl}
+                    isImportingFromUrl={isImportingFromUrl}
+                    importUrl={importUrl}
+                    setImportUrl={setImportUrl}
+                  />
               </div>
             )}
           </div>
@@ -648,7 +693,13 @@ export default function Home() {
               {isAdmin && (
                 <>
                   <HelpersCard ownerId={user.uid} helpers={helpers} />
-                  <ImportCard onImportClick={() => fileInputRef.current?.click()}/>
+                  <ImportCard
+                    onImportClick={() => fileInputRef.current?.click()}
+                    onImportFromUrl={handleImportFromUrl}
+                    isImportingFromUrl={isImportingFromUrl}
+                    importUrl={importUrl}
+                    setImportUrl={setImportUrl}
+                  />
                 </>
               )}
             </div>

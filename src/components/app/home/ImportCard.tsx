@@ -2,27 +2,69 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UploadCloud } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { UploadCloud, Link as LinkIcon, Loader2 } from 'lucide-react';
 
 interface ImportCardProps {
   onImportClick: () => void;
+  onImportFromUrl: () => void;
+  isImportingFromUrl: boolean;
+  importUrl: string;
+  setImportUrl: (url: string) => void;
 }
 
-export function ImportCard({ onImportClick }: ImportCardProps) {
+export function ImportCard({
+  onImportClick,
+  onImportFromUrl,
+  isImportingFromUrl,
+  importUrl,
+  setImportUrl,
+}: ImportCardProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UploadCloud className="h-5 w-5 text-primary" />
-          <span>Importar Dados</span>
+          <span>Importar / Sincronizar</span>
         </CardTitle>
-        <CardDescription>Importe novas pessoas ou atualize dados existentes a partir de um arquivo CSV.</CardDescription>
+        <CardDescription>Importe de um arquivo CSV ou sincronize a partir de um link público.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={onImportClick} className="w-full">
-          <UploadCloud className="mr-2 h-4 w-4" />
-          Importar CSV
-        </Button>
+        <div className="space-y-4">
+            <Button onClick={onImportClick} className="w-full">
+              <UploadCloud className="mr-2 h-4 w-4" />
+              Importar de Arquivo CSV
+            </Button>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Ou
+                  </span>
+                </div>
+            </div>
+            
+            <div className="space-y-2">
+                <Input
+                  placeholder="Cole o link do CSV aqui"
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  disabled={isImportingFromUrl}
+                  aria-label="Link para o arquivo CSV"
+                />
+                <Button onClick={onImportFromUrl} disabled={isImportingFromUrl || !importUrl} className="w-full">
+                  {isImportingFromUrl ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                  )}
+                  Sincronizar do Link
+                </Button>
+            </div>
+        </div>
       </CardContent>
     </Card>
   );
