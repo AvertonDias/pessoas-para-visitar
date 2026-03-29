@@ -79,6 +79,7 @@ type ImportPreview = {
     toCreate: ImportedName[];
     toUpdate: ImportUpdate[];
     newGroups: string[];
+    unmatchedNames: string[];
 } | null;
 
 export default function Home() {
@@ -165,6 +166,9 @@ export default function Home() {
   const [importPreview, setImportPreview] = useState<ImportPreview>(null);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
+  const [importMode, setImportMode] = useState<'full' | 'visits'>('full');
+  const [stagedVisitsUpdates, setStagedVisitsUpdates] = useState<ImportUpdate[]>([]);
+
 
   // Load filters from localStorage on initial client render
   useEffect(() => {
@@ -200,8 +204,8 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (dataOwnerProfile) {
-      setImportUrl(dataOwnerProfile.importUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRObA7TvycM_5m_bAsSgJ2v9K2IqP-bnQ2ORj5rT2I8g-42wS3er_s-3GvOQ1-wT2hNlC1L7GvWd3kF/pub?output=csv&gid=0&single=true');
+    if (dataOwnerProfile && dataOwnerProfile.importUrl) {
+      setImportUrl(dataOwnerProfile.importUrl);
     }
   }, [dataOwnerProfile]);
 
@@ -361,7 +365,147 @@ export default function Home() {
     }
   };
 
-  const processCsvText = (text: string) => {
+  const handleConfirmVisitsImport = async () => {
+    if (!dataOwnerId || !firestore || stagedVisitsUpdates.length === 0) return;
+    
+    try {
+        await services.batchUpdateVisits(firestore, dataOwnerId, stagedVisitsUpdates);
+        toast({
+            title: "Importação de visitas concluída!",
+            description: `${stagedVisitsUpdates.length} visitas foram adicionadas com sucesso.`,
+        });
+    } catch (error: any) {
+        console.error("Error during batch visits import:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro na importação de visitas",
+            description: error.message || "Ocorreu um erro inesperado ao salvar as visitas. Tente novamente.",
+        });
+    } finally {
+        setIsImportConfirmOpen(false);
+        setImportPreview(null);
+        setStagedVisitsUpdates([]);
+    }
+};
+
+  const processVisitsCsv = (text: string) => {
+    try {
+      const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+      if (rows.length < 2) {
+        toast({ variant: "destructive", title: "Arquivo CSV inválido", description: "O arquivo precisa ter um cabeçalho e pelo menos uma linha de dados." });
+        return;
+      }
+
+      const headerLine = rows[0].replace(/^\uFEFF/, '');
+      const separator = headerLine.includes(';') ? ';' : ',';
+      const header = headerLine.split(separator).map(h => h.trim().replace(/"/g, '').toLowerCase());
+
+      const nameIndex = ['nome', 'name'].map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
+      const dateIndex = ['data', 'date'].map(key => header.indexOf(key)).find(index => index !== -1) ?? -1;
+
+      if (nameIndex === -1 || dateIndex === -1) {
+          toast({ variant: "destructive", title: "Colunas não encontradas", description: "O arquivo CSV precisa ter as colunas 'nome' e 'data'." });
+          return;
+      }
+
+      const existingNamesByName = new Map<string, Name>();
+      names.forEach(name => {
+        existingNamesByName.set(normalizeName(name.text), name);
+      });
+
+      const updatesForService: ImportUpdate[] = [];
+      const unmatchedNames: string[] = [];
+
+      for (const row of rows.slice(1)) {
+        const values = row.split(separator).map(v => v.trim().replace(/"/g, ''));
+        const nameFromCsv = values[nameIndex];
+        const dateFromCsv = values[dateIndex];
+
+        if (!nameFromCsv || !dateFromCsv) continue;
+
+        const normalizedName = normalizeName(nameFromCsv);
+        const existing = existingNamesByName.get(normalizedName);
+
+        if (existing) {
+          const parts = dateFromCsv.split('/');
+          let parsedDate: Date;
+          if (parts.length === 3) {
+              const day = parseInt(parts[0], 10);
+              const month = parseInt(parts[1], 10) - 1;
+              let year = parseInt(parts[2], 10);
+              if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                  if (year < 100) year += 2000;
+                  parsedDate = new Date(Date.UTC(year, month, day, 12));
+              } else {
+                  parsedDate = new Date(dateFromCsv);
+              }
+          } else {
+              parsedDate = new Date(dateFromCsv);
+          }
+
+          if (!isNaN(parsedDate.getTime())) {
+            const newVisitDateStr = parsedDate.toISOString();
+            
+            const visitExists = (existing.visitHistory || []).some(visit => {
+                const existingDate = new Date(visit.date);
+                return existingDate.getUTCFullYear() === parsedDate.getUTCFullYear() &&
+                        existingDate.getUTCMonth() === parsedDate.getUTCMonth() &&
+                        existingDate.getUTCDate() === parsedDate.getUTCDate();
+            });
+
+            if (!visitExists) {
+                updatesForService.push({
+                    existing,
+                    newData: { importedVisitDate: newVisitDateStr },
+                    changes: [`Adicionar visita em: ${format(parsedDate, "PPP", { locale: ptBR })}`]
+                });
+            }
+          }
+        } else {
+          unmatchedNames.push(nameFromCsv);
+        }
+      }
+
+      const groupedUpdatesForDialog: ImportUpdate[] = [];
+      const updatesByPersonId = new Map<string, {existing: Name; changes: string[]}>();
+      updatesForService.forEach(update => {
+          if (!updatesByPersonId.has(update.existing.id)) {
+              updatesByPersonId.set(update.existing.id, { existing: update.existing, changes: [] });
+          }
+          updatesByPersonId.get(update.existing.id)!.changes.push(...update.changes);
+      });
+
+      updatesByPersonId.forEach((value) => {
+          groupedUpdatesForDialog.push({
+              existing: value.existing,
+              newData: { },
+              changes: value.changes
+          });
+      });
+
+      if (updatesForService.length === 0) {
+          toast({
+              title: "Nenhuma nova visita encontrada",
+              description: unmatchedNames.length > 0 
+                ? `Nomes não encontrados: ${unmatchedNames.join(', ')}`
+                : "Nenhuma visita nova para importar.",
+          });
+          return;
+      }
+      
+      setStagedVisitsUpdates(updatesForService);
+      
+      const previewData: ImportPreview = { toCreate: [], toUpdate: groupedUpdatesForDialog, newGroups: [], unmatchedNames };
+      setImportPreview(previewData);
+      setIsImportConfirmOpen(true);
+
+    } catch (error) {
+      console.error("Error parsing visits CSV:", error);
+      toast({ variant: "destructive", title: "Erro ao ler arquivo de visitas", description: "Não foi possível processar o arquivo CSV. Verifique o formato." });
+    }
+  };
+
+  const processFullCsv = (text: string) => {
     try {
       const rows = text.split('\n').map(row => row.trim()).filter(row => row);
       if (rows.length < 2) {
@@ -383,8 +527,8 @@ export default function Home() {
         phoneMobile: ['phonemobile', 'telefone celular'],
         phoneHome: ['phonehome', 'telefone residencial'],
         personId: ['personid'],
-        removed: ['removed'], // Prioritize this column
-        moved: ['moved', 'mudou-se'], // Fallback column
+        removed: ['removed'],
+        moved: ['moved', 'mudou-se'],
         active: ['active', 'ativo'],
         regular: ['regular'],
         lastVisit: ['lastvisit', 'última visita'],
@@ -433,17 +577,12 @@ export default function Home() {
         if (phone) item.phone = phone;
 
         let isConsideredRemoved = false;
-        // Prioritize 'Removed' column (Col 41) as per user's latest instruction
-        if (removedIndex !== -1) {
-            const removedValue = values[removedIndex]?.toLowerCase();
+        
+        const removedColIndex = removedIndex !== -1 ? removedIndex : movedIndex;
+
+        if (removedColIndex !== -1) {
+            const removedValue = values[removedColIndex]?.toLowerCase();
             if (removedValue === 'true' || removedValue === 'verdadeiro') {
-                isConsideredRemoved = true;
-            }
-        } 
-        // Fallback to 'Moved' if 'Removed' column doesn't exist, as per previous instructions
-        else if (movedIndex !== -1) {
-            const movedValue = values[movedIndex]?.toLowerCase();
-            if (movedValue === 'true' || movedValue === 'verdadeiro') {
                 isConsideredRemoved = true;
             }
         }
@@ -459,10 +598,7 @@ export default function Home() {
             } else if (regularValue === 'false' || regularValue === 'falso') {
                 item.status = 'irregular';
             } else {
-                const hasAnyStatusColumn = removedIndex !== -1 || movedIndex !== -1 || activeIndex !== -1 || regularIndex !== -1;
-                if (hasAnyStatusColumn) {
-                    item.status = 'regular';
-                }
+                 item.status = 'regular';
             }
         }
 
@@ -577,7 +713,7 @@ export default function Home() {
           return;
       }
       
-      const previewData = { toCreate, toUpdate, newGroups };
+      const previewData: ImportPreview = { toCreate, toUpdate, newGroups, unmatchedNames: [] };
       setImportPreview(previewData);
       setIsImportConfirmOpen(true);
 
@@ -587,14 +723,19 @@ export default function Home() {
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, mode: 'full' | 'visits') => {
+    setImportMode(mode);
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      processCsvText(text);
+      if (mode === 'visits') {
+        processVisitsCsv(text);
+      } else {
+        processFullCsv(text);
+      }
     };
     reader.readAsText(file);
     event.target.value = '';
@@ -612,6 +753,8 @@ export default function Home() {
     }
     if (!dataOwnerId || !firestore) return;
     setIsImportingFromUrl(true);
+    setImportMode('full');
+
     try {
       if (isAdmin && dataOwnerProfile && importUrl !== dataOwnerProfile.importUrl) {
         await services.updateUserProfile(firestore, dataOwnerId, { importUrl });
@@ -622,7 +765,7 @@ export default function Home() {
       }
       const result = await fetchCsvFromUrl(importUrl);
       if (result.success && result.data) {
-        processCsvText(result.data);
+        processFullCsv(result.data);
       } else {
         toast({
           variant: 'destructive',
@@ -643,12 +786,12 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (isAdmin && dataOwnerProfile && importUrl && !autoSyncAttempted.current && names.length > 0) {
+    if (isAdmin && dataOwnerProfile?.importUrl && !autoSyncAttempted.current && names.length > 0) {
       autoSyncAttempted.current = true;
       handleImportFromUrl();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, dataOwnerProfile, importUrl, names.length > 0]);
+  }, [isAdmin, dataOwnerProfile, names.length]);
 
   const filteredNames = useMemo(() => {
     const filtered = names.filter(name => {
@@ -831,14 +974,14 @@ export default function Home() {
       <input
         type="file"
         ref={fileInputRef}
-        onChange={(e) => handleFileChange(e)}
+        onChange={(e) => handleFileChange(e, 'full')}
         className="hidden"
         accept=".csv"
       />
       <input
         type="file"
         ref={visitsFileInputRef}
-        onChange={(e) => handleFileChange(e)}
+        onChange={(e) => handleFileChange(e, 'visits')}
         className="hidden"
         accept=".csv"
       />
@@ -908,7 +1051,7 @@ export default function Home() {
         isOpen={isImportConfirmOpen}
         onOpenChange={setIsImportConfirmOpen}
         preview={importPreview}
-        onConfirm={() => handleConfirmImport(importPreview)}
+        onConfirm={importMode === 'full' ? () => handleConfirmImport(importPreview) : handleConfirmVisitsImport}
       />
       <InstallPwaBanner />
     </div>

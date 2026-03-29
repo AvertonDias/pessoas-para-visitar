@@ -79,8 +79,8 @@ export function ImportConfirmationDialog({
                     Nomes a Serem Atualizados ({preview.toUpdate.length})
                     </h4>
                     <div className="space-y-2 mt-2 rounded-md border p-3">
-                    {preview.toUpdate.map(({ existing, changes }) => (
-                        <div key={existing.id} className="text-sm">
+                    {preview.toUpdate.map(({ existing, changes }, index) => (
+                        <div key={existing.id + index} className="text-sm">
                         <p className="font-medium">{existing.text}</p>
                         <ul className="list-disc pl-5 mt-1 space-y-0.5 text-muted-foreground">
                             {changes.map((change, i) => <li key={i}>{change}</li>)}
@@ -131,6 +131,20 @@ export function ImportConfirmationDialog({
                             ))}
                             </TableBody>
                         </Table>
+                    </div>
+                </div>
+                )}
+
+                {preview.unmatchedNames.length > 0 && (
+                <div>
+                    <h4 className="text-base font-semibold text-destructive">
+                    Nomes não encontrados ({preview.unmatchedNames.length})
+                    </h4>
+                    <p className="text-sm text-muted-foreground">Estas visitas não serão importadas, pois os nomes não correspondem a ninguém na sua lista.</p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                    {preview.unmatchedNames.map((name, index) => (
+                        <Badge key={index} variant="outline" className="text-destructive border-destructive/50">{name}</Badge>
+                    ))}
                     </div>
                 </div>
                 )}
