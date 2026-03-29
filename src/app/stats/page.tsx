@@ -6,10 +6,18 @@ import { collection, query, doc } from 'firebase/firestore';
 import type { Name, UserProfile } from '@/app/page';
 import { Header } from '@/components/app/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, ArrowLeft } from 'lucide-react';
+import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, ArrowLeft, FilePdf } from 'lucide-react';
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+declare module 'jspdf' {
+    interface jsPDF {
+        autoTable: (options: any) => jsPDF;
+    }
+}
 
 export default function StatsPage() {
   const { user, loading: userLoading } = useUser();
@@ -110,6 +118,57 @@ export default function StatsPage() {
 
   const isLoading = userLoading || profileLoading || namesLoading;
 
+  const generateStatsPdf = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Title
+    doc.setFontSize(22);
+    doc.text("Relatório de Estatísticas", pageWidth / 2, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 28, { align: 'center' });
+
+    // Summary section
+    doc.setFontSize(16);
+    doc.setTextColor(40);
+    doc.text("Resumo Geral", 14, 45);
+    (doc as any).autoTable({
+        startY: 50,
+        head: [['Categoria', 'Total']],
+        body: [
+            ['Total de Nomes', names.length],
+            ['Regulares', stats.statusCounts.regular],
+            ['Irregulares', stats.statusCounts.irregular],
+            ['Inativos', stats.statusCounts.inativo],
+            ['Removidos', stats.statusCounts.removido],
+            ['Nunca Visitados', stats.neverVisited],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [34, 99, 219] },
+    });
+
+    // Visit activity section
+    let finalY = (doc as any).lastAutoTable.finalY || 10;
+    doc.setFontSize(16);
+    doc.setTextColor(40);
+    doc.text("Atividade de Visitas", 14, finalY + 15);
+    (doc as any).autoTable({
+        startY: finalY + 20,
+        head: [['Período', 'Total de Visitas']],
+        body: [
+            ['Este Mês', stats.visitCounts.thisMonth],
+            ['Mês Passado', stats.visitCounts.lastMonth],
+            ['Últimos 6 Meses', stats.visitCounts.last6Months],
+            ['Últimos 12 Meses', stats.visitCounts.last12Months],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [34, 99, 219] },
+    });
+    
+    doc.save(`estatisticas-lista-nomes-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-background items-center justify-center">
@@ -122,17 +181,23 @@ export default function StatsPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <h1 className="text-3xl font-bold flex items-center gap-3">
                 <BarChart className="h-8 w-8 text-primary" />
                 Estatísticas
             </h1>
-            <Button asChild variant="outline">
-                <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar para a Lista
-                </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button onClick={generateStatsPdf}>
+                    <FilePdf className="mr-2 h-4 w-4" />
+                    Gerar PDF
+                </Button>
+                <Button asChild variant="outline">
+                    <Link href="/">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Voltar para a Lista
+                    </Link>
+                </Button>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

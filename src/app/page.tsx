@@ -26,6 +26,14 @@ import * as services from '@/lib/firebase-services';
 import { getMostRecentVisitDate } from '@/lib/status-logic';
 import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
 import { fetchCsvFromUrl } from '@/app/actions';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+declare module 'jspdf' {
+    interface jsPDF {
+        autoTable: (options: any) => jsPDF;
+    }
+}
 
 export type Visit = {
   id: string;
@@ -169,6 +177,10 @@ export default function Home() {
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
   const [importMode, setImportMode] = useState<'full' | 'visits'>('full');
   const [stagedVisitsUpdates, setStagedVisitsUpdates] = useState<ImportUpdate[]>([]);
+
+  // State for PDF dialog
+  const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
+  const [pdfSortBy, setPdfSortBy] = useState('visit-desc');
 
 
   // Load filters from localStorage on initial client render
@@ -764,7 +776,7 @@ export default function Home() {
     setImportMode('full');
 
     try {
-      if (isAdmin && !urlToUse && finalUrl !== dataOwnerProfile?.importUrl) {
+      if (isAdmin && finalUrl !== (dataOwnerProfile?.importUrl || '')) {
         await services.updateUserProfile(firestore, dataOwnerId, { importUrl: finalUrl });
         toast({
           title: "URL de sincronização salva",
@@ -848,6 +860,86 @@ export default function Home() {
     }
   }, [userLoading, user, router]);
 
+  const handleOpenPdfDialog = () => {
+    setIsPdfDialogOpen(true);
+  }
+
+  const generateNamesPdf = () => {
+    if (!names || names.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Lista Vazia',
+        description: 'Não há nomes para gerar o PDF.',
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    const groupMap = new Map(fieldGroups.map(g => [g.id, g.name]));
+
+    const sortedNames = [...names].sort((a, b) => {
+      if (pdfSortBy === 'name-asc') {
+        return a.text.localeCompare(b.text);
+      }
+      const dateA = getMostRecentVisitDate(a.visitHistory).getTime();
+      const dateB = getMostRecentVisitDate(b.visitHistory).getTime();
+      
+      if (pdfSortBy === 'visit-asc') {
+        return dateA - dateB;
+      }
+      // 'visit-desc'
+      return dateB - dateA;
+    });
+
+    const body = sortedNames.map(name => {
+      const mostRecentVisit = getMostRecentVisitDate(name.visitHistory);
+      const visitDate = mostRecentVisit.getTime() === 0
+        ? 'Nunca'
+        : format(mostRecentVisit, "dd/MM/yyyy", { locale: ptBR });
+
+      return [
+        name.text,
+        groupMap.get(name.fieldGroup) || 'Sem grupo',
+        name.status,
+        visitDate
+      ];
+    });
+
+    const title = `Relatório da Lista de Nomes`;
+    const subtitle = `Total de ${names.length} nomes. Ordenado por: ${
+      {
+        'visit-desc': 'Última Visita (Recentes)',
+        'visit-asc': 'Última Visita (Antigos)',
+        'name-asc': 'Nome (A-Z)'
+      }[pdfSortBy]
+    }`;
+
+    doc.setFontSize(22);
+    doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(subtitle, doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+
+    (doc as any).autoTable({
+      head: [['Nome', 'Grupo', 'Status', 'Última Visita']],
+      body: body,
+      startY: 35,
+      theme: 'grid',
+      headStyles: { fillColor: [34, 99, 219] },
+      didDrawPage: function (data: any) {
+        // Footer
+        const pageCount = doc.internal.pages.length;
+        doc.setFontSize(10);
+        const pageSize = doc.internal.pageSize;
+        const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+        doc.text("Página " + String(pageCount), data.settings.margin.left, pageHeight - 10);
+      }
+    });
+
+    doc.save(`lista-nomes-${new Date().toISOString().split('T')[0]}.pdf`);
+    setIsPdfDialogOpen(false);
+  };
+
 
   if (isLoading || !isClient) {
       return (
@@ -877,6 +969,7 @@ export default function Home() {
                   onAddNameClick={handleOpenAddDialog}
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
+                  onGeneratePdfClick={handleOpenPdfDialog}
                 />
                 <NameListCard
                   names={names}
@@ -930,6 +1023,7 @@ export default function Home() {
                 onAddNameClick={handleOpenAddDialog}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
+                onGeneratePdfClick={handleOpenPdfDialog}
               />
               <NameListCard
                 names={names}
@@ -1057,6 +1151,39 @@ export default function Home() {
         preview={importPreview}
         onConfirm={importMode === 'full' ? () => handleConfirmImport(importPreview) : handleConfirmVisitsImport}
       />
+
+       <Dialog open={isPdfDialogOpen} onOpenChange={setIsPdfDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+            <DialogTitle>Gerar Relatório PDF da Lista</DialogTitle>
+            <DialogDescription>
+                Escolha como a lista de nomes deve ser ordenada no arquivo PDF.
+            </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pdf-sort-by" className="text-right">
+                Ordenar por
+                </Label>
+                <Select value={pdfSortBy} onValueChange={(value) => setPdfSortBy(value)}>
+                <SelectTrigger id="pdf-sort-by" className="col-span-3">
+                    <SelectValue placeholder="Ordenar por..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
+                    <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
+                    <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
+                </SelectContent>
+                </Select>
+            </div>
+            </div>
+            <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPdfDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={generateNamesPdf}>Gerar PDF</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <InstallPwaBanner />
     </div>
   );
