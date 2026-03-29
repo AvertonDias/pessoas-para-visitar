@@ -19,7 +19,7 @@ function RegisterForm() {
   const auth = getAuth(app);
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading } = useUser();
+  const { user, isUserLoading } = useUser();
   
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite');
@@ -117,7 +117,7 @@ function RegisterForm() {
     }
   }, [user, router]);
   
-  if (loading || user) {
+  if (isUserLoading || user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <p className="text-lg text-muted-foreground">Carregando...</p>

@@ -57,7 +57,7 @@ const entityTypeIcons: { [key in AuditLog['entityType']]: React.ElementType } = 
 
 
 export default function HistoryPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, isUserLoading: userLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -65,7 +65,7 @@ export default function HistoryPage() {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const dataOwnerId = useMemo(() => {
     if (!user) return null;
@@ -81,7 +81,7 @@ export default function HistoryPage() {
     if (!dataOwnerId || !firestore) return null;
     return query(collection(firestore, 'users', dataOwnerId, 'auditLogs'), orderBy('timestamp', 'desc'));
   }, [dataOwnerId, firestore]);
-  const { data: logs, loading: logsLoading } = useCollection<AuditLog>(auditLogsQuery);
+  const { data: logs, isLoading: logsLoading } = useCollection<AuditLog>(auditLogsQuery);
 
   const isLoading = userLoading || profileLoading || logsLoading;
   

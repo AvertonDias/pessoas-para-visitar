@@ -36,7 +36,7 @@ declare module 'jspdf' {
 
 export default function Home() {
   const { toast } = useToast();
-  const { user, loading: userLoading } = useUser();
+  const { user, isUserLoading: userLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   
@@ -55,7 +55,7 @@ export default function Home() {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const dataOwnerId = useMemo(() => {
     if (!user) return null;
@@ -80,7 +80,7 @@ export default function Home() {
     if (!firestore || !dataOwnerId || !user || dataOwnerId === user.uid) return null;
     return doc(firestore, 'users', dataOwnerId);
   }, [firestore, dataOwnerId, user]);
-  const { data: adminProfile, loading: adminProfileLoading } = useDoc<UserProfile>(adminProfileRef);
+  const { data: adminProfile, isLoading: adminProfileLoading } = useDoc<UserProfile>(adminProfileRef);
   
   const isAdmin = userProfile?.role !== 'helper';
   const dataOwnerProfile = isAdmin ? userProfile : adminProfile;
@@ -90,21 +90,21 @@ export default function Home() {
     if (!dataOwnerId || !firestore) return null;
     return query(collection(firestore, 'users', dataOwnerId, 'names'));
   }, [dataOwnerId, firestore]);
-  const { data: namesData, loading: namesLoading } = useCollection<Name>(namesQuery);
+  const { data: namesData, isLoading: namesLoading } = useCollection<Name>(namesQuery);
   const names = namesData || [];
 
   const groupsQuery = useMemoFirebase(() => {
     if (!dataOwnerId || !firestore) return null;
     return query(collection(firestore, 'users', dataOwnerId, 'fieldGroups'));
   }, [dataOwnerId, firestore]);
-  const { data: fieldGroupsData, loading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
+  const { data: fieldGroupsData, isLoading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   const fieldGroups = fieldGroupsData || [];
 
   const helpersQuery = useMemoFirebase(() => {
     if (!user || !firestore || userProfile?.role === 'helper') return null;
     return query(collection(firestore, 'users'), where('adminId', '==', user.uid));
   }, [user, firestore, userProfile]);
-  const { data: helpersData, loading: helpersLoading } = useCollection<Helper>(helpersQuery);
+  const { data: helpersData, isLoading: helpersLoading } = useCollection<Helper>(helpersQuery);
   const helpers = helpersData || [];
 
   const groupCounts = useMemo(() => {

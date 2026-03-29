@@ -19,14 +19,14 @@ declare module 'jspdf' {
 }
 
 export default function StatsPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, isUserLoading: userLoading } = useUser();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const dataOwnerId = useMemo(() => {
     if (!user) return null;
@@ -40,7 +40,7 @@ export default function StatsPage() {
     if (!dataOwnerId || !firestore) return null;
     return query(collection(firestore, 'users', dataOwnerId, 'names'));
   }, [dataOwnerId, firestore]);
-  const { data: namesData, loading: namesLoading } = useCollection<Name>(namesQuery);
+  const { data: namesData, isLoading: namesLoading } = useCollection<Name>(namesQuery);
   const names = namesData || [];
 
   const stats = useMemo(() => {

@@ -17,7 +17,7 @@ export default function LoginPage() {
   const auth = getAuth(app);
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,7 +74,7 @@ export default function LoginPage() {
   }, [user, router]);
 
 
-  if (loading || user) {
+  if (isUserLoading || user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <p className="text-lg text-muted-foreground">Carregando...</p>
