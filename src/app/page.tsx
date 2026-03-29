@@ -332,7 +332,7 @@ export default function Home() {
           return;
       }
 
-      const importedResult: ImportedName[] = dataRows.map(row => {
+      const importedResult: ImportedName[] = rows.slice(1).map(row => {
         const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
         
         let text = '';
