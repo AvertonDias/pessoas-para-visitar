@@ -298,8 +298,10 @@ export default function Home() {
         toast({ variant: "destructive", title: "Arquivo CSV inválido", description: "O arquivo precisa ter um cabeçalho e pelo menos uma linha de dados." });
         return;
       }
-
-      const header = rows[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+      
+      const headerLine = rows[0].replace(/^\uFEFF/, '');
+      const separator = headerLine.includes(';') ? ';' : ',';
+      const header = headerLine.split(separator).map(h => h.trim().replace(/"/g, '').toLowerCase());
       
       const nameKeys = {
         displayName: ['displayname', 'nome', 'nome completo', 'name'],
@@ -339,7 +341,7 @@ export default function Home() {
       }
 
       const importedResult: ImportedName[] = rows.slice(1).map(row => {
-        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+        const values = row.split(separator).map(v => v.trim().replace(/"/g, ''));
         
         let text = '';
         const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
@@ -436,7 +438,7 @@ export default function Home() {
           if (existing) {
               const changes: string[] = [];
               
-              if (existing.status === 'removido' && (item.status === 'inativo' || item.status === 'irregular')) {
+              if (existing.status === 'removido' && item.status !== 'regular' && item.status !== 'irregular') {
                 item.status = 'removido';
               }
 
