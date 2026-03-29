@@ -299,10 +299,10 @@ export default function Home() {
         return;
       }
 
-      const header = rows[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+      const header = rows[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
       
       const nameKeys = {
-        displayName: ['displayname', 'nome', 'nome completo'],
+        displayName: ['displayname', 'nome', 'nome completo', 'name'],
         firstName: ['firstname'],
         middleName: ['middlename'],
         lastName: ['lastname'],
@@ -436,7 +436,7 @@ export default function Home() {
           if (existing) {
               const changes: string[] = [];
               
-              if (existing.status === 'removido' && item.status === 'inativo') {
+              if (existing.status === 'removido' && (item.status === 'inativo' || item.status === 'irregular')) {
                 item.status = 'removido';
               }
 
