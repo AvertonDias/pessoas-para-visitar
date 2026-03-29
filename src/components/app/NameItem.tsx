@@ -46,6 +46,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { calculateStatusFromHistory } from '@/lib/status-logic';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface NameItemProps {
   name: Name;
@@ -170,156 +175,165 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
 
   return (
     <>
-      <div className="flex items-center gap-2 p-3 rounded-md bg-card border hover:bg-secondary/50 transition-colors duration-200">
-          <div className="flex-grow">
-            <p className="font-medium text-foreground">{name.text}</p>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-              <CalendarIcon className="h-3 w-3" />
-              {mostRecentVisit ? (
-                  <span>{format(new Date(mostRecentVisit.date), "PPP", { locale: ptBR })}</span>
-              ) : (
-                  <span>Nenhuma visita</span>
-              )}
-            </div>
-          </div>
-          
-          {name.fieldGroup && <Badge variant="outline" className="hidden sm:inline-flex">{name.fieldGroup}</Badge>}
-          <Badge variant={getStatusVariant(name.status)} className="capitalize">{name.status}</Badge>
-          
-          <Dialog open={isEditDialogOpen} onOpenChange={onOpenChange}>
-              <DialogTrigger asChild>
-                  <Button size="icon" variant="ghost" aria-label={`Editar ${name.text}`}>
-                      <Pencil className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                      <DialogTitle>Editar Detalhes</DialogTitle>
-                      <DialogDescription>
-                          Atualize as informações de "{name.text}".
-                      </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="name-edit" className="text-right">Nome</Label>
-                          <Input id="name-edit" value={editText} onChange={(e) => setEditText(e.target.value)} className="col-span-3" />
-                      </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="address-edit" className="text-right">Endereço</Label>
-                          <Input id="address-edit" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="col-span-3" />
-                      </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="phone-edit" className="text-right">Telefone</Label>
-                          <Input id="phone-edit" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="col-span-3" />
-                      </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
-                          <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value === '---' ? '' : value)}>
-                              <SelectTrigger id="fieldgroup-edit" className="col-span-3">
-                                  <SelectValue placeholder="Não designado" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="---">Não designado</SelectItem>
-                                  {fieldGroups.map((group) => (
-                                      <SelectItem key={group} value={group}>{group}</SelectItem>
-                                  ))}
-                              </SelectContent>
-                          </Select>
-                      </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="status-edit" className="text-right">Status</Label>
-                           <Select value={editStatus} onValueChange={(value: Name['status']) => setEditStatus(value)}>
-                              <SelectTrigger id="status-edit" className="col-span-3">
-                                  <SelectValue placeholder="Selecione o status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="regular">Regular</SelectItem>
-                                  <SelectItem value="irregular">Irregular</SelectItem>
-                                  <SelectItem value="inativo">Inativo</SelectItem>
-                                  <SelectItem value="removido">Removido</SelectItem>
-                              </SelectContent>
-                          </Select>
-                      </div>
-                      <Separator />
-                      <div className="space-y-2">
-                          <Label>Histórico de Visitas</Label>
-                          <div className="max-h-32 overflow-y-auto space-y-1 pr-2 rounded-md border p-2">
-                            {(name.visitHistory || []).slice().reverse().map((visit) => {
-                                return (
-                                    <div key={visit.id} className="text-sm text-muted-foreground flex items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <CalendarIcon className="h-4 w-4" />
-                                            <span className="truncate">
-                                                {format(new Date(visit.date), "PPP", { locale: ptBR })}
-                                                {visit.visitors && <span className="text-foreground/80"> - {visit.visitors}</span>}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditVisitDialog(visit as Visit)} aria-label="Editar visita">
-                                                <Pencil className="h-3 w-3" />
-                                            </Button>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Remover visita">
-                                                        <Trash2 className="h-3 w-3 text-destructive/70" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Tem certeza que deseja excluir esta visita? Esta ação não pode ser desfeita.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteVisit(visit.id)}>Excluir</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {(name.visitHistory || []).length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-2">Nenhuma visita registrada.</p>
-                            )}
-                            </div>
-                          <Button variant="outline" size="sm" onClick={handleOpenAddVisitDialog}>
-                              <History className="h-4 w-4 mr-2"/>
-                              Adicionar Visita
-                          </Button>
-                      </div>
-                  </div>
-                  <DialogFooter>
-                      <DialogClose asChild>
-                          <Button variant="outline">Cancelar</Button>
-                      </DialogClose>
-                      <Button onClick={handleUpdate}>Salvar</Button>
-                  </DialogFooter>
-              </DialogContent>
-          </Dialog>
+      <Collapsible className="rounded-md bg-card border data-[state=open]:bg-secondary/20 transition-colors duration-200">
+          <div className="flex items-center gap-2 p-3">
+            <CollapsibleTrigger className="flex-grow text-left">
+              <p className="font-medium text-foreground">{name.text}</p>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                <CalendarIcon className="h-3 w-3" />
+                {mostRecentVisit ? (
+                    <span>{format(new Date(mostRecentVisit.date), "PPP", { locale: ptBR })}</span>
+                ) : (
+                    <span>Nenhuma visita</span>
+                )}
+              </div>
+            </CollapsibleTrigger>
+            
+            {name.fieldGroup && <Badge variant="outline" className="hidden sm:inline-flex">{name.fieldGroup}</Badge>}
+            <Badge variant={getStatusVariant(name.status)} className="capitalize">{name.status}</Badge>
+            
+            <Dialog open={isEditDialogOpen} onOpenChange={onOpenChange}>
+                <DialogTrigger asChild>
+                    <Button size="icon" variant="ghost" aria-label={`Editar ${name.text}`}>
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Editar Detalhes</DialogTitle>
+                        <DialogDescription>
+                            Atualize as informações de "{name.text}".
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name-edit" className="text-right">Nome</Label>
+                            <Input id="name-edit" value={editText} onChange={(e) => setEditText(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="address-edit" className="text-right">Endereço</Label>
+                            <Input id="address-edit" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="phone-edit" className="text-right">Telefone</Label>
+                            <Input id="phone-edit" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
+                            <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value === '---' ? '' : value)}>
+                                <SelectTrigger id="fieldgroup-edit" className="col-span-3">
+                                    <SelectValue placeholder="Não designado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="---">Não designado</SelectItem>
+                                    {fieldGroups.map((group) => (
+                                        <SelectItem key={group} value={group}>{group}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="status-edit" className="text-right">Status</Label>
+                             <Select value={editStatus} onValueChange={(value: Name['status']) => setEditStatus(value)}>
+                                <SelectTrigger id="status-edit" className="col-span-3">
+                                    <SelectValue placeholder="Selecione o status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="regular">Regular</SelectItem>
+                                    <SelectItem value="irregular">Irregular</SelectItem>
+                                    <SelectItem value="inativo">Inativo</SelectItem>
+                                    <SelectItem value="removido">Removido</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogClose>
+                        <Button onClick={handleUpdate}>Salvar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-          <AlertDialog>
-              <AlertDialogTrigger asChild>
-                  <Button size="icon" variant="ghost" aria-label={`Remover ${name.text}`}>
-                      <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-                  </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar para excluir</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Essa ação não pode ser desfeita. Isso excluirá permanentemente o nome "{name.text}" da sua lista.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteName(name.id)}>Excluir</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-      </div>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button size="icon" variant="ghost" aria-label={`Remover ${name.text}`}>
+                        <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar para excluir</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Essa ação não pode ser desfeita. Isso excluirá permanentemente o nome "{name.text}" da sua lista.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteName(name.id)}>Excluir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+          </div>
+          <CollapsibleContent>
+            <div className="p-3 pt-0">
+                <Separator className="mb-3"/>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-sm font-semibold">Histórico de Visitas</h4>
+                        <Button variant="outline" size="sm" onClick={handleOpenAddVisitDialog}>
+                            <History className="h-4 w-4 mr-2"/>
+                            Adicionar Visita
+                        </Button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-1 pr-2 rounded-md">
+                      {(name.visitHistory || []).length > 0 ? (
+                        (name.visitHistory || []).slice().reverse().map((visit) => {
+                            return (
+                                <div key={visit.id} className="text-sm text-muted-foreground flex items-center justify-between gap-2 p-2 bg-secondary/50 rounded-md">
+                                    <div className="flex items-center gap-2">
+                                        <CalendarIcon className="h-4 w-4" />
+                                        <span className="truncate">
+                                            {format(new Date(visit.date), "PPP", { locale: ptBR })}
+                                            {visit.visitors && <span className="text-foreground/80"> - {visit.visitors}</span>}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditVisitDialog(visit as Visit)} aria-label="Editar visita">
+                                            <Pencil className="h-3 w-3" />
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Remover visita">
+                                                    <Trash2 className="h-3 w-3 text-destructive/70" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Tem certeza que deseja excluir esta visita? Esta ação não pode ser desfeita.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteVisit(visit.id)}>Excluir</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                </div>
+                            );
+                        })
+                      ) : (
+                          <p className="text-sm text-muted-foreground text-center py-2">Nenhuma visita registrada.</p>
+                      )}
+                    </div>
+                </div>
+            </div>
+          </CollapsibleContent>
+      </Collapsible>
 
       <Dialog open={isVisitDialogOpen} onOpenChange={setIsVisitDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">
