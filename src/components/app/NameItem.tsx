@@ -165,104 +165,106 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 p-3">
             <CollapsibleTrigger className="flex-grow text-left">
               <p className="font-medium text-foreground">{name.text}</p>
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-                <div className="flex items-center gap-1.5">
-                  <CalendarIcon className="h-3 w-3" />
-                  {mostRecentVisit ? (
-                    <span>{format(new Date(mostRecentVisit.date), "PPP", { locale: ptBR })}</span>
-                  ) : (
-                    <span>Nenhuma visita</span>
-                  )}
-                </div>
-                {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
-                <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                <CalendarIcon className="h-3 w-3" />
+                {mostRecentVisit ? (
+                  <span>{format(new Date(mostRecentVisit.date), "PPP", { locale: ptBR })}</span>
+                ) : (
+                  <span>Nenhuma visita</span>
+                )}
               </div>
             </CollapsibleTrigger>
             
-            <div className="flex flex-shrink-0 self-end sm:self-auto pt-2 sm:pt-0">
-                <Dialog open={isEditDialogOpen} onOpenChange={onOpenChange}>
-                    <DialogTrigger asChild>
-                        <Button size="icon" variant="ghost" aria-label={`Editar ${name.text}`}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Editar Detalhes</DialogTitle>
-                            <DialogDescription>
-                                Atualize as informações de "{name.text}".
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="name-edit" className="text-right">Nome</Label>
-                                <Input id="name-edit" value={editText} onChange={(e) => setEditText(e.target.value)} className="col-span-3" />
+            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-2">
+                <div className="flex items-center gap-2">
+                    {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
+                    <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
+                </div>
+                <div className="flex flex-shrink-0">
+                    <Dialog open={isEditDialogOpen} onOpenChange={onOpenChange}>
+                        <DialogTrigger asChild>
+                            <Button size="icon" variant="ghost" aria-label={`Editar ${name.text}`}>
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Editar Detalhes</DialogTitle>
+                                <DialogDescription>
+                                    Atualize as informações de "{name.text}".
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="name-edit" className="text-right">Nome</Label>
+                                    <Input id="name-edit" value={editText} onChange={(e) => setEditText(e.target.value)} className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="address-edit" className="text-right">Endereço</Label>
+                                    <Input id="address-edit" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="phone-edit" className="text-right">Telefone</Label>
+                                    <Input id="phone-edit" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
+                                    <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value === '---' ? '' : value)}>
+                                        <SelectTrigger id="fieldgroup-edit" className="col-span-3">
+                                            <SelectValue placeholder="Não designado" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="---">Não designado</SelectItem>
+                                            {fieldGroups.map((group) => (
+                                                <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="status-edit" className="text-right">Status</Label>
+                                    <Select value={editStatus} onValueChange={(value: Name['status']) => setEditStatus(value)}>
+                                        <SelectTrigger id="status-edit" className="col-span-3">
+                                            <SelectValue placeholder="Selecione o status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="regular">Regular</SelectItem>
+                                            <SelectItem value="irregular">Irregular</SelectItem>
+                                            <SelectItem value="inativo">Inativo</SelectItem>
+                                            <SelectItem value="removido">Removido</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="address-edit" className="text-right">Endereço</Label>
-                                <Input id="address-edit" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="phone-edit" className="text-right">Telefone</Label>
-                                <Input id="phone-edit" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="fieldgroup-edit" className="text-right">Grupo</Label>
-                                <Select value={editFieldGroup} onValueChange={(value) => setEditFieldGroup(value === '---' ? '' : value)}>
-                                    <SelectTrigger id="fieldgroup-edit" className="col-span-3">
-                                        <SelectValue placeholder="Não designado" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="---">Não designado</SelectItem>
-                                        {fieldGroups.map((group) => (
-                                            <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="status-edit" className="text-right">Status</Label>
-                                <Select value={editStatus} onValueChange={(value: Name['status']) => setEditStatus(value)}>
-                                    <SelectTrigger id="status-edit" className="col-span-3">
-                                        <SelectValue placeholder="Selecione o status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="regular">Regular</SelectItem>
-                                        <SelectItem value="irregular">Irregular</SelectItem>
-                                        <SelectItem value="inativo">Inativo</SelectItem>
-                                        <SelectItem value="removido">Removido</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button variant="outline">Cancelar</Button>
-                            </DialogClose>
-                            <Button onClick={handleUpdate}>Salvar</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button variant="outline">Cancelar</Button>
+                                </DialogClose>
+                                <Button onClick={handleUpdate}>Salvar</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost" aria-label={`Remover ${name.text}`}>
-                            <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmar para excluir</AlertDialogTitle>
-                        <AlertDialogDescription>
-                        Essa ação não pode ser desfeita. Isso excluirá permanentemente o nome "{name.text}" da sua lista.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteName(name.id)}>Excluir</AlertDialogAction>
-                    </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" aria-label={`Remover ${name.text}`}>
+                                <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar para excluir</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            Essa ação não pode ser desfeita. Isso excluirá permanentemente o nome "{name.text}" da sua lista.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteName(name.id)}>Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </div>
           </div>
           <CollapsibleContent>
