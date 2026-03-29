@@ -14,7 +14,7 @@ import {
   deleteField,
   type Firestore,
 } from 'firebase/firestore';
-import type { Name, UserProfile, FieldGroup, ImportedName } from '@/app/page';
+import type { Name, UserProfile, FieldGroup, ImportedName, ImportUpdate } from '@/app/page';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
@@ -357,6 +357,57 @@ export const batchImportData = async (
     // This provides more specific error information than creating a generic permission error.
     console.error("Firebase batch commit failed:", error); // Log the true error for debugging.
     throw error; // Rethrow it to the calling function in the UI.
+  }
+};
+
+export const batchUpdateVisits = async (
+  db: Firestore,
+  userId: string,
+  updates: ImportUpdate[]
+) => {
+  const batch = writeBatch(db);
+
+  updates.forEach(({ existing, newData }) => {
+    if (!newData.importedVisitDate) return;
+
+    const nameRef = doc(db, 'users', userId, 'names', existing.id);
+    
+    let finalHistory = existing.visitHistory || [];
+    const newVisitDate = new Date(newData.importedVisitDate);
+    
+    const visitExists = finalHistory.some(visit => {
+        const existingDate = new Date(visit.date);
+        return existingDate.getUTCFullYear() === newVisitDate.getUTCFullYear() &&
+               existingDate.getUTCMonth() === newVisitDate.getUTCMonth() &&
+               existingDate.getUTCDate() === newVisitDate.getUTCDate();
+    });
+
+    if (visitExists) return;
+
+    finalHistory = [
+      ...finalHistory,
+      {
+        id: doc(collection(db, 'temp-ids')).id, // Generate a unique ID for the visit
+        date: newData.importedVisitDate,
+        visitors: 'Importado'
+      }
+    ];
+
+    const newStatus = calculateStatusFromHistory(finalHistory);
+
+    const updatePayload = {
+      visitHistory: finalHistory,
+      status: newStatus
+    };
+
+    batch.update(nameRef, updatePayload);
+  });
+
+  try {
+    await batch.commit();
+  } catch (error) {
+    console.error("Firebase batch update for visits failed:", error);
+    throw error;
   }
 };
 

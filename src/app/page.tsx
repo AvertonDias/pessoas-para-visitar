@@ -84,6 +84,7 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes'>('pessoas');
   const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const visitsFileInputRef = useRef<HTMLInputElement>(null);
   const autoSyncAttempted = useRef(false);
 
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function Home() {
   } | null>(null);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ handler: () => Promise<void> }>({ handler: async () => {} });
 
   useEffect(() => {
     if (userProfile) {
@@ -291,7 +293,7 @@ export default function Home() {
     });
   };
 
-  const processCsvText = (text: string) => {
+  const processCsvText = (text: string, visitsOnly: boolean = false) => {
     try {
       const rows = text.split('\n').map(row => row.trim()).filter(row => row);
       if (rows.length < 2) {
@@ -438,15 +440,17 @@ export default function Home() {
           if (existing) {
               const changes: string[] = [];
               
-              if (existing.status === 'removido' && item.status !== 'regular' && item.status !== 'irregular') {
-                item.status = 'removido';
-              }
+              if (!visitsOnly) {
+                if (existing.status === 'removido' && item.status !== 'regular' && item.status !== 'irregular') {
+                  item.status = 'removido';
+                }
 
-              if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
-              if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
-              if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
-              if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
-              if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
+                if (item.text !== existing.text) changes.push(formatChange('Nome', existing.text, item.text));
+                if ((item.address || '') !== (existing.address || '')) changes.push(formatChange('Endereço', existing.address, item.address));
+                if ((item.phone || '') !== (existing.phone || '')) changes.push(formatChange('Telefone', existing.phone, item.phone));
+                if ((item.fieldGroup || '') !== (existing.fieldGroup || '')) changes.push(formatChange('Grupo', existing.fieldGroup, item.fieldGroup));
+                if (item.status !== existing.status) changes.push(formatChange('Status', existing.status, item.status));
+              }
               
               if (item.importedVisitDate) {
                 const newVisitDate = new Date(item.importedVisitDate);
@@ -465,13 +469,15 @@ export default function Home() {
                   toUpdate.push({ existing, newData: item, changes });
               }
           } else {
-              toCreate.push(item);
+              if (!visitsOnly) {
+                toCreate.push(item);
+              }
           }
       }
 
       const existingGroupNames = new Set(fieldGroups.map(g => g.name.toLowerCase()));
       const importedGroupNames = new Set(importedResult.map(item => item.fieldGroup).filter(Boolean) as string[]);
-      const newGroups = [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
+      const newGroups = visitsOnly ? [] : [...importedGroupNames].filter(g => !existingGroupNames.has(g.toLowerCase()));
 
       if (toCreate.length === 0 && toUpdate.length === 0 && newGroups.length === 0) {
           toast({
@@ -482,6 +488,7 @@ export default function Home() {
       }
 
       setImportPreview({ toCreate, toUpdate, newGroups });
+      setConfirmAction({ handler: () => handleConfirmImport(visitsOnly) });
       setIsImportConfirmOpen(true);
 
     } catch (error) {
@@ -490,14 +497,14 @@ export default function Home() {
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, visitsOnly: boolean) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      processCsvText(text);
+      processCsvText(text, visitsOnly);
     };
     reader.readAsText(file);
     event.target.value = '';
@@ -532,7 +539,7 @@ export default function Home() {
       setIsImportingFromUrl(false);
       
       if (result.success && result.data) {
-        processCsvText(result.data);
+        processCsvText(result.data, false);
       } else {
         toast({
           variant: 'destructive',
@@ -562,27 +569,36 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, importUrl]);
 
-  const handleConfirmImport = async () => {
+  const handleConfirmImport = async (visitsOnly: boolean) => {
     if (!dataOwnerId || !firestore || !importPreview) return;
-    
-    const dataToImport = [
-      ...importPreview.toCreate,
-      ...importPreview.toUpdate.map(u => u.newData)
-    ];
-
-    if (dataToImport.length === 0 && importPreview.newGroups.length === 0) {
-      toast({ title: "Nenhuma alteração para importar." });
-      setIsImportConfirmOpen(false);
-      setImportPreview(null);
-      return;
-    }
 
     try {
-        await services.batchImportData(firestore, dataOwnerId, dataToImport, fieldGroups, names);
-        toast({
-            title: "Importação concluída!",
-            description: `${dataToImport.length} pessoas foram importadas e/ou atualizadas com sucesso.`,
-        });
+        if (visitsOnly) {
+             if (importPreview.toUpdate.length > 0) {
+                await services.batchUpdateVisits(firestore, dataOwnerId, importPreview.toUpdate);
+                toast({
+                    title: "Importação de visitas concluída!",
+                    description: `${importPreview.toUpdate.length} pessoas tiveram seu histórico de visitas atualizado.`,
+                });
+            } else {
+                toast({ title: "Nenhuma visita nova para importar." });
+            }
+        } else {
+            const dataToImport = [
+              ...importPreview.toCreate,
+              ...importPreview.toUpdate.map(u => u.newData)
+            ];
+
+            if (dataToImport.length === 0 && importPreview.newGroups.length === 0) {
+              toast({ title: "Nenhuma alteração para importar." });
+            } else {
+              await services.batchImportData(firestore, dataOwnerId, dataToImport, fieldGroups, names);
+              toast({
+                  title: "Importação concluída!",
+                  description: `${dataToImport.length} pessoas foram importadas e/ou atualizadas com sucesso.`,
+              });
+            }
+        }
     } catch (error: any) {
         console.error("Error during batch import:", error);
         toast({
@@ -712,6 +728,7 @@ export default function Home() {
                  <HelpersCard ownerId={user.uid} helpers={helpers} />
                  <ImportCard
                     onImportClick={() => fileInputRef.current?.click()}
+                    onImportVisitsClick={() => visitsFileInputRef.current?.click()}
                     onImportFromUrl={handleImportFromUrl}
                     isImportingFromUrl={isImportingFromUrl}
                     importUrl={importUrl}
@@ -759,6 +776,7 @@ export default function Home() {
                   <HelpersCard ownerId={user.uid} helpers={helpers} />
                   <ImportCard
                     onImportClick={() => fileInputRef.current?.click()}
+                    onImportVisitsClick={() => visitsFileInputRef.current?.click()}
                     onImportFromUrl={handleImportFromUrl}
                     isImportingFromUrl={isImportingFromUrl}
                     importUrl={importUrl}
@@ -774,7 +792,14 @@ export default function Home() {
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileChange}
+        onChange={(e) => handleFileChange(e, false)}
+        className="hidden"
+        accept=".csv"
+      />
+      <input
+        type="file"
+        ref={visitsFileInputRef}
+        onChange={(e) => handleFileChange(e, true)}
         className="hidden"
         accept=".csv"
       />
@@ -844,7 +869,7 @@ export default function Home() {
         isOpen={isImportConfirmOpen}
         onOpenChange={setIsImportConfirmOpen}
         preview={importPreview}
-        onConfirm={handleConfirmImport}
+        onConfirm={confirmAction.handler}
       />
       <InstallPwaBanner />
     </div>
