@@ -66,8 +66,9 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
         }
         
         // For non-HTML responses, decode using the correct encoding.
+        // Files from URLs (like Google Sheets) are typically UTF-8.
         const buffer = await response.arrayBuffer();
-        const decoder = new TextDecoder('latin1');
+        const decoder = new TextDecoder('utf-8');
         const decodedText = decoder.decode(buffer);
 
         return { success: true, data: decodedText };
