@@ -292,7 +292,6 @@ export default function Home() {
       }
 
       const header = rows[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
-      const dataRows = rows.slice(1);
       
       const nameKeys = {
         displayName: ['displayname', 'nome', 'nome completo'],
@@ -346,7 +345,9 @@ export default function Home() {
         }
 
         let status: Name['status'];
-        const isMoved = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
+        const hasMovedFlag = movedIndex !== -1 && values[movedIndex]?.toLowerCase() === 'true';
+        const hasDateOfRemoved = dateOfRemovedIndex !== -1 && !!values[dateOfRemovedIndex];
+        const isMoved = hasMovedFlag || hasDateOfRemoved;
 
         if (isMoved) {
           status = 'removido';
