@@ -94,7 +94,7 @@ export function NameListCard({
           </div>
 
           <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="sort-by">Ordenar por</Label>
+            <Label htmlFor="sort-by">Visita</Label>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger id="sort-by">
                 <SelectValue placeholder="Ordenar por..." />
