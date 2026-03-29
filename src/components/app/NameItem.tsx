@@ -43,6 +43,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Textarea } from '../ui/textarea';
 
 interface NameItemProps {
   name: Name;
@@ -63,6 +64,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
   const [visitorInput, setVisitorInput] = useState('');
   const [dateInput, setDateInput] = useState<Date | undefined>(new Date());
+  const [observationsInput, setObservationsInput] = useState('');
 
   const mostRecentVisit = (name.visitHistory || []).reduce<Visit | null>((latest, visit) => {
     if (!latest) return visit;
@@ -115,6 +117,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     setEditingVisit(null);
     setVisitorInput('');
     setDateInput(new Date());
+    setObservationsInput('');
     setIsVisitDialogOpen(true);
   };
 
@@ -122,6 +125,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     setEditingVisit(visit);
     setVisitorInput(visit.visitors);
     setDateInput(new Date(visit.date));
+    setObservationsInput(visit.observations || '');
     setIsVisitDialogOpen(true);
   };
 
@@ -132,14 +136,15 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     if (editingVisit) {
         newHistory = (name.visitHistory || []).map(v =>
             v.id === editingVisit.id
-                ? { ...v, date: dateInput.toISOString(), visitors: visitorInput }
+                ? { ...v, date: dateInput.toISOString(), visitors: visitorInput, observations: observationsInput }
                 : v
         );
     } else {
         const newVisit: Visit = {
             id: Date.now().toString(),
             date: dateInput.toISOString(),
-            visitors: visitorInput
+            visitors: visitorInput,
+            observations: observationsInput,
         };
         newHistory = [...(name.visitHistory || []), newVisit];
     }
@@ -173,7 +178,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
             </CollapsibleTrigger>
             
             <div className="flex items-center justify-between mt-2 pt-2 border-t sm:border-t-0 sm:pt-0 sm:mt-0 sm:absolute sm:right-3 sm:top-3 sm:w-auto sm:gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:hidden">
                     {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
                     <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
                 </div>
@@ -263,6 +268,10 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                     </AlertDialog>
                 </div>
             </div>
+            <div className="hidden sm:flex items-center gap-2 sm:absolute sm:right-28 sm:top-3">
+                {groupForDisplay && <Badge variant="outline" className="font-normal">{groupForDisplay.name}</Badge>}
+                <Badge variant={getStatusVariant(name.status)} className="capitalize font-normal">{name.status}</Badge>
+            </div>
           </div>
           <CollapsibleContent>
             <div className="p-3 pt-0">
@@ -275,42 +284,47 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                             Adicionar Visita
                         </Button>
                     </div>
-                    <div className="max-h-48 overflow-y-auto space-y-1 pr-2 rounded-md">
+                    <div className="max-h-48 overflow-y-auto space-y-2 pr-2 rounded-md">
                       {(name.visitHistory || []).length > 0 ? (
                         (name.visitHistory || []).slice().reverse().map((visit) => {
                             return (
-                                <div key={visit.id} className="text-sm text-muted-foreground flex items-center justify-between gap-2 p-2 bg-secondary/50 rounded-md">
-                                    <div className="flex items-center gap-2">
-                                        <CalendarIcon className="h-4 w-4" />
-                                        <span className="truncate">
-                                            {format(new Date(visit.date), "PPP", { locale: ptBR })}
-                                            {visit.visitors && <span className="text-foreground/80"> - {visit.visitors}</span>}
-                                        </span>
+                                <div key={visit.id} className="text-sm p-2 bg-secondary/50 rounded-md">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 flex-grow min-w-0">
+                                            <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                            <div className="truncate">
+                                                <span className="font-medium text-foreground">{format(new Date(visit.date), "PPP", { locale: ptBR })}</span>
+                                                {visit.visitors && <span className="text-muted-foreground"> - {visit.visitors}</span>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center flex-shrink-0">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditVisitDialog(visit as Visit)} aria-label="Editar visita">
+                                                <Pencil className="h-3 w-3" />
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Remover visita">
+                                                        <Trash2 className="h-3 w-3 text-destructive/70" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Tem certeza que deseja excluir esta visita? Esta ação não pode ser desfeita.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteVisit(visit.id)}>Excluir</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditVisitDialog(visit as Visit)} aria-label="Editar visita">
-                                            <Pencil className="h-3 w-3" />
-                                        </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Remover visita">
-                                                    <Trash2 className="h-3 w-3 text-destructive/70" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Tem certeza que deseja excluir esta visita? Esta ação não pode ser desfeita.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteVisit(visit.id)}>Excluir</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
+                                    {visit.observations && (
+                                        <p className="text-muted-foreground text-xs mt-1 pl-6">{visit.observations}</p>
+                                    )}
                                 </div>
                             );
                         })
@@ -341,6 +355,16 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                         className="col-span-3"
                         value={dateInput ? format(dateInput, 'yyyy-MM-dd') : ''}
                         onChange={(e) => setDateInput(e.target.value ? new Date(e.target.value.replace(/-/g, '/')) : undefined)}
+                      />
+                  </div>
+                  <div className="grid grid-cols-4 items-start gap-4">
+                      <Label htmlFor="observations" className="text-right pt-2">Observações</Label>
+                      <Textarea
+                          id="observations"
+                          value={observationsInput}
+                          onChange={(e) => setObservationsInput(e.target.value)}
+                          className="col-span-3"
+                          placeholder="Alguma anotação sobre a visita..."
                       />
                   </div>
               </div>

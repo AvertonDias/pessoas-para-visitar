@@ -49,6 +49,7 @@ export type Visit = {
   id: string;
   date: string;
   visitors: string;
+  observations?: string;
 };
 
 export type Name = {

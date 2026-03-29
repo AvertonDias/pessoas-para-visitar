@@ -14,7 +14,7 @@ import {
   deleteField,
   type Firestore,
 } from 'firebase/firestore';
-import type { Name, UserProfile, FieldGroup, ImportedName, ImportUpdate } from '@/app/page';
+import type { Name, UserProfile, FieldGroup, ImportedName, ImportUpdate, Visit } from '@/app/page';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
@@ -43,11 +43,26 @@ const formatChanges = (oldData: any, newData: any, groupMap: Map<string, string>
         const newGroupName = groupMap.get(newData.fieldGroup) || 'Sem grupo';
         changes.push(`Grupo alterado para "${newGroupName}"`);
     }
-    if (newData.visitHistory && newData.visitHistory.length > oldData.visitHistory.length) {
-        const newVisit = newData.visitHistory[newData.visitHistory.length - 1];
-        changes.push(`Visita adicionada em ${format(new Date(newVisit.date), "PPP", { locale: ptBR })}`);
-    } else if (newData.visitHistory && newData.visitHistory.length < oldData.visitHistory.length) {
-        changes.push(`Uma visita foi removida.`);
+    if (newData.visitHistory) {
+        if (newData.visitHistory.length > oldData.visitHistory.length) {
+            const newVisit = newData.visitHistory[newData.visitHistory.length - 1];
+            let details = `Visita adicionada em ${format(new Date(newVisit.date), "PPP", { locale: ptBR })}`;
+            if (newVisit.observations) details += ` com observação.`;
+            changes.push(details);
+        } else if (newData.visitHistory.length < oldData.visitHistory.length) {
+            changes.push(`Uma visita foi removida.`);
+        } else if (JSON.stringify(newData.visitHistory) !== JSON.stringify(oldData.visitHistory)) {
+             // Find changed visit
+            const changedVisit = newData.visitHistory.find((newVisit: Visit) => {
+                const oldVisit = oldData.visitHistory.find((ov: Visit) => ov.id === newVisit.id);
+                return !oldVisit || JSON.stringify(newVisit) !== JSON.stringify(oldVisit);
+            });
+            if(changedVisit) {
+                changes.push(`Visita de ${format(new Date(changedVisit.date), "PPP", { locale: ptBR })} foi atualizada.`);
+            } else {
+                 changes.push(`Uma visita foi atualizada.`);
+            }
+        }
     }
 
     return changes;

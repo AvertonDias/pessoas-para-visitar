@@ -141,6 +141,10 @@
               },
               "visitors": {
                 "type": "string"
+              },
+              "observations": {
+                "type": "string",
+                "description": "Observações sobre a visita."
               }
             }
           }
