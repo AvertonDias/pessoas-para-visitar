@@ -388,9 +388,14 @@ export default function Home() {
             if (parts.length === 3) {
                 const day = parseInt(parts[0], 10);
                 const month = parseInt(parts[1], 10) - 1;
-                const year = parseInt(parts[2], 10);
+                let year = parseInt(parts[2], 10);
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    const parsedDate = new Date(Date.UTC(year, month, day));
+                    // Handle 2-digit years, assuming they are in the 21st century
+                    if (year < 100) {
+                        year += 2000;
+                    }
+                    // Create date in local timezone to avoid off-by-one errors when converting back from UTC
+                    const parsedDate = new Date(year, month, day);
                     if (!isNaN(parsedDate.getTime())) {
                         importedVisitDate = parsedDate.toISOString();
                     }
