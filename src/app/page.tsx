@@ -167,8 +167,8 @@ export default function Home() {
   const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
 
   useEffect(() => {
-    if (userProfile?.importUrl) {
-      setImportUrl(userProfile.importUrl);
+    if (userProfile) {
+      setImportUrl(userProfile.importUrl || 'https://drive.google.com/file/d/1KIiwi8Yhh-T0Wf1FbRY_7Cg-J9nn_BrB/view?usp=drivesdk');
     }
   }, [userProfile]);
 
@@ -528,14 +528,14 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Automatically trigger sync from URL on initial load if available
-    // and if we haven't tried it yet in this session.
-    if (userProfile?.importUrl && !autoSyncAttempted.current) {
+    // Automatically trigger sync from URL on initial load once the user profile and a URL are ready.
+    // This will use the saved URL or the default one. It runs only once per session.
+    if (userProfile && importUrl && !autoSyncAttempted.current) {
       autoSyncAttempted.current = true;
       handleImportFromUrl();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile]);
+  }, [userProfile, importUrl]);
 
   const handleConfirmImport = async () => {
     if (!dataOwnerId || !firestore || !importPreview) return;
