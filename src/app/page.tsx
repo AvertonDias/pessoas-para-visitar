@@ -12,6 +12,15 @@ import { ImportCard } from '@/components/app/home/ImportCard';
 import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -181,6 +190,7 @@ export default function Home() {
   // State for PDF dialog
   const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
   const [pdfSortBy, setPdfSortBy] = useState('visit-desc');
+  const [pdfSelectedGroups, setPdfSelectedGroups] = useState<string[]>([]);
 
 
   // Load filters from localStorage on initial client render
@@ -219,6 +229,13 @@ export default function Home() {
       setImportUrl(dataOwnerProfile.importUrl);
     }
   }, [dataOwnerProfile]);
+
+  useEffect(() => {
+    // When opening the dialog, initialize selected groups to all groups
+    if (isPdfDialogOpen) {
+      setPdfSelectedGroups(fieldGroups.map(g => g.id).concat('no-group'));
+    }
+  }, [isPdfDialogOpen, fieldGroups]);
 
 
   const addName = () => {
@@ -755,7 +772,7 @@ export default function Home() {
         processFullCsv(text);
       }
     };
-    reader.readAsText(file, 'latin1');
+    reader.readAsText(file, 'utf-8');
     event.target.value = '';
   };
   
@@ -819,7 +836,7 @@ export default function Home() {
       
       const matchesGroup = selectedGroup === 'all' 
         || name.fieldGroup === selectedGroup 
-        || (selectedGroup === 'no-group' && !name.fieldGroup);
+        || (selectedGroup === 'no-group' && (!name.fieldGroup || name.fieldGroup === ''));
         
       const matchesStatus = selectedStatus === 'all' || name.status === selectedStatus;
       return matchesSearch && matchesGroup && matchesStatus;
@@ -865,11 +882,22 @@ export default function Home() {
   }
 
   const generateNamesPdf = () => {
-    if (!names || names.length === 0) {
+    const filteredForPdf = names.filter(name => {
+      if (pdfSelectedGroups.length === 0) {
+        return false;
+      }
+      const hasNoGroup = !name.fieldGroup || name.fieldGroup === '';
+      if (hasNoGroup) {
+        return pdfSelectedGroups.includes('no-group');
+      }
+      return pdfSelectedGroups.includes(name.fieldGroup);
+    });
+
+    if (!filteredForPdf || filteredForPdf.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Lista Vazia',
-        description: 'Não há nomes para gerar o PDF.',
+        description: 'Não há nomes para gerar o PDF nos grupos selecionados.',
       });
       return;
     }
@@ -877,7 +905,7 @@ export default function Home() {
     const doc = new jsPDF();
     const groupMap = new Map(fieldGroups.map(g => [g.id, g.name]));
 
-    const sortedNames = [...names].sort((a, b) => {
+    const sortedNames = [...filteredForPdf].sort((a, b) => {
       if (pdfSortBy === 'name-asc') {
         return a.text.localeCompare(b.text);
       }
@@ -906,7 +934,7 @@ export default function Home() {
     });
 
     const title = `Relatório da Lista de Nomes`;
-    const subtitle = `Total de ${names.length} nomes. Ordenado por: ${
+    const subtitle = `Total de ${filteredForPdf.length} nomes. Ordenado por: ${
       {
         'visit-desc': 'Última Visita (Recentes)',
         'visit-asc': 'Última Visita (Antigos)',
@@ -1157,25 +1185,85 @@ export default function Home() {
             <DialogHeader>
             <DialogTitle>Gerar Relatório PDF da Lista</DialogTitle>
             <DialogDescription>
-                Escolha como a lista de nomes deve ser ordenada no arquivo PDF.
+                Escolha os filtros e a ordem para o relatório em PDF.
             </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="pdf-sort-by" className="text-right">
-                Ordenar por
-                </Label>
-                <Select value={pdfSortBy} onValueChange={(value) => setPdfSortBy(value)}>
-                <SelectTrigger id="pdf-sort-by" className="col-span-3">
-                    <SelectValue placeholder="Ordenar por..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
-                    <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
-                    <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
-                </SelectContent>
-                </Select>
-            </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="pdf-groups" className="text-right">
+                    Grupos
+                    </Label>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="col-span-3 justify-start text-left font-normal">
+                                {pdfSelectedGroups.length === fieldGroups.length + 1
+                                    ? "Todos os grupos"
+                                    : pdfSelectedGroups.length === 0
+                                    ? "Nenhum selecionado"
+                                    : `${pdfSelectedGroups.length} selecionados`
+                                }
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="end">
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                                <Label htmlFor="select-all-groups" className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 font-normal">
+                                    <Checkbox
+                                        id="select-all-groups"
+                                        checked={pdfSelectedGroups.length === fieldGroups.length + 1}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                setPdfSelectedGroups(fieldGroups.map(g => g.id).concat('no-group'));
+                                            } else {
+                                                setPdfSelectedGroups([]);
+                                            }
+                                        }}
+                                    />
+                                    <span>Todos os grupos</span>
+                                </Label>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {fieldGroups.map(group => (
+                                <DropdownMenuCheckboxItem
+                                    key={group.id}
+                                    checked={pdfSelectedGroups.includes(group.id)}
+                                    onCheckedChange={checked => {
+                                        setPdfSelectedGroups(prev => 
+                                            checked ? [...prev, group.id] : prev.filter(id => id !== group.id)
+                                        )
+                                    }}
+                                >
+                                    {group.name}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                            <DropdownMenuCheckboxItem
+                                key="no-group"
+                                checked={pdfSelectedGroups.includes('no-group')}
+                                onCheckedChange={checked => {
+                                    setPdfSelectedGroups(prev => 
+                                        checked ? [...prev, 'no-group'] : prev.filter(id => id !== 'no-group')
+                                    )
+                                }}
+                            >
+                                Sem grupo
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="pdf-sort-by" className="text-right">
+                    Ordenar por
+                    </Label>
+                    <Select value={pdfSortBy} onValueChange={(value) => setPdfSortBy(value)}>
+                    <SelectTrigger id="pdf-sort-by" className="col-span-3">
+                        <SelectValue placeholder="Ordenar por..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="visit-desc">Última Visita (Recentes)</SelectItem>
+                        <SelectItem value="visit-asc">Última Visita (Antigos)</SelectItem>
+                        <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
+                    </SelectContent>
+                    </Select>
+                </div>
             </div>
             <DialogFooter>
             <Button variant="outline" onClick={() => setIsPdfDialogOpen(false)}>Cancelar</Button>
