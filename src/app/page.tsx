@@ -24,6 +24,7 @@ import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@
 import { collection, query, doc, where } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 import { getMostRecentVisitDate } from '@/lib/status-logic';
+import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
 
 export type Visit = {
   id: string;
@@ -730,6 +731,7 @@ export default function Home() {
         preview={importPreview}
         onConfirm={handleConfirmImport}
       />
+      <InstallPwaBanner />
     </div>
   );
 }
