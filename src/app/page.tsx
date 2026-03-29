@@ -168,7 +168,7 @@ export default function Home() {
 
   useEffect(() => {
     if (userProfile) {
-      setImportUrl(userProfile.importUrl || 'https://drive.google.com/file/d/1KIiwi8Yhh-T0Wf1FbRY_7Cg-J9nn_BrB/view?usp=drivesdk');
+      setImportUrl(userProfile.importUrl || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRObA7TvycM_5m_bAsSgJ2v9K2IqP-bnQ2ORj5rT2I8g-42wS3er_s-3GvOQ1-wT2hNlC1L7GvWd3kF/pub?output=csv');
     }
   }, [userProfile]);
 
@@ -344,10 +344,10 @@ export default function Home() {
         let text = '';
         const fullName = [values[firstNameIndex], values[middleNameIndex], values[lastNameIndex]].filter(Boolean).join(' ');
 
-        if (fullName.trim()) {
-          text = fullName.trim();
-        } else if (displayNameIndex !== -1 && values[displayNameIndex]) {
-          text = values[displayNameIndex];
+        if (displayNameIndex !== -1 && values[displayNameIndex]) {
+            text = values[displayNameIndex];
+        } else if (fullName.trim()) {
+            text = fullName.trim();
         }
 
         let status: Name['status'];
@@ -705,7 +705,7 @@ export default function Home() {
               </div>
             )}
 
-             {isAdmin && mobileView === 'ajudantes' && (
+             {isAdmin && user && mobileView === 'ajudantes' && (
               <div className="space-y-8 mt-4">
                  <HelpersCard ownerId={user.uid} helpers={helpers} />
                  <ImportCard
@@ -752,7 +752,7 @@ export default function Home() {
                 deleteGroup={deleteGroup}
                 groupCounts={groupCounts}
               />
-              {isAdmin && (
+              {isAdmin && user && (
                 <>
                   <HelpersCard ownerId={user.uid} helpers={helpers} />
                   <ImportCard
