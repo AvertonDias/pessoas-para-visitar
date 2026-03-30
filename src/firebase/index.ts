@@ -7,8 +7,8 @@ import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  // Check for API key first in dev mode
-  if (process.env.NODE_ENV !== 'production' && !firebaseConfig.apiKey) {
+  // Check for API key in all environments.
+  if (!firebaseConfig.apiKey) {
       // This is a special return case to be handled by the provider.
       return { error: 'API_KEY_MISSING' };
   }
@@ -20,6 +20,7 @@ export function initializeFirebase() {
     return { ...getSdks(app), error: null };
   } catch (e: any) {
     if (e.code === 'auth/invalid-api-key') {
+      // This can still happen if the key is present but actually invalid.
       return { error: 'API_KEY_INVALID' };
     }
     // Re-throw other unexpected errors so they are not silently swallowed.
