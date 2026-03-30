@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Users, BarChart, History, LogOut, Settings } from 'lucide-react';
+import { Users, BarChart, History, LogOut, Settings, Tag } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
@@ -114,18 +114,32 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     {isAdmin && (
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={pathname === '/gerenciamento'}
-                                tooltip="Gerenciamento"
-                            >
-                                <Link href="/gerenciamento">
-                                    <Settings />
-                                    <span>Gerenciamento</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
+                        <>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname === '/grupos'}
+                                    tooltip="Grupos"
+                                >
+                                    <Link href="/grupos">
+                                        <Tag />
+                                        <span>Grupos</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname === '/gerenciamento'}
+                                    tooltip="Gerenciamento"
+                                >
+                                    <Link href="/gerenciamento">
+                                        <Settings />
+                                        <span>Gerenciamento</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </>
                     )}
                 </SidebarMenu>
             </SidebarContent>

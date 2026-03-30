@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
-import { FieldGroupsCard } from '@/components/app/home/FieldGroupsCard';
 import { AddNameDialog } from '@/components/app/home/AddNameDialog';
 import { GeneratePdfDialog } from '@/components/app/home/GeneratePdfDialog';
 import { format } from 'date-fns';
@@ -86,16 +85,6 @@ export default function Home() {
   }, [dataOwnerId, firestore]);
   const { data: fieldGroupsData, isLoading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
   const fieldGroups = fieldGroupsData || [];
-
-  const groupCounts = useMemo(() => {
-    return names.reduce((acc, name) => {
-      const group = fieldGroups.find(g => g.id === name.fieldGroup);
-      if (group) {
-        acc[group.name] = (acc[group.name] || 0) + 1;
-      }
-      return acc;
-    }, {} as { [key: string]: number });
-  }, [names, fieldGroups]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
@@ -154,72 +143,6 @@ export default function Home() {
       description: `${draftName.text.trim()} foi adicionado à lista.`,
     });
     setIsAddDialogOpen(false);
-  };
-
-  const addGroup = (groupName: string) => {
-    if (!dataOwnerId || !firestore || !performingUser) return;
-
-    const newGroupName = groupName.trim();
-    if (newGroupName && !fieldGroups.some(g => g.name === newGroupName)) {
-      services.addFieldGroup(firestore, dataOwnerId, newGroupName, performingUser);
-      toast({
-        title: "Grupo adicionado",
-        description: `O grupo "${newGroupName}" foi criado.`,
-      });
-    } else if (newGroupName) {
-       toast({
-        variant: "destructive",
-        title: "Erro",
-        description: `O grupo "${newGroupName}" já existe.`,
-      });
-    }
-  };
-  
-  const deleteGroup = (groupId: string) => {
-    if (!dataOwnerId || !firestore || !performingUser) return;
-    
-    services.deleteFieldGroup(firestore, dataOwnerId, groupId, performingUser);
-
-    // Remove the group from any names that have it assigned.
-    names.forEach(name => {
-      if (name.fieldGroup === groupId) {
-        updateName(name.id, { ...name, fieldGroup: '' });
-      }
-    });
-
-    const groupName = fieldGroups.find(g => g.id === groupId)?.name;
-    toast({
-        title: "Grupo removido",
-        description: `O grupo "${groupName}" foi removido.`,
-    });
-  };
-
-  const updateGroup = (groupId: string, newName: string): boolean => {
-    if (!dataOwnerId || !firestore || !performingUser) return false;
-    const oldGroup = fieldGroups.find(g => g.id === groupId);
-    if (!oldGroup) return false;
-
-    const trimmedNewName = newName.trim();
-    if (trimmedNewName === '' || oldGroup.name === trimmedNewName) {
-      return true;
-    }
-
-    if (fieldGroups.some(g => g.name === trimmedNewName)) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao atualizar grupo",
-        description: `O grupo "${trimmedNewName}" já existe.`,
-      });
-      return false;
-    }
-    
-    services.updateFieldGroup(firestore, dataOwnerId, groupId, trimmedNewName, performingUser);
-
-    toast({
-        title: "Grupo atualizado",
-        description: `O grupo "${oldGroup.name}" foi renomeado para "${trimmedNewName}".`,
-    });
-    return true;
   };
 
   const updateName = (id: string, newNameData: Partial<Omit<Name, 'id'>>) => {
@@ -382,7 +305,7 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-3 space-y-8">
           <ManageNamesCard
             onAddNameClick={() => setIsAddDialogOpen(true)}
             searchTerm={searchTerm}
@@ -403,17 +326,6 @@ export default function Home() {
             setSelectedStatus={setSelectedStatus}
             sortBy={sortBy}
             setSortBy={setSortBy}
-          />
-        </div>
-        
-        <div className="lg:col-span-1 space-y-8">
-          <FieldGroupsCard
-            isAdmin={isAdmin}
-            onAddGroup={addGroup}
-            fieldGroups={fieldGroups}
-            updateGroup={updateGroup}
-            deleteGroup={deleteGroup}
-            groupCounts={groupCounts}
           />
         </div>
       </div>
