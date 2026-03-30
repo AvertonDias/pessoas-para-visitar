@@ -1,23 +1,20 @@
 {
   "name": "Pessoas para visitar",
-  "short_name": "Visitas",
-  "description": "Um PWA para criar e gerenciar listas de pessoas para visitar.",
+  "short_name": "Pessoas para visitar",
   "icons": [
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/icons/logo.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-        "src": "/icons/icon-512x512.svg",
-        "sizes": "512x512",
-        "type": "image/svg+xml",
-        "purpose": "any"
+      "src": "/icons/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ],
-  "start_url": "/",
-  "display": "standalone",
+  "theme_color": "#2263DB",
   "background_color": "#EBF3F8",
-  "theme_color": "#2263DB"
+  "display": "standalone",
+  "start_url": "/"
 }

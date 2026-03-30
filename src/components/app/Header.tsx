@@ -1,10 +1,11 @@
 'use client';
 
-import { HandHeart, LogOut, BarChart, History, Users } from 'lucide-react';
+import { LogOut, BarChart, History, Users } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export function Header() {
@@ -115,7 +116,13 @@ export function Header() {
     <header className="w-full bg-primary text-primary-foreground py-4 sm:py-6 shadow-md">
       <div className="container mx-auto flex items-center justify-between gap-3 px-4">
         <Link href="/" className="flex items-center gap-3 text-primary-foreground hover:text-primary-foreground/90 no-underline">
-          <HandHeart className="h-8 w-8 sm:h-10 sm:w-10" />
+          <Image
+            src="/icons/logo.png"
+            alt="Pessoas para visitar logo"
+            width={40}
+            height={40}
+            className="h-8 w-8 sm:h-10 sm:w-10"
+          />
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
             Pessoas para visitar
           </h1>
