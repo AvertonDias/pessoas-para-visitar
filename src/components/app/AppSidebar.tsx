@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Users, BarChart, History, LogOut, Settings, Tag } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -25,6 +26,7 @@ export function AppSidebar() {
     const auth = useAuth();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const { setOpenMobile } = useSidebar();
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -36,7 +38,12 @@ export function AppSidebar() {
     const handleSignOut = async () => {
         if (auth) {
             await signOut(auth);
+            setOpenMobile(false);
         }
+    };
+
+    const handleNavigation = () => {
+        setOpenMobile(false);
     };
 
     const getInitials = (name: string | null | undefined) => {
@@ -82,6 +89,7 @@ export function AppSidebar() {
                             asChild
                             isActive={pathname === '/'}
                             tooltip="Sua Lista"
+                            onClick={handleNavigation}
                         >
                             <Link href="/">
                                 <Users />
@@ -94,6 +102,7 @@ export function AppSidebar() {
                             asChild
                             isActive={pathname === '/stats'}
                             tooltip="Estatísticas"
+                            onClick={handleNavigation}
                         >
                             <Link href="/stats">
                                 <BarChart />
@@ -106,6 +115,7 @@ export function AppSidebar() {
                             asChild
                             isActive={pathname === '/history'}
                             tooltip="Histórico"
+                            onClick={handleNavigation}
                         >
                             <Link href="/history">
                                 <History />
@@ -120,6 +130,7 @@ export function AppSidebar() {
                                     asChild
                                     isActive={pathname === '/grupos'}
                                     tooltip="Grupos"
+                                    onClick={handleNavigation}
                                 >
                                     <Link href="/grupos">
                                         <Tag />
@@ -132,6 +143,7 @@ export function AppSidebar() {
                                     asChild
                                     isActive={pathname === '/gerenciamento'}
                                     tooltip="Gerenciamento"
+                                    onClick={handleNavigation}
                                 >
                                     <Link href="/gerenciamento">
                                         <Settings />
