@@ -26,11 +26,11 @@ interface ImportConfirmationDialogProps {
   onConfirm: () => void;
 }
 
-const getStatusVariant = (status?: Name['status']): 'default' | 'secondary' | 'destructive' | 'outline' => {
+const getStatusVariant = (status?: Name['status']): 'default' | 'secondary' | 'destructive' | 'outline' | 'warning' => {
     if (!status) return 'default';
     switch (status) {
       case 'regular': return 'default';
-      case 'irregular': return 'secondary';
+      case 'irregular': return 'warning';
       case 'inativo': return 'outline';
       case 'removido': return 'destructive';
       default: return 'default';

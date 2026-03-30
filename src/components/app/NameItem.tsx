@@ -86,12 +86,12 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     }
   };
 
-  const getStatusVariant = (status: Name['status']): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const getStatusVariant = (status: Name['status']): 'default' | 'secondary' | 'destructive' | 'outline' | 'warning' => {
     switch (status) {
       case 'regular':
         return 'default';
       case 'irregular':
-        return 'secondary';
+        return 'warning';
       case 'inativo':
         return 'outline';
       case 'removido':
