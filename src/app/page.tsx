@@ -11,8 +11,6 @@ import { ImportCard } from '@/components/app/home/ImportCard';
 import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
 import { AddNameDialog } from '@/components/app/home/AddNameDialog';
 import { GeneratePdfDialog } from '@/components/app/home/GeneratePdfDialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -39,8 +37,6 @@ export default function Home() {
   const firestore = useFirestore();
   const router = useRouter();
   
-  const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<'pessoas' | 'grupos' | 'ajudantes' | 'gerenciar'>('pessoas');
   const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const visitsFileInputRef = useRef<HTMLInputElement>(null);
@@ -885,115 +881,55 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
-        {isMobile ? (
-          <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as any)} className="w-full">
-              <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-xl bg-muted p-1`}>
-                  <TabsTrigger value="pessoas" className="rounded-lg">Pessoas</TabsTrigger>
-                  <TabsTrigger value="grupos" className="rounded-lg">Grupos</TabsTrigger>
-                  <TabsTrigger value="gerenciar" className="rounded-lg">Gerenciar</TabsTrigger>
-                  {isAdmin && <TabsTrigger value="ajudantes" className="rounded-lg">Ajudantes</TabsTrigger>}
-              </TabsList>
-
-              <TabsContent value="pessoas" className="mt-4">
-                  <NameListCard
-                    names={names}
-                    filteredNames={filteredNames}
-                    searchTerm={searchTerm}
-                    updateName={updateName}
-                    deleteName={deleteName}
-                    fieldGroups={fieldGroups}
-                    adminName={adminProfile?.name}
-                    selectedGroup={selectedGroup}
-                    setSelectedGroup={setSelectedGroup}
-                    selectedStatus={selectedStatus}
-                    setSelectedStatus={setSelectedStatus}
-                    sortBy={sortBy}
-                    setSortBy={setSortBy}
-                  />
-              </TabsContent>
-              <TabsContent value="grupos" className="mt-4">
-                  <FieldGroupsCard
-                      isAdmin={isAdmin}
-                      onAddGroup={addGroup}
-                      fieldGroups={fieldGroups}
-                      updateGroup={updateGroup}
-                      deleteGroup={deleteGroup}
-                      groupCounts={groupCounts}
-                  />
-              </TabsContent>
-              <TabsContent value="gerenciar" className="mt-4">
-                <ManageNamesCard
-                    onAddNameClick={() => setIsAddDialogOpen(true)}
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
-                />
-              </TabsContent>
-              {isAdmin && user && (
-                  <TabsContent value="ajudantes" className="mt-4 space-y-4">
-                      <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
-                      <ImportCard
-                          onImportClick={() => fileInputRef.current?.click()}
-                          onImportVisitsClick={() => visitsFileInputRef.current?.click()}
-                          onImportFromUrl={() => handleImportFromUrl()}
-                          isImportingFromUrl={isImportingFromUrl}
-                          importUrl={importUrl}
-                          setImportUrl={setImportUrl}
-                      />
-                  </TabsContent>
-              )}
-          </Tabs>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            <div className="lg:col-span-2 space-y-8">
-              <ManageNamesCard
-                onAddNameClick={() => setIsAddDialogOpen(true)}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="lg:col-span-2 space-y-8">
+          <ManageNamesCard
+            onAddNameClick={() => setIsAddDialogOpen(true)}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
+          />
+          <NameListCard
+            names={names}
+            filteredNames={filteredNames}
+            searchTerm={searchTerm}
+            updateName={updateName}
+            deleteName={deleteName}
+            fieldGroups={fieldGroups}
+            adminName={adminProfile?.name}
+            selectedGroup={selectedGroup}
+            setSelectedGroup={setSelectedGroup}
+            selectedStatus={selectedStatus}
+            setSelectedStatus={setSelectedStatus}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
+        </div>
+        
+        <div className="lg:col-span-1 space-y-8">
+          <FieldGroupsCard
+            isAdmin={isAdmin}
+            onAddGroup={addGroup}
+            fieldGroups={fieldGroups}
+            updateGroup={updateGroup}
+            deleteGroup={deleteGroup}
+            groupCounts={groupCounts}
+          />
+          {isAdmin && user && (
+            <>
+              <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
+              <ImportCard
+                onImportClick={() => fileInputRef.current?.click()}
+                onImportVisitsClick={() => visitsFileInputRef.current?.click()}
+                onImportFromUrl={() => handleImportFromUrl()}
+                isImportingFromUrl={isImportingFromUrl}
+                importUrl={importUrl}
+                setImportUrl={setImportUrl}
               />
-              <NameListCard
-                names={names}
-                filteredNames={filteredNames}
-                searchTerm={searchTerm}
-                updateName={updateName}
-                deleteName={deleteName}
-                fieldGroups={fieldGroups}
-                adminName={adminProfile?.name}
-                selectedGroup={selectedGroup}
-                setSelectedGroup={setSelectedGroup}
-                selectedStatus={selectedStatus}
-                setSelectedStatus={setSelectedStatus}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-              />
-            </div>
-            
-            <div className="lg:col-span-1 space-y-8">
-              <FieldGroupsCard
-                isAdmin={isAdmin}
-                onAddGroup={addGroup}
-                fieldGroups={fieldGroups}
-                updateGroup={updateGroup}
-                deleteGroup={deleteGroup}
-                groupCounts={groupCounts}
-              />
-              {isAdmin && user && (
-                <>
-                  <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
-                  <ImportCard
-                    onImportClick={() => fileInputRef.current?.click()}
-                    onImportVisitsClick={() => visitsFileInputRef.current?.click()}
-                    onImportFromUrl={() => handleImportFromUrl()}
-                    isImportingFromUrl={isImportingFromUrl}
-                    importUrl={importUrl}
-                    setImportUrl={setImportUrl}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
+      </div>
         
         <input
           type="file"
