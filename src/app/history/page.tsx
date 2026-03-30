@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
-import { Header } from '@/components/app/Header';
 import { Card } from '@/components/ui/card';
 import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -104,9 +103,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Header />
-      <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
+    <div className="container mx-auto p-4 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <h1 className="text-3xl font-bold flex items-center gap-3">
                 <History className="h-8 w-8 text-primary" />
@@ -180,7 +177,6 @@ export default function HistoryPage() {
                 <p className="text-lg text-muted-foreground">Nenhuma alteração registrada ainda.</p>
             </div>
         )}
-      </main>
     </div>
   );
 }

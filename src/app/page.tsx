@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/app/Header';
 import { useToast } from '@/hooks/use-toast';
 import { ManageNamesCard } from '@/components/app/home/ManageNamesCard';
 import { NameListCard } from '@/components/app/home/NameListCard';
@@ -885,9 +884,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Header />
-      <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
+    <div className="container mx-auto p-4 sm:p-6 md:p-8">
         {isMobile ? (
           <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as any)} className="w-full">
               <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-xl bg-muted p-1`}>
@@ -997,45 +994,44 @@ export default function Home() {
             </div>
           </div>
         )}
-      </main>
-      
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={(e) => handleFileChange(e, 'full')}
-        className="hidden"
-        accept=".csv"
-      />
-      <input
-        type="file"
-        ref={visitsFileInputRef}
-        onChange={(e) => handleFileChange(e, 'visits')}
-        className="hidden"
-        accept=".csv"
-      />
+        
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={(e) => handleFileChange(e, 'full')}
+          className="hidden"
+          accept=".csv"
+        />
+        <input
+          type="file"
+          ref={visitsFileInputRef}
+          onChange={(e) => handleFileChange(e, 'visits')}
+          className="hidden"
+          accept=".csv"
+        />
 
-      <AddNameDialog 
-        isOpen={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onAddName={addName}
-        fieldGroups={fieldGroups}
-      />
-      
-       <ImportConfirmationDialog
-        isOpen={isImportConfirmOpen}
-        onOpenChange={setIsImportConfirmOpen}
-        preview={importPreview}
-        onConfirm={importMode === 'full' ? () => handleConfirmImport(importPreview) : handleConfirmVisitsImport}
-      />
+        <AddNameDialog 
+          isOpen={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onAddName={addName}
+          fieldGroups={fieldGroups}
+        />
+        
+         <ImportConfirmationDialog
+          isOpen={isImportConfirmOpen}
+          onOpenChange={setIsImportConfirmOpen}
+          preview={importPreview}
+          onConfirm={importMode === 'full' ? () => handleConfirmImport(importPreview) : handleConfirmVisitsImport}
+        />
 
-       <GeneratePdfDialog 
-        isOpen={isPdfDialogOpen}
-        onOpenChange={setIsPdfDialogOpen}
-        onGeneratePdf={generateNamesPdf}
-        fieldGroups={fieldGroups}
-       />
+         <GeneratePdfDialog 
+          isOpen={isPdfDialogOpen}
+          onOpenChange={setIsPdfDialogOpen}
+          onGeneratePdf={generateNamesPdf}
+          fieldGroups={fieldGroups}
+         />
 
-      <InstallPwaBanner />
+        <InstallPwaBanner />
     </div>
   );
 }

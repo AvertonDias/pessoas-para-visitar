@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app/AppSidebar';
+import { Header } from '@/components/app/Header';
 
 
 export const metadata: Metadata = {
@@ -25,9 +28,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/logo.png" />
         <link rel="icon" href="/icons/logo.png" type="image/png" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>
-          {children}
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <Header />
+              {children}
+            </SidebarInset>
+          </SidebarProvider>
           <Toaster />
         </FirebaseClientProvider>
       </body>
