@@ -17,7 +17,7 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Users, BarChart, History, LogOut, Settings, Tag } from 'lucide-react';
+import { Users, BarChart, History, LogOut, UploadCloud, Tag } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
@@ -141,13 +141,26 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
-                                    isActive={pathname === '/gerenciamento'}
-                                    tooltip="Gerenciamento"
+                                    isActive={pathname === '/ajudantes'}
+                                    tooltip="Ajudantes"
                                     onClick={handleNavigation}
                                 >
-                                    <Link href="/gerenciamento">
-                                        <Settings />
-                                        <span>Gerenciamento</span>
+                                    <Link href="/ajudantes">
+                                        <Users />
+                                        <span>Ajudantes</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                             <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname === '/importar'}
+                                    tooltip="Importar"
+                                    onClick={handleNavigation}
+                                >
+                                    <Link href="/importar">
+                                        <UploadCloud />
+                                        <span>Importar</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

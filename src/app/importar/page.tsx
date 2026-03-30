@@ -3,20 +3,19 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { HelpersCard } from '@/components/app/home/HelpersCard';
 import { ImportCard } from '@/components/app/home/ImportCard';
 import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, doc, where } from 'firebase/firestore';
+import { collection, query, doc } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 import { fetchCsvFromUrl } from '@/app/actions';
 import { PerformingUser } from '@/lib/audit-log-services';
-import type { Name, FieldGroup, UserProfile, Helper, ImportedName, ImportUpdate, ImportPreview } from '@/lib/types';
-import { Settings } from 'lucide-react';
+import type { Name, FieldGroup, UserProfile, ImportedName, ImportUpdate, ImportPreview } from '@/lib/types';
+import { UploadCloud } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export default function GerenciamentoPage() {
+export default function ImportarPage() {
     const { toast } = useToast();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
@@ -63,7 +62,7 @@ export default function GerenciamentoPage() {
         }
     }, [isUserLoading, profileLoading, user, isAdmin, router, toast]);
 
-    // Data fetching (helpers, names, groups - needed for import logic)
+    // Data fetching (names, groups - needed for import logic)
     const namesQuery = useMemoFirebase(() => {
         if (!dataOwnerId || !firestore) return null;
         return query(collection(firestore, 'users', dataOwnerId, 'names'));
@@ -77,13 +76,6 @@ export default function GerenciamentoPage() {
     }, [dataOwnerId, firestore]);
     const { data: fieldGroupsData, isLoading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
     const fieldGroups = fieldGroupsData || [];
-
-    const helpersQuery = useMemoFirebase(() => {
-        if (!user || !firestore || !isAdmin) return null;
-        return query(collection(firestore, 'users'), where('adminId', '==', user.uid));
-    }, [user, firestore, isAdmin]);
-    const { data: helpersData, isLoading: helpersLoading } = useCollection<Helper>(helpersQuery);
-    const helpers = helpersData || [];
     
     // State for import functionality
     const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
@@ -569,7 +561,7 @@ export default function GerenciamentoPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAdmin, userProfile, names.length]);
 
-    const isLoading = isUserLoading || profileLoading || namesLoading || groupsLoading || helpersLoading;
+    const isLoading = isUserLoading || profileLoading || namesLoading || groupsLoading;
 
     if (isLoading || !isAdmin) {
         return (
@@ -583,12 +575,11 @@ export default function GerenciamentoPage() {
         <div className="container mx-auto p-4 sm:p-6 md:p-8">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
                 <h1 className="text-3xl font-bold flex items-center gap-3">
-                    <Settings className="h-8 w-8 text-primary" />
-                    Gerenciamento
+                    <UploadCloud className="h-8 w-8 text-primary" />
+                    Importar / Sincronizar
                 </h1>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                <HelpersCard ownerId={user.uid} helpers={helpers} performingUser={performingUser} />
+            <div className="max-w-md mx-auto">
                 <ImportCard
                     onImportClick={() => fileInputRef.current?.click()}
                     onImportVisitsClick={() => visitsFileInputRef.current?.click()}
