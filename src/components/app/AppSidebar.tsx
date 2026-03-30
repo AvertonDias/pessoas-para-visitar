@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import type { UserProfile } from '@/lib/types';
+import { doc } from 'firebase/firestore';
 
 import {
   Sidebar,
@@ -14,7 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Users, BarChart, History, LogOut } from 'lucide-react';
+import { Users, BarChart, History, LogOut, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
@@ -22,6 +24,14 @@ export function AppSidebar() {
     const pathname = usePathname();
     const auth = useAuth();
     const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+    const isAdmin = userProfile?.role !== 'helper';
 
     const handleSignOut = async () => {
         if (auth) {
@@ -38,7 +48,7 @@ export function AppSidebar() {
         return name.substring(0, 2).toUpperCase();
     };
 
-    if (isUserLoading) {
+    if (isUserLoading || profileLoading) {
         return null;
     }
     
@@ -103,6 +113,20 @@ export function AppSidebar() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    {isAdmin && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={pathname === '/gerenciamento'}
+                                tooltip="Gerenciamento"
+                            >
+                                <Link href="/gerenciamento">
+                                    <Settings />
+                                    <span>Gerenciamento</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
                 </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
