@@ -73,6 +73,7 @@ export default function AjudantesPage() {
                         repeatType: 'reverse',
                         ease: 'easeInOut',
                     }}
+                    className="bg-card p-6 rounded-2xl shadow-lg"
                 >
                     <Image
                         src="/icons/Logo.png"
@@ -82,7 +83,7 @@ export default function AjudantesPage() {
                         priority
                     />
                 </motion.div>
-                <p className="text-lg text-muted-foreground mt-4">Carregando...</p>
+                <p className="text-lg text-muted-foreground mt-8">Carregando...</p>
             </div>
         );
     }

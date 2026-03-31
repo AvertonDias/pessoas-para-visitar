@@ -310,6 +310,7 @@ export default function Home() {
                     repeatType: 'reverse',
                     ease: 'easeInOut',
                 }}
+                className="bg-card p-6 rounded-2xl shadow-lg"
             >
                 <Image
                     src="/icons/Logo.png"
@@ -319,7 +320,7 @@ export default function Home() {
                     priority
                 />
             </motion.div>
-            <p className="text-lg text-muted-foreground mt-4">Carregando...</p>
+            <p className="text-lg text-muted-foreground mt-8">Carregando...</p>
         </div>
       )
   }

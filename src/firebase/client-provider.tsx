@@ -4,6 +4,7 @@ import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 function MissingApiKeyMessage() {
   return (
@@ -165,16 +166,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   // we can show a loading state.
   if (!firebaseServices) {
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
-            backgroundColor: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
-            fontFamily: 'sans-serif'
-        }}>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
             <motion.div
                 initial={{ scale: 0.95, opacity: 0.8 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -184,15 +176,17 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
                     repeatType: 'reverse',
                     ease: 'easeInOut',
                 }}
+                className="bg-card p-6 rounded-2xl shadow-lg"
             >
-                <img
+                <Image
                     src="/icons/Logo.png"
                     alt="Carregando..."
-                    width="250"
-                    height="250"
+                    width={250}
+                    height={250}
+                    priority
                 />
             </motion.div>
-            <p style={{fontSize: '1.2rem', marginTop: '1rem'}}>Carregando...</p>
+            <p className="text-lg text-muted-foreground mt-8">Carregando...</p>
         </div>
     );
   }
