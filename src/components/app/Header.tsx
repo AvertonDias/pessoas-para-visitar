@@ -21,7 +21,7 @@ export function Header() {
         <SidebarTrigger className="md:hidden"/>
         <Link href="/" className="flex items-center gap-3 text-foreground hover:text-foreground/90 no-underline">
           <Image
-            src="/icons/logo.png"
+            src="/icons/Logo.png"
             alt="Pessoas para visitar logo"
             width={40}
             height={40}

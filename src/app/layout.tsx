@@ -25,8 +25,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
         <meta name="theme-color" content="#2263DB" />
-        <link rel="apple-touch-icon" href="/icons/logo.png" />
-        <link rel="icon" href="/icons/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/Logo.png" />
+        <link rel="icon" href="/icons/Logo.png" type="image/png" />
       </head>
       <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>
