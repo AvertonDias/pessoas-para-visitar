@@ -6,7 +6,7 @@ import { collection, query, doc } from 'firebase/firestore';
 import type { Name, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, FileText } from 'lucide-react';
-import { subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { subMonths, startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -166,7 +166,8 @@ export default function StatsPage() {
         headStyles: { fillColor: [34, 99, 219] },
     });
     
-    doc.output('dataurlnewwindow');
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    doc.save(`relatorio-estatisticas-${dateStr}.pdf`);
   };
 
   if (isLoading) {

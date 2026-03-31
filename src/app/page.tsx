@@ -291,7 +291,9 @@ export default function Home() {
       }
     });
 
-    doc.output('dataurlnewwindow');
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    doc.save(`relatorio-nomes-${dateStr}.pdf`);
+    
     setIsPdfDialogOpen(false);
   };
 
