@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import * as services from '@/lib/firebase-services';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 type AuditLog = {
     id: string;
@@ -102,6 +104,32 @@ export default function HistoryPage() {
     return name.substring(0, 2).toUpperCase();
   };
 
+  if (isLoading) {
+      return (
+          <div className="flex min-h-screen flex-col bg-background items-center justify-center">
+              <motion.div
+                  initial={{ scale: 0.95, opacity: 0.8 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      repeatType: 'reverse',
+                      ease: 'easeInOut',
+                  }}
+              >
+                  <Image
+                      src="/icons/Logo.png"
+                      alt="Carregando..."
+                      width={96}
+                      height={96}
+                      priority
+                  />
+              </motion.div>
+              <p className="text-lg text-muted-foreground mt-4">Carregando...</p>
+          </div>
+      );
+  }
+
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
@@ -111,11 +139,7 @@ export default function HistoryPage() {
             </h1>
         </div>
 
-        {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-                <p className="text-lg text-muted-foreground">Carregando histórico...</p>
-            </div>
-        ) : logs && logs.length > 0 ? (
+        {logs && logs.length > 0 ? (
             <div className="space-y-4">
                 {logs.map(log => {
                     const ActionIcon = actionIcons[log.action] || Edit;

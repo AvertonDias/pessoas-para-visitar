@@ -9,6 +9,8 @@ import { collection, query, doc, where } from 'firebase/firestore';
 import { PerformingUser } from '@/lib/audit-log-services';
 import type { Helper, UserProfile } from '@/lib/types';
 import { Users } from 'lucide-react';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 export default function AjudantesPage() {
     const { toast } = useToast();
@@ -62,7 +64,25 @@ export default function AjudantesPage() {
     if (isLoading || !isAdmin) {
         return (
             <div className="flex min-h-screen flex-col bg-background items-center justify-center">
-                <p className="text-lg text-muted-foreground">Carregando...</p>
+                <motion.div
+                    initial={{ scale: 0.95, opacity: 0.8 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        repeatType: 'reverse',
+                        ease: 'easeInOut',
+                    }}
+                >
+                    <Image
+                        src="/icons/Logo.png"
+                        alt="Carregando..."
+                        width={96}
+                        height={96}
+                        priority
+                    />
+                </motion.div>
+                <p className="text-lg text-muted-foreground mt-4">Carregando...</p>
             </div>
         );
     }

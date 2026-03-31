@@ -3,6 +3,7 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
+import { motion } from 'framer-motion';
 
 function MissingApiKeyMessage() {
   return (
@@ -170,11 +171,28 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
             alignItems: 'center',
             justifyContent: 'center',
             height: '100vh',
-            backgroundColor: '#EBF3F8',
-            color: '#333',
+            backgroundColor: 'hsl(var(--background))',
+            color: 'hsl(var(--foreground))',
             fontFamily: 'sans-serif'
         }}>
-            <p style={{fontSize: '1.2rem'}}>Carregando...</p>
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0.8 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    repeatType: 'reverse',
+                    ease: 'easeInOut',
+                }}
+            >
+                <img
+                    src="/icons/Logo.png"
+                    alt="Carregando..."
+                    width="96"
+                    height="96"
+                />
+            </motion.div>
+            <p style={{fontSize: '1.2rem', marginTop: '1rem'}}>Carregando...</p>
         </div>
     );
   }

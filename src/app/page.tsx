@@ -19,6 +19,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PerformingUser } from '@/lib/audit-log-services';
 import type { Name, FieldGroup, UserProfile } from '@/lib/types';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 declare module 'jspdf' {
     interface jsPDF {
@@ -297,7 +299,25 @@ export default function Home() {
   if (isLoading || !isClient) {
       return (
         <div className="flex min-h-screen flex-col bg-background items-center justify-center">
-            <p className="text-lg text-muted-foreground">Carregando...</p>
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0.8 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    repeatType: 'reverse',
+                    ease: 'easeInOut',
+                }}
+            >
+                <Image
+                    src="/icons/Logo.png"
+                    alt="Carregando..."
+                    width={96}
+                    height={96}
+                    priority
+                />
+            </motion.div>
+            <p className="text-lg text-muted-foreground mt-4">Carregando...</p>
         </div>
       )
   }
@@ -305,13 +325,15 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        <div className="lg:col-span-3 space-y-8">
+        <div className="lg:col-span-1 space-y-8 lg:sticky lg:top-24 self-start">
           <ManageNamesCard
             onAddNameClick={() => setIsAddDialogOpen(true)}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             onGeneratePdfClick={() => setIsPdfDialogOpen(true)}
           />
+        </div>
+        <div className="lg:col-span-2">
           <NameListCard
             names={names}
             filteredNames={filteredNames}
