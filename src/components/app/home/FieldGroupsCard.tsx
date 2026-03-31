@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Check, X, Plus, Tag } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,14 +71,8 @@ export function FieldGroupsCard({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Tag className="h-5 w-5 text-primary" />
-          <span>Grupos de Campo</span>
-        </CardTitle>
-        <CardDescription>Gerencie os grupos para organizar sua lista.</CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
+        <p className="text-sm text-muted-foreground mb-4">Gerencie os grupos para organizar sua lista.</p>
         {isAdmin && (
           <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
             <Input
