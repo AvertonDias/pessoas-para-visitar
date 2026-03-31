@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Users, Trash2, Link as LinkIcon, Copy, Loader2 } from 'lucide-react';
+import { Trash2, Link as LinkIcon, Copy, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import * as services from '@/lib/firebase-services';
@@ -86,14 +86,10 @@ export function HelpersCard({ ownerId, helpers, performingUser }: HelpersCardPro
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <span>Gerenciar Ajudantes</span>
-          </CardTitle>
-          <CardDescription>Gere um link para convidar ajudantes para sua lista.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            Gere um link de uso único para convidar alguém para visualizar e editar sua lista de nomes.
+          </p>
           <Button onClick={handleGenerateLink} disabled={isGenerating} className="w-full">
             {isGenerating ? (
               <Loader2 className="animate-spin" />
@@ -103,37 +99,39 @@ export function HelpersCard({ ownerId, helpers, performingUser }: HelpersCardPro
             Gerar link de convite
           </Button>
 
-          <div className="space-y-2 mt-4 max-h-60 overflow-y-auto pr-1">
+          <div className="space-y-2 mt-6">
             <h3 className="text-sm font-medium text-muted-foreground">Ajudantes Atuais</h3>
             {helpers.length > 0 ? (
-              helpers.map((helper) => (
-                <div key={helper.id} className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
-                  <span className="text-sm font-medium truncate" title={helper.name || helper.email}>{helper.name || helper.email}</span>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover ajudante ${helper.name || helper.email}`}>
-                        <Trash2 className="h-4 w-4 text-destructive/70" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmar Remoção</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja remover {helper.name || helper.email} como ajudante? O acesso será revogado imediatamente.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleRemoveHelper(helper)}>Remover</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              ))
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1 rounded-md border p-2">
+                {helpers.map((helper) => (
+                  <div key={helper.id} className="flex items-center justify-between gap-2 p-2 rounded-md bg-background">
+                    <span className="text-sm font-medium truncate" title={helper.name || helper.email}>{helper.name || helper.email}</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" aria-label={`Remover ajudante ${helper.name || helper.email}`}>
+                          <Trash2 className="h-4 w-4 text-destructive/70" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar Remoção</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover {helper.name || helper.email} como ajudante? O acesso será revogado imediatamente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleRemoveHelper(helper)}>Remover</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p className="text-sm text-center text-muted-foreground py-4">
-                Nenhum ajudante convidado.
-              </p>
+              <div className="text-sm text-center text-muted-foreground py-4 border rounded-md">
+                <p>Nenhum ajudante convidado.</p>
+              </div>
             )}
           </div>
         </CardContent>
