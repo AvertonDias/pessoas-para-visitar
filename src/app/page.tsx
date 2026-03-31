@@ -289,7 +289,7 @@ export default function Home() {
       }
     });
 
-    doc.save(`lista-nomes-${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.output('dataurlnewwindow');
     setIsPdfDialogOpen(false);
   };
 

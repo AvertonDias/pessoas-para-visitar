@@ -164,7 +164,7 @@ export default function StatsPage() {
         headStyles: { fillColor: [34, 99, 219] },
     });
     
-    doc.save(`estatisticas-lista-nomes-${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.output('dataurlnewwindow');
   };
 
   if (isLoading) {
