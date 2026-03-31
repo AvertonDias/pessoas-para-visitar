@@ -140,6 +140,7 @@ export default function HistoryPage() {
                       width={250}
                       height={250}
                       priority
+                      unoptimized
                   />
               </motion.div>
               <p className="text-lg text-muted-foreground mt-8">Carregando...</p>

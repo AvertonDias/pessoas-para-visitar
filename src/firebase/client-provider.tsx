@@ -124,7 +124,7 @@ function InvalidApiKeyMessage() {
             <p style={{marginTop: '0.5rem'}}>
                 Se você está vendo este erro no seu computador local (<code>localhost</code>), verifique seu arquivo <code>.env.local</code>.
             </p>
-            <ol style={{ marginTop: '0.75rem', listStyle: 'decimal', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <ol style={{ marginTop: '0.5rem', listStyle: 'decimal', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <li>
                 Confira se o valor de <code>NEXT_PUBLIC_FIREBASE_API_KEY</code> está copiado <strong>exatamente</strong> como aparece no seu painel do Firebase, sem espaços ou caracteres extras.
               </li>
@@ -183,6 +183,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
                     width={250}
                     height={250}
                     priority
+                    unoptimized
                 />
             </motion.div>
             <p className="text-lg text-muted-foreground mt-8">Carregando...</p>
