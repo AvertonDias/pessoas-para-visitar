@@ -10,7 +10,6 @@ import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon } 
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -112,17 +111,6 @@ export default function HistoryPage() {
     });
   };
 
-  const getInitials = (name: string) => {
-    if (!name) return '?';
-    const trimmedName = name.trim();
-    if (!trimmedName) return '?';
-    const names = trimmedName.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-    }
-    return trimmedName.substring(0, 2).toUpperCase();
-  };
-
   if (isLoading || !isAdmin) {
       return (
           <div className="flex min-h-screen flex-col bg-background items-center justify-center">
@@ -167,9 +155,6 @@ export default function HistoryPage() {
                     return (
                         <Card key={log.id} className="p-4">
                             <div className="flex items-start gap-4">
-                                <Avatar>
-                                    <AvatarFallback>{getInitials(log.userName)}</AvatarFallback>
-                                </Avatar>
                                 <div className="flex-grow">
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                         <span className="font-semibold text-foreground">{log.userName}</span>
