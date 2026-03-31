@@ -29,9 +29,11 @@ export default function GruposPage() {
     const isAdmin = useMemo(() => userProfile?.role !== 'helper', [userProfile]);
     const dataOwnerId = useMemo(() => {
         if (!user) return null;
-        // A helper can't manage groups, so we only care about the admin's data.
+        if (userProfile?.role === 'helper' && userProfile.adminId) {
+            return userProfile.adminId;
+        }
         return user.uid;
-    }, [user]);
+    }, [user, userProfile]);
 
     const performingUser: PerformingUser | null = useMemo(() => {
         if (!user || !userProfile) return null;
@@ -41,21 +43,14 @@ export default function GruposPage() {
         };
     }, [user, userProfile]);
 
-    // Redirect if not admin or loading
+    // Redirect if not logged in
     useEffect(() => {
         if (!isUserLoading && !profileLoading) {
             if (!user) {
                 router.replace('/login');
-            } else if (!isAdmin) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Acesso negado',
-                    description: 'Você não tem permissão para acessar esta página.',
-                });
-                router.replace('/');
             }
         }
-    }, [isUserLoading, profileLoading, user, isAdmin, router, toast]);
+    }, [isUserLoading, profileLoading, user, router]);
 
     // Data fetching
     const namesQuery = useMemoFirebase(() => {
@@ -151,7 +146,7 @@ export default function GruposPage() {
 
     const isLoading = isUserLoading || profileLoading || namesLoading || groupsLoading;
 
-    if (isLoading || !isAdmin) {
+    if (isLoading) {
         return (
             <div className="flex min-h-screen flex-col bg-background items-center justify-center">
                 <motion.div

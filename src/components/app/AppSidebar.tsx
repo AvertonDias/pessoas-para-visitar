@@ -113,13 +113,13 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            isActive={pathname === '/history'}
-                            tooltip="Histórico"
+                            isActive={pathname === '/grupos'}
+                            tooltip="Grupos"
                             onClick={handleNavigation}
                         >
-                            <Link href="/history">
-                                <History />
-                                <span>Histórico</span>
+                            <Link href="/grupos">
+                                <Tag />
+                                <span>Grupos</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -128,13 +128,13 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
-                                    isActive={pathname === '/grupos'}
-                                    tooltip="Grupos"
+                                    isActive={pathname === '/history'}
+                                    tooltip="Histórico"
                                     onClick={handleNavigation}
                                 >
-                                    <Link href="/grupos">
-                                        <Tag />
-                                        <span>Grupos</span>
+                                    <Link href="/history">
+                                        <History />
+                                        <span>Histórico</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

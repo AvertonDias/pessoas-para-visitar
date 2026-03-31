@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
@@ -61,6 +62,7 @@ export default function HistoryPage() {
   const { user, isUserLoading: userLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -76,7 +78,22 @@ export default function HistoryPage() {
     return user.uid;
   }, [user, userProfile]);
   
-  const isAdmin = userProfile?.role === 'admin';
+  const isAdmin = useMemo(() => userProfile?.role !== 'helper', [userProfile]);
+
+  useEffect(() => {
+    if (!userLoading && !profileLoading) {
+        if (!user) {
+            router.replace('/login');
+        } else if (!isAdmin) {
+            toast({
+                variant: 'destructive',
+                title: 'Acesso negado',
+                description: 'Você não tem permissão para acessar esta página.',
+            });
+            router.replace('/');
+        }
+    }
+  }, [userLoading, profileLoading, user, isAdmin, router, toast]);
 
   const auditLogsQuery = useMemoFirebase(() => {
     if (!dataOwnerId || !firestore) return null;
@@ -104,7 +121,7 @@ export default function HistoryPage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (isLoading) {
+  if (isLoading || !isAdmin) {
       return (
           <div className="flex min-h-screen flex-col bg-background items-center justify-center">
               <motion.div
