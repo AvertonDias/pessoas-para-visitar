@@ -48,11 +48,13 @@ export function AppSidebar() {
 
     const getInitials = (name: string | null | undefined) => {
         if (!name) return '?';
-        const names = name.split(' ');
+        const trimmedName = name.trim();
+        if (!trimmedName) return '?';
+        const names = trimmedName.split(' ');
         if (names.length > 1) {
             return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
         }
-        return name.substring(0, 2).toUpperCase();
+        return trimmedName.substring(0, 2).toUpperCase();
     };
 
     if (isUserLoading || profileLoading) {
@@ -70,11 +72,11 @@ export function AppSidebar() {
             <SidebarHeader>
                  <div className="flex items-center gap-3">
                     <Avatar>
-                        <AvatarFallback>{getInitials(user?.displayName || user?.email)}</AvatarFallback>
+                        <AvatarFallback>{getInitials(userProfile?.name || user?.displayName || user?.email)}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col overflow-hidden">
                         <span className="text-sm font-semibold text-sidebar-foreground truncate">
-                            {user?.displayName || 'Usuário'}
+                            {userProfile?.name || user?.displayName || 'Usuário'}
                         </span>
                         <span className="text-xs text-sidebar-foreground/70 truncate">
                             {user?.email}
