@@ -158,7 +158,6 @@ export default function GruposPage() {
                         repeatType: 'reverse',
                         ease: 'easeInOut',
                     }}
-                    className="bg-card p-6 rounded-2xl shadow-lg"
                 >
                     <Image
                         src="/icons/Logo.png"
