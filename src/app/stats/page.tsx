@@ -186,8 +186,8 @@ export default function StatsPage() {
               <Image
                   src="/icons/Logo.png"
                   alt="Carregando..."
-                  width={128}
-                  height={128}
+                  width={250}
+                  height={250}
                   priority
               />
           </motion.div>
