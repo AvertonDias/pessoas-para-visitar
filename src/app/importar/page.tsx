@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { ImportCard } from '@/components/app/home/ImportCard';
 import { ImportConfirmationDialog } from '@/components/app/home/ImportConfirmationDialog';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
@@ -11,11 +10,14 @@ import * as services from '@/lib/firebase-services';
 import { fetchCsvFromUrl } from '@/app/actions';
 import { PerformingUser } from '@/lib/audit-log-services';
 import type { Name, FieldGroup, UserProfile, ImportedName, ImportUpdate, ImportPreview } from '@/lib/types';
-import { UploadCloud } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, CalendarPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function ImportarPage() {
     const { toast } = useToast();
@@ -600,15 +602,54 @@ export default function ImportarPage() {
                     Importar / Sincronizar
                 </h1>
             </div>
-            <div className="max-w-md mx-auto">
-                <ImportCard
-                    onImportClick={() => fileInputRef.current?.click()}
-                    onImportVisitsClick={() => visitsFileInputRef.current?.click()}
-                    onImportFromUrl={() => handleImportFromUrl()}
-                    isImportingFromUrl={isImportingFromUrl}
-                    importUrl={importUrl}
-                    setImportUrl={setImportUrl}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <UploadCloud className="h-5 w-5 text-primary" />
+                            <span>Importar de Arquivo</span>
+                        </CardTitle>
+                        <CardDescription>Envie um arquivo .csv do seu computador para uma carga completa ou apenas para adicionar visitas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Button onClick={() => fileInputRef.current?.click()} className="w-full">
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Importação Completa (CSV)
+                        </Button>
+                        
+                        <Button onClick={() => visitsFileInputRef.current?.click()} variant="outline" className="w-full">
+                            <CalendarPlus className="mr-2 h-4 w-4" />
+                            Importar Apenas Datas de Visita
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <LinkIcon className="h-5 w-5 text-primary" />
+                            <span>Sincronizar de Link</span>
+                        </CardTitle>
+                        <CardDescription>Sincronize sua lista a partir de um link público de CSV (Google Sheets, etc.)</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Input
+                            placeholder="Cole o link do CSV aqui"
+                            value={importUrl}
+                            onChange={(e) => setImportUrl(e.target.value)}
+                            disabled={isImportingFromUrl}
+                            aria-label="Link para o arquivo CSV"
+                        />
+                        <Button onClick={() => handleImportFromUrl()} disabled={isImportingFromUrl || !importUrl} className="w-full">
+                            {isImportingFromUrl ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <LinkIcon className="mr-2 h-4 w-4" />
+                            )}
+                            Sincronizar do Link
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
 
             <input
