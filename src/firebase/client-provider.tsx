@@ -188,8 +188,8 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
                 <img
                     src="/icons/Logo.png"
                     alt="Carregando..."
-                    width="96"
-                    height="96"
+                    width="128"
+                    height="128"
                 />
             </motion.div>
             <p style={{fontSize: '1.2rem', marginTop: '1rem'}}>Carregando...</p>

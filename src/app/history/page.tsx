@@ -137,8 +137,8 @@ export default function HistoryPage() {
                   <Image
                       src="/icons/Logo.png"
                       alt="Carregando..."
-                      width={96}
-                      height={96}
+                      width={128}
+                      height={128}
                       priority
                   />
               </motion.div>
