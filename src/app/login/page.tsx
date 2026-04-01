@@ -90,12 +90,11 @@ export default function LoginPage() {
               }}
           >
               <Image
-                  src="https://drive.google.com/uc?export=download&id=1fRDR30FHWH9R8Ld9bub4G0xOMyVGWWKr"
+                  src="/icons/Icon.png"
                   alt="Logotipo do aplicativo"
                   width={250}
                   height={250}
                   priority
-                  unoptimized
               />
           </motion.div>
           <p className="text-lg text-muted-foreground mt-8">Carregando...</p>

@@ -50,12 +50,11 @@ export function Header() {
         <SidebarTrigger className="md:hidden" aria-label="Menu retrátil" />
         <Link href="/" className="flex items-center gap-3 text-foreground hover:text-foreground/90 no-underline">
           <Image
-            src="https://drive.google.com/uc?export=download&id=1fRDR30FHWH9R8Ld9bub4G0xOMyVGWWKr"
+            src="/icons/Icon.png"
             alt="Pessoas para visitar logo"
             width={40}
             height={40}
             className="h-8 w-8 sm:h-10 sm:w-10"
-            unoptimized
           />
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Pessoas para visitar
