@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Download } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // The type for the BeforeInstallPromptEvent is not in the default DOM typings.
 interface BeforeInstallPromptEvent extends Event {
@@ -17,7 +24,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function InstallPwaBanner() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -25,9 +32,13 @@ export function InstallPwaBanner() {
       event.preventDefault();
       // Stash the event so it can be triggered later.
       setInstallPrompt(event as BeforeInstallPromptEvent);
-      // Show the banner if not already installed
-      if (!window.matchMedia('(display-mode: standalone)').matches && !(window.navigator as any).standalone) {
-        setIsVisible(true);
+      
+      const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      if (!isInStandaloneMode) {
+        // Use a timeout to delay the prompt slightly, making it less intrusive
+        setTimeout(() => {
+            setIsOpen(true);
+        }, 3000);
       }
     };
 
@@ -41,47 +52,42 @@ export function InstallPwaBanner() {
   const handleInstallClick = async () => {
     if (!installPrompt) return;
     
-    // Show the prompt
+    // Show the browser's installation prompt
     await installPrompt.prompt();
     
     // Wait for the user to respond to the prompt.
-    // We don't need to do anything with the result, but this is how you can track it.
     await installPrompt.userChoice;
     
-    // We've used the prompt, and can't use it again, so clear it
+    // We've used the prompt, and can't use it again, so clear it.
     setInstallPrompt(null);
-    setIsVisible(false);
-  };
-  
-  const handleDismiss = () => {
-    setIsVisible(false);
+    setIsOpen(false);
   };
 
-  if (!isVisible) {
-    return null;
-  }
+  const handleDismiss = () => {
+    setIsOpen(false);
+  };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-8 duration-500">
-        <Card className="max-w-sm bg-background/95 backdrop-blur-sm shadow-2xl">
-            <CardHeader className="p-4 pb-2 relative">
-                 <CardTitle className="text-lg flex items-center gap-2">
-                    <Download className="h-5 w-5 text-primary" />
-                    <span>Instalar Aplicativo</span>
-                 </CardTitle>
-                 <CardDescription className="text-sm pt-1">
-                    Adicione à sua tela inicial para acesso rápido e offline.
-                 </CardDescription>
-                 <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={handleDismiss} aria-label="Dispensar">
-                    <X className="h-4 w-4" />
-                 </Button>
-            </CardHeader>
-            <CardContent className="p-4 pt-2">
-                 <Button onClick={handleInstallClick} className="w-full">
-                    Instalar
-                </Button>
-            </CardContent>
-        </Card>
-    </div>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Download className="h-5 w-5 text-primary" />
+            <span>Instalar Aplicativo</span>
+          </DialogTitle>
+          <DialogDescription>
+            Para uma melhor experiência, instale o aplicativo em seu dispositivo. Tenha acesso rápido e funcionalidades offline.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-end gap-2">
+          <Button variant="outline" onClick={handleDismiss}>
+            Agora não
+          </Button>
+          <Button onClick={handleInstallClick}>
+            Instalar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
