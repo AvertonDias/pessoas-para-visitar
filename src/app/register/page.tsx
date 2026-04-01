@@ -133,8 +133,8 @@ function RegisterForm() {
               }}
           >
               <Image
-                  src="/icons/Logo.png"
-                  alt="Carregando..."
+                  src="https://drive.google.com/uc?export=download&id=1fRDR30FHWH9R8Ld9bub4G0xOMyVGWWKr"
+                  alt="Logotipo do aplicativo"
                   width={250}
                   height={250}
                   priority
