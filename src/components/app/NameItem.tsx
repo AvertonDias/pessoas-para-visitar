@@ -70,7 +70,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
     if (!latest) return visit;
     const latestDate = new Date(latest.date);
     const visitDate = new Date(visit.date);
-    return isAfter(visitDate, latest) ? visit : latest;
+    return isAfter(visitDate, latestDate) ? visit : latest;
   }, null);
 
   const handleUpdate = () => {
