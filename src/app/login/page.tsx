@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { HandHeart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -107,10 +106,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <div className="flex justify-center mb-4">
-            <HandHeart className="h-12 w-12 text-primary" />
+            <Image
+                src="/icons/Icon.png"
+                alt="Logotipo do aplicativo"
+                width={48}
+                height={48}
+                priority
+            />
         </div>
           <CardTitle className="text-2xl">Bem-vindo de volta!</CardTitle>
-          <CardDescription>Faça login para continuar no ListaNomes.</CardDescription>
+          <CardDescription>Faça login para continuar no Visitas.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningIn}>
