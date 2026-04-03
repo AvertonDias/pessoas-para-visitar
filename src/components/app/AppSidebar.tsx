@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -37,6 +37,7 @@ import { Users, BarChart, History, LogOut, UploadCloud, Tag, Loader2 } from 'luc
 
 export function AppSidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const auth = useAuth();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
@@ -88,7 +89,7 @@ export function AppSidebar() {
 
         setIsSaving(true);
         try {
-            await services.updateUserProfile(firestore, user.uid, { name: name.trim() }, performingUser);
+            await services.updateUserProfile(firestore, user.uid, { name: name.trim() });
             toast({
                 title: 'Perfil atualizado',
                 description: 'Seu nome foi alterado com sucesso.',
@@ -111,6 +112,7 @@ export function AppSidebar() {
         if (auth) {
             await signOut(auth);
             setOpenMobile(false);
+            router.push('/login');
         }
     };
 
