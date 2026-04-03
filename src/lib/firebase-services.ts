@@ -148,9 +148,16 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
 export const updateUserProfile = async (db: Firestore, userId: string, profileData: Partial<Omit<UserProfile, 'id'>>, performingUser: PerformingUser) => {
   const userProfileRef = doc(db, 'users', userId);
   try {
+    const oldDocSnap = await getDoc(userProfileRef);
+    const oldName = oldDocSnap.exists() ? (oldDocSnap.data().name || 'Usuário Anônimo') : 'Usuário Anônimo';
+
     await updateDoc(userProfileRef, profileData);
+
     if(profileData.importUrl) {
       logChange(db, userId, performingUser, 'update', 'sync-url', 'URL de Sincronização', `URL alterada para: ${profileData.importUrl}`);
+    }
+    if (profileData.name && profileData.name !== oldName) {
+      logChange(db, userId, performingUser, 'update', 'helper', 'Nome de Perfil', `Nome alterado de "${oldName}" para "${profileData.name}".`);
     }
   } catch (serverError: any) {
     const permissionError = new FirestorePermissionError({

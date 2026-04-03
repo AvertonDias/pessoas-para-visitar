@@ -58,16 +58,18 @@ export function AppSidebar() {
     return (
         <Sidebar>
             <SidebarHeader>
-                 <div className="flex items-center gap-3">
-                    <div className="flex flex-col overflow-hidden">
-                        <span className="text-sm font-semibold text-sidebar-foreground truncate">
-                            {userProfile?.name || user?.displayName || 'Usuário'}
-                        </span>
-                        <span className="text-xs text-sidebar-foreground/70 truncate">
-                            {user?.email}
-                        </span>
-                    </div>
-                 </div>
+                 <Link href="/perfil" className="-m-2 block rounded-lg p-2 outline-none ring-sidebar-ring transition-colors focus-visible:ring-2 hover:bg-sidebar-accent" onClick={handleNavigation}>
+                     <div className="flex items-center gap-3">
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="text-sm font-semibold text-sidebar-foreground truncate">
+                                {userProfile?.name || user?.displayName || 'Usuário'}
+                            </span>
+                            <span className="text-xs text-sidebar-foreground/70 truncate">
+                                {user?.email}
+                            </span>
+                        </div>
+                     </div>
+                </Link>
             </SidebarHeader>
             <SidebarContent>
                 <SidebarMenu>
