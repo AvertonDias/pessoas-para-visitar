@@ -18,7 +18,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Users, BarChart, History, LogOut, UploadCloud, Tag } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
 export function AppSidebar() {
@@ -46,17 +45,6 @@ export function AppSidebar() {
         setOpenMobile(false);
     };
 
-    const getInitials = (name: string | null | undefined) => {
-        if (!name) return '?';
-        const trimmedName = name.trim();
-        if (!trimmedName) return '?';
-        const names = trimmedName.split(' ');
-        if (names.length > 1) {
-            return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-        }
-        return trimmedName.substring(0, 2).toUpperCase();
-    };
-
     if (isUserLoading || profileLoading) {
         return null;
     }
@@ -71,9 +59,6 @@ export function AppSidebar() {
         <Sidebar>
             <SidebarHeader>
                  <div className="flex items-center gap-3">
-                    <Avatar>
-                        <AvatarFallback>{getInitials(userProfile?.name || user?.displayName || user?.email)}</AvatarFallback>
-                    </Avatar>
                     <div className="flex flex-col overflow-hidden">
                         <span className="text-sm font-semibold text-sidebar-foreground truncate">
                             {userProfile?.name || user?.displayName || 'Usuário'}
