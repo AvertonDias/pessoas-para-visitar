@@ -127,7 +127,7 @@ export default function LoginPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-card px-2 text-muted-foreground">
                 Ou com e-mail
               </span>
             </div>
@@ -162,12 +162,19 @@ export default function LoginPage() {
             </Button>
           </form>
           
-          <div className="mt-4 text-center text-sm">
-            Não tem uma conta?{" "}
-            <Link href="/register" className="underline">
-              Crie um acesso permanente
-            </Link>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Não tem uma conta?
+              </span>
+            </div>
           </div>
+           <Button variant="secondary" className="w-full" asChild>
+              <Link href="/register">Criar conta</Link>
+            </Button>
         </CardContent>
       </Card>
     </div>

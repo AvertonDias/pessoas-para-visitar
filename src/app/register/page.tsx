@@ -249,7 +249,7 @@ function RegisterForm() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
+            <span className="bg-card px-2 text-muted-foreground">
               Ou crie com
             </span>
           </div>
@@ -259,12 +259,19 @@ function RegisterForm() {
           Google
         </Button>
 
-        <div className="mt-4 text-center text-sm">
-          Já tem uma conta?{" "}
-          <Link href="/login" className="underline">
-            Faça login
-          </Link>
-        </div>
+        <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Já tem uma conta?
+              </span>
+            </div>
+          </div>
+           <Button variant="secondary" className="w-full" asChild>
+              <Link href="/login">Faça login</Link>
+            </Button>
       </CardContent>
     </Card>
   );
