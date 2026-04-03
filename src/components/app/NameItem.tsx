@@ -290,11 +290,16 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                             return (
                                 <div key={visit.id} className="text-sm p-2 bg-secondary/50 rounded-md">
                                     <div className="flex items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2 flex-grow min-w-0">
-                                            <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <div className="flex items-start sm:items-center gap-2 flex-grow min-w-0">
+                                            <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1 sm:mt-0" />
                                             <div className="truncate">
                                                 <span className="font-medium text-foreground">{format(new Date(visit.date), "PPP", { locale: ptBR })}</span>
-                                                {visit.visitors && <span className="text-muted-foreground"> - {visit.visitors}</span>}
+                                                {visit.visitors && (
+                                                    <span className="block sm:inline-block text-muted-foreground text-xs sm:text-sm">
+                                                        <span className="hidden sm:inline"> - </span>
+                                                        {visit.visitors}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center flex-shrink-0">
