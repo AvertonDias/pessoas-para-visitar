@@ -115,7 +115,7 @@ export default function LoginPage() {
             />
         </div>
           <CardTitle className="text-2xl">Bem-vindo de volta!</CardTitle>
-          <CardDescription>Faça login para continuar no Visitas.</CardDescription>
+          <CardDescription>Faça login para cadastrar as Visitas.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSigningIn}>
