@@ -10,7 +10,7 @@ import { Header } from '@/components/app/Header';
 export const metadata: Metadata = {
   title: 'Pessoas para visitar',
   description: 'Um PWA para criar e gerenciar listas de pessoas para visitar.',
-  manifest: '/manifest.json?v=2',
+  manifest: '/manifest.json?v=3',
 };
 
 export default function RootLayout({
