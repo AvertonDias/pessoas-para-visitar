@@ -19,6 +19,7 @@ export const logChange = (
     performingUser: PerformingUser,
     action: AuditLogAction,
     entityType: AuditLogEntityType,
+    entityId: string,
     entityName: string,
     details?: string
 ) => {
@@ -28,6 +29,7 @@ export const logChange = (
         userName: performingUser.name,
         action,
         entityType,
+        entityId,
         entityName,
         details: details || '',
         timestamp: serverTimestamp(),

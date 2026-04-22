@@ -33,6 +33,7 @@ type AuditLog = {
     userName: string;
     action: 'create' | 'update' | 'delete' | 'import';
     entityType: 'name' | 'group' | 'visit' | 'helper' | 'sync-url';
+    entityId: string;
     entityName: string;
     details: string;
     timestamp: {
@@ -110,6 +111,38 @@ export default function HistoryPage() {
         description: 'O registro do histórico foi removido.',
     });
   };
+  
+  const handleLogClick = (log: AuditLog) => {
+    if (log.action === 'delete') {
+      toast({
+        title: "Item Excluído",
+        description: "Não é possível navegar para um item que foi excluído.",
+      });
+      return;
+    }
+
+    switch (log.entityType) {
+        case 'name':
+        case 'visit':
+            if (log.action !== 'import') {
+                router.push('/');
+            } else {
+                router.push('/importar');
+            }
+            break;
+        case 'group':
+            router.push('/grupos');
+            break;
+        case 'helper':
+            router.push('/ajudantes');
+            break;
+        case 'sync-url':
+            router.push('/importar');
+            break;
+        default:
+            break;
+    }
+};
 
   if (isLoading || !isAdmin) {
       return (
@@ -152,8 +185,12 @@ export default function HistoryPage() {
                     const ActionIcon = actionIcons[log.action] || Edit;
                     const EntityIcon = entityTypeIcons[log.entityType] || FileText;
                     return (
-                        <Card key={log.id} className="p-4">
-                            <div className="flex items-start gap-4">
+                        <Card key={log.id} className="p-4 transition-shadow hover:shadow-md">
+                            <div 
+                                className="flex items-start gap-4"
+                                onClick={() => handleLogClick(log)}
+                                style={{ cursor: log.action !== 'delete' ? 'pointer' : 'default' }}
+                            >
                                 <div className="flex-grow">
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                         <span className="font-semibold text-foreground">{log.userName}</span>
@@ -174,6 +211,7 @@ export default function HistoryPage() {
                                         <p className="text-sm text-muted-foreground mt-2 pl-1">{log.details}</p>
                                     )}
                                 </div>
+                                <div onClick={(e) => e.stopPropagation()}>
                                 {isAdmin && (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -195,6 +233,7 @@ export default function HistoryPage() {
                                         </AlertDialogContent>
                                     </AlertDialog>
                                 )}
+                                </div>
                             </div>
                         </Card>
                     );

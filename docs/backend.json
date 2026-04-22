@@ -34,6 +34,10 @@
           ],
           "description": "The type of entity that was changed."
         },
+        "entityId": {
+          "type": "string",
+          "description": "The ID of the entity that was changed."
+        },
         "entityName": {
           "type": "string",
           "description": "The name/text of the entity that was changed, for display."
@@ -52,6 +56,7 @@
         "userName",
         "action",
         "entityType",
+        "entityId",
         "entityName",
         "timestamp"
       ]

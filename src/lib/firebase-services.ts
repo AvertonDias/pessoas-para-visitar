@@ -120,7 +120,7 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
         const adminProfileSnap = await getDoc(doc(db, 'users', adminId));
         const adminProfile = adminProfileSnap.data();
 
-        logChange(db, adminId, {uid: user.uid, name: 'Sistema'}, 'create', 'helper', displayName || user.email || 'Novo Ajudante', 'Aceitou o convite.');
+        logChange(db, adminId, {uid: user.uid, name: 'Sistema'}, 'create', 'helper', user.uid, displayName || user.email || 'Novo Ajudante', 'Aceitou o convite.');
 
         return; // Success
     } catch(commitError) {
@@ -145,14 +145,10 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   }
 };
 
-export const updateUserProfile = async (db: Firestore, userId: string, profileData: Partial<Omit<UserProfile, 'id'>>, performingUser: PerformingUser) => {
+export const updateUserProfile = async (db: Firestore, userId: string, profileData: Partial<Omit<UserProfile, 'id'>>) => {
   const userProfileRef = doc(db, 'users', userId);
   try {
     await updateDoc(userProfileRef, profileData);
-
-    if (profileData.importUrl) {
-      logChange(db, userId, performingUser, 'update', 'sync-url', 'URL de Sincronização', `URL alterada para: ${profileData.importUrl}`);
-    }
   } catch (serverError: any) {
     const permissionError = new FirestorePermissionError({
       path: userProfileRef.path,
@@ -175,8 +171,8 @@ export const addName = (db: Firestore, userId: string, nameData: Omit<Name, 'id'
     visitHistory: [],
   };
   addDoc(namesCollection, data)
-    .then(() => {
-        logChange(db, userId, performingUser, 'create', 'name', nameData.text, `Adicionado ao grupo "${nameData.fieldGroup || 'Sem grupo'}" com status "${nameData.status}".`);
+    .then((docRef) => {
+        logChange(db, userId, performingUser, 'create', 'name', docRef.id, nameData.text, `Adicionado ao grupo "${nameData.fieldGroup || 'Sem grupo'}" com status "${nameData.status}".`);
     })
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -203,7 +199,7 @@ export const updateName = async (db: Firestore, userId: string, nameId: string, 
     const groupMap = new Map(fieldGroups.map(g => [g.id, g.name]));
     const changeDetails = formatChanges(oldData, nameData, groupMap);
     if (changeDetails.length > 0) {
-      logChange(db, userId, performingUser, 'update', 'name', nameData.text || oldData.text, changeDetails.join('; '));
+      logChange(db, userId, performingUser, 'update', 'name', nameId, nameData.text || oldData.text, changeDetails.join('; '));
     }
   } catch (serverError) {
     const permissionError = new FirestorePermissionError({
@@ -222,7 +218,7 @@ export const deleteName = async (db: Firestore, userId: string, nameId: string, 
     if (docSnap.exists()) {
         const nameText = docSnap.data().text;
         await deleteDoc(nameRef);
-        logChange(db, userId, performingUser, 'delete', 'name', nameText);
+        logChange(db, userId, performingUser, 'delete', 'name', nameId, nameText);
     }
   } catch (serverError) {
     const permissionError = new FirestorePermissionError({
@@ -243,8 +239,8 @@ export const addFieldGroup = (db: Firestore, userId: string, groupName: string, 
     createdAt: serverTimestamp(),
   };
   addDoc(groupsCollection, data)
-    .then(() => {
-        logChange(db, userId, performingUser, 'create', 'group', groupName);
+    .then((docRef) => {
+        logChange(db, userId, performingUser, 'create', 'group', docRef.id, groupName);
     })
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -265,7 +261,7 @@ export const updateFieldGroup = async (db: Firestore, userId: string, groupId: s
         const oldName = oldDocSnap.data().name;
         if (oldName !== newName) {
             await updateDoc(groupRef, data);
-            logChange(db, userId, performingUser, 'update', 'group', newName, `Nome alterado de "${oldName}" para "${newName}".`);
+            logChange(db, userId, performingUser, 'update', 'group', groupId, newName, `Nome alterado de "${oldName}" para "${newName}".`);
         }
     }
   } catch (serverError) {
@@ -285,7 +281,7 @@ export const deleteFieldGroup = async (db: Firestore, userId: string, groupId: s
     if (docSnap.exists()) {
         const groupName = docSnap.data().name;
         await deleteDoc(groupRef);
-        logChange(db, userId, performingUser, 'delete', 'group', groupName);
+        logChange(db, userId, performingUser, 'delete', 'group', groupId, groupName);
     }
   } catch (serverError) {
     const permissionError = new FirestorePermissionError({
@@ -343,7 +339,7 @@ export const removeHelper = (db: Firestore, helperId: string, performingUser: Pe
   const data = { role: 'admin', adminId: deleteField() };
   updateDoc(userProfileRef, data)
      .then(() => {
-        logChange(db, performingUser.uid, performingUser, 'delete', 'helper', 'Acesso de Ajudante', `Acesso removido para o usuário ${helperId}.`);
+        logChange(db, performingUser.uid, performingUser, 'delete', 'helper', helperId, `Acesso de ${helperId}`, `Acesso removido para o usuário ${helperId}.`);
      })
      .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -473,7 +469,7 @@ export const batchImportData = async (
   try {
     await Promise.all(batches.map(b => b.commit()));
     const summary = `${toCreate.length} criados, ${toUpdate.length} atualizados, ${newGroups.length} novos grupos.`;
-    logChange(db, userId, performingUser, 'import', 'name', `Importação de ${toCreate.length + toUpdate.length} nomes`, summary);
+    logChange(db, userId, performingUser, 'import', 'name', 'batch-import', `Importação de ${toCreate.length + toUpdate.length} nomes`, summary);
   } catch (error) {
     console.error("Firebase batch commit failed:", error);
     throw error;
@@ -539,7 +535,7 @@ export const batchUpdateVisits = async (
 
   try {
     await Promise.all(batches.map(b => b.commit()));
-    logChange(db, userId, performingUser, 'import', 'visit', `Importação de ${updates.length} visitas`);
+    logChange(db, userId, performingUser, 'import', 'visit', 'batch-import', `Importação de ${updates.length} visitas`);
   } catch (error) {
     console.error("Firebase batch update for visits failed:", error);
     throw error;
