@@ -5,6 +5,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app/AppSidebar';
 import { Header } from '@/components/app/Header';
+import { AppFooter } from '@/components/app/AppFooter';
 
 
 export const metadata: Metadata = {
@@ -34,7 +35,10 @@ export default function RootLayout({
             <AppSidebar />
             <SidebarInset>
               <Header />
-              {children}
+              <main className="flex-1">
+                {children}
+              </main>
+              <AppFooter />
             </SidebarInset>
           </SidebarProvider>
           <Toaster />
