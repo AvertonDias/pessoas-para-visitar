@@ -14,7 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import { processRegistration } from '@/lib/firebase-services';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { AppFooter } from '@/components/app/AppFooter';
 
 function RegisterForm() {
   const app = useFirebaseApp();
@@ -286,28 +285,25 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <main className="flex flex-1 flex-col items-center justify-center p-4">
-        <Suspense fallback={
-          <Card className="w-full max-w-sm">
-            <CardHeader>
-              <div className="flex justify-center mb-4">
-                  <Image
-                      src="/icons/Icon.png"
-                      alt="Logotipo do aplicativo"
-                      width={48}
-                      height={48}
-                      priority
-                  />
-              </div>
-              <CardTitle className="text-2xl">Carregando...</CardTitle>
-            </CardHeader>
-          </Card>
-        }>
-          <RegisterForm />
-        </Suspense>
-      </main>
-      <AppFooter />
+    <div className="flex flex-1 flex-col items-center justify-center p-4">
+      <Suspense fallback={
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+                <Image
+                    src="/icons/Icon.png"
+                    alt="Logotipo do aplicativo"
+                    width={48}
+                    height={48}
+                    priority
+                />
+            </div>
+            <CardTitle className="text-2xl">Carregando...</CardTitle>
+          </CardHeader>
+        </Card>
+      }>
+        <RegisterForm />
+      </Suspense>
     </div>
   );
 }
