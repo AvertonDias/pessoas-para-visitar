@@ -1,19 +1,8 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { useUser } from '@/firebase';
 import { ExternalLink, MessageCircle } from 'lucide-react';
 
 export function AppFooter() {
-    const { user, isUserLoading } = useUser();
-    const pathname = usePathname();
-
-    const isAuthPage = pathname === '/login' || pathname === '/register';
-
-    if (isAuthPage || !user || isUserLoading) {
-        return null;
-    }
-
     const whatsappUrl = `https://wa.me/5535991210466?text=${encodeURIComponent("Preciso de ajuda com o aplicativo Visitas")}`;
 
     return (

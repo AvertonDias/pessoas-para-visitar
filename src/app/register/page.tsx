@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { processRegistration } from '@/lib/firebase-services';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { AppFooter } from '@/components/app/AppFooter';
 
 function RegisterForm() {
   const app = useFirebaseApp();
@@ -258,7 +259,7 @@ function RegisterForm() {
         <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isRegistering}>
             <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.27 1.44-1.14 2.73-2.43 3.57v2.78h3.57c2.18-2 3.44-5.02 3.44-8.63 0-.82-.07-1.62-.2-2.42H12.48z" fill="#4285F4"/><path d="M12.48 24c3.24 0 5.94-1.08 7.92-2.92l-3.57-2.78c-1.08.72-2.46 1.16-4.35 1.16-3.12 0-5.78-2.1-6.73-4.96H2.2v2.86A11.974 11.974 0 0 0 12.48 24z" fill="#34A853"/><path d="M5.75 14.08c-.22-.66-.35-1.36-.35-2.08s.13-1.42.35-2.08V7.06H2.2C1.43 8.52 1 10.2 1 12c0 1.8.43 3.48 1.2 4.94l3.55-2.86z" fill="#FBBC05"/><path d="M12.48 5.4c1.77 0 3.24.67 4.4 1.8l3.15-3.15C18.42 2.18 15.72 1 12.48 1 8.04 1 4.12 3.66 2.2 7.5l3.55 2.86c.94-2.86 3.6-4.96 6.73-4.96z" fill="#EA4335"/></svg>
             <span>
-              Criar com&nbsp;
+              Criar com 
               <span className="font-medium">
                 <span className="text-[#4285F4]">G</span><span className="text-[#EA4335]">o</span><span className="text-[#FBBC05]">o</span><span className="text-[#4285F4]">g</span><span className="text-[#34A853]">l</span><span className="text-[#EA4335]">e</span>
               </span>
@@ -285,25 +286,28 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <Suspense fallback={
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-                <Image
-                    src="/icons/Icon.png"
-                    alt="Logotipo do aplicativo"
-                    width={48}
-                    height={48}
-                    priority
-                />
-            </div>
-            <CardTitle className="text-2xl">Carregando...</CardTitle>
-          </CardHeader>
-        </Card>
-      }>
-        <RegisterForm />
-      </Suspense>
+    <div className="flex min-h-screen flex-col bg-background">
+      <main className="flex flex-1 flex-col items-center justify-center p-4">
+        <Suspense fallback={
+          <Card className="w-full max-w-sm">
+            <CardHeader>
+              <div className="flex justify-center mb-4">
+                  <Image
+                      src="/icons/Icon.png"
+                      alt="Logotipo do aplicativo"
+                      width={48}
+                      height={48}
+                      priority
+                  />
+              </div>
+              <CardTitle className="text-2xl">Carregando...</CardTitle>
+            </CardHeader>
+          </Card>
+        }>
+          <RegisterForm />
+        </Suspense>
+      </main>
+      <AppFooter />
     </div>
   );
 }
