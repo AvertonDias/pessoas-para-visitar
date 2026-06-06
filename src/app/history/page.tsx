@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Card } from '@/components/ui/card';
-import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon, ExternalLink, Calendar, Clock, Info } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import * as services from '@/lib/firebase-services';
 import Image from 'next/image';
@@ -57,12 +65,28 @@ const entityTypeIcons: { [key in AuditLog['entityType']]: React.ElementType } = 
     'sync-url': LinkIcon,
 };
 
+const actionLabels: { [key in AuditLog['action']]: string } = {
+    create: 'Criação',
+    update: 'Atualização',
+    delete: 'Exclusão',
+    import: 'Importação',
+};
+
+const entityLabels: { [key in AuditLog['entityType']]: string } = {
+    name: 'Pessoa',
+    group: 'Grupo',
+    visit: 'Visita',
+    helper: 'Ajudante',
+    'sync-url': 'URL de Sincronização',
+};
 
 export default function HistoryPage() {
   const { user, isUserLoading: userLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -110,9 +134,10 @@ export default function HistoryPage() {
         title: 'Registro excluído',
         description: 'O registro do histórico foi removido.',
     });
+    if (selectedLog?.id === logId) setSelectedLog(null);
   };
   
-  const handleLogClick = (log: AuditLog) => {
+  const handleNavigateToEntity = (log: AuditLog) => {
     if (log.action === 'delete') {
       toast({
         title: "Item Excluído",
@@ -142,6 +167,7 @@ export default function HistoryPage() {
         default:
             break;
     }
+    setSelectedLog(null);
 };
 
   if (isLoading || !isAdmin) {
@@ -180,43 +206,37 @@ export default function HistoryPage() {
         </div>
 
         {logs && logs.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {logs.map(log => {
                     const ActionIcon = actionIcons[log.action] || Edit;
                     const EntityIcon = entityTypeIcons[log.entityType] || FileText;
                     return (
-                        <Card key={log.id} className="p-4 transition-shadow hover:shadow-md">
-                            <div 
-                                className="flex items-start gap-4"
-                                onClick={() => handleLogClick(log)}
-                                style={{ cursor: log.action !== 'delete' ? 'pointer' : 'default' }}
-                            >
-                                <div className="flex-grow">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <Card key={log.id} className="p-4 transition-all hover:bg-secondary/20 cursor-pointer" onClick={() => setSelectedLog(log)}>
+                            <div className="flex items-start gap-4">
+                                <div className={`p-2 rounded-full ${log.action === 'delete' ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                                    <ActionIcon className={`h-5 w-5 ${log.action === 'delete' ? 'text-destructive' : 'text-primary'}`} />
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                                         <span className="font-semibold text-foreground">{log.userName}</span>
                                         <span>&bull;</span>
                                         <span>{formatDistanceToNow(new Date(log.timestamp.seconds * 1000), { addSuffix: true, locale: ptBR })}</span>
                                     </div>
-                                    <p className="font-medium">
-                                        <Badge variant="secondary" className="mr-2 capitalize font-normal">
-                                            <ActionIcon className="h-3 w-3 mr-1.5" />
-                                            {log.action === 'create' ? 'criação' : log.action === 'update' ? 'atualização' : log.action === 'delete' ? 'exclusão' : 'importação'}
-                                        </Badge>
-                                        <Badge variant="outline" className="mr-2 font-normal">
-                                            <EntityIcon className="h-3 w-3 mr-1.5" />
-                                            {log.entityName}
-                                        </Badge>
-                                    </p>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="font-medium text-sm sm:text-base truncate">
+                                            {actionLabels[log.action]} de {entityLabels[log.entityType]}: <span className="text-primary">{log.entityName}</span>
+                                        </p>
+                                    </div>
                                     {log.details && (
-                                        <p className="text-sm text-muted-foreground mt-2 pl-1">{log.details}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{log.details}</p>
                                     )}
                                 </div>
-                                <div onClick={(e) => e.stopPropagation()}>
+                                <div onClick={(e) => e.stopPropagation()} className="flex items-center">
                                 {isAdmin && (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 -mt-1 -mr-1" aria-label="Remover registro do histórico">
-                                                <Trash2 className="h-4 w-4 text-destructive/70" />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Remover registro do histórico">
+                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
@@ -244,6 +264,72 @@ export default function HistoryPage() {
                 <p className="text-lg text-muted-foreground">Nenhuma alteração registrada ainda.</p>
             </div>
         )}
+
+        <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Info className="h-5 w-5 text-primary" />
+                        Detalhes da Alteração
+                    </DialogTitle>
+                    <DialogDescription>
+                        Informações detalhadas sobre a ação realizada no sistema.
+                    </DialogDescription>
+                </DialogHeader>
+
+                {selectedLog && (
+                    <div className="space-y-4 py-2">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <User className="h-3 w-3" /> Realizado por
+                                </Label>
+                                <p className="text-sm font-medium">{selectedLog.userName}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Clock className="h-3 w-3" /> Quando
+                                </Label>
+                                <p className="text-sm font-medium">
+                                    {format(new Date(selectedLog.timestamp.seconds * 1000), "Pp", { locale: ptBR })}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Tag className="h-3 w-3" /> Item Afetado
+                            </Label>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="font-normal capitalize">
+                                    {entityLabels[selectedLog.entityType]}
+                                </Badge>
+                                <span className="text-sm font-semibold">{selectedLog.entityName}</span>
+                            </div>
+                        </div>
+
+                        <div className="p-3 bg-secondary/30 rounded-lg border">
+                            <Label className="text-xs text-muted-foreground mb-1 block">O que mudou:</Label>
+                            <p className="text-sm leading-relaxed">
+                                {selectedLog.details || "Nenhum detalhe adicional fornecido."}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                <DialogFooter className="gap-2 sm:gap-0">
+                    {selectedLog && selectedLog.action !== 'delete' && (
+                        <Button onClick={() => handleNavigateToEntity(selectedLog)} className="flex-1 sm:flex-none">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Ver Item
+                        </Button>
+                    )}
+                    <Button variant="outline" onClick={() => setSelectedLog(null)}>
+                        Fechar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
