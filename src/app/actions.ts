@@ -32,7 +32,8 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
             const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
             if (match && match[1] && !url.includes('/pub?')) {
                  downloadUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-                 const gidMatch = url.match(/gid=(\d+)/);
+                 // Match gid in query string or hash
+                 const gidMatch = url.match(/[?&#]gid=(\d+)/);
                  if (gidMatch && gidMatch[1]) {
                     downloadUrl += `&gid=${gidMatch[1]}`;
                  }
@@ -44,6 +45,9 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
     
     try {
         const response = await fetch(downloadUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
             redirect: 'follow',
             cache: 'no-store' // Fetch latest version always
         });
@@ -53,12 +57,19 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
         // First, check if the content is HTML. This usually indicates an interstitial page (login, permission error, large file warning).
         if (contentType.includes('text/html')) {
              const responseText = await response.text();
-            // Check for Google Drive's large file warning page, which can return 200 OK.
-            if (responseText.includes('id="uc-download-link"')) {
-                return { success: false, error: 'O arquivo é muito grande ou requer confirmação para download no Google Drive. Por favor, faça o download manual e importe o arquivo.' };
+            
+            // Check for Google Drive's large file warning page
+            if (responseText.includes('id="uc-download-link"') || responseText.includes('confirm=')) {
+                return { success: false, error: 'O arquivo é muito grande ou requer confirmação manual no Google Drive. Tente baixar o arquivo e importá-lo manualmente.' };
             }
-            // For any other HTML page (like a login screen), assume it's a permission issue.
-            return { success: false, error: 'O link não retornou um arquivo CSV. Verifique se o link de compartilhamento está como "Qualquer pessoa com o link" ou se é um link de publicação da planilha.' };
+
+            // Check if it's a Google Login page (indicating a private file)
+            if (responseText.includes('ServiceLogin') || responseTypeIncludes(responseText, ['login', 'signin', 'accounts.google.com'])) {
+                return { success: false, error: 'Acesso negado. O arquivo parece ser privado. Certifique-se de que o compartilhamento está definido como "Qualquer pessoa com o link" ou use um link de "Publicar na Web".' };
+            }
+
+            // For any other HTML page, assume it's a generic link issue.
+            return { success: false, error: 'O link aponta para uma página da web e não para um arquivo CSV. Verifique se você copiou o link direto ou se publicou a planilha corretamente.' };
         }
 
         if (!response.ok) {
@@ -71,10 +82,21 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
         const decoder = new TextDecoder('utf-8');
         const decodedText = decoder.decode(buffer);
 
+        // Basic check to see if the content looks like CSV (contains at least one comma or semicolon)
+        if (!decodedText.includes(',') && !decodedText.includes(';')) {
+            return { success: false, error: 'O conteúdo retornado não parece ser um CSV válido. Verifique o arquivo de origem.' };
+        }
+
         return { success: true, data: decodedText };
 
     } catch (error) {
         console.error('Error fetching CSV from URL:', error);
         return { success: false, error: 'Ocorreu um erro de rede ao tentar buscar o arquivo. Verifique sua conexão e o link.' };
     }
+}
+
+// Helper to check for multiple substrings in a string
+function responseTypeIncludes(text: string, keywords: string[]): boolean {
+    const lowerText = text.toLowerCase();
+    return keywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
 }
