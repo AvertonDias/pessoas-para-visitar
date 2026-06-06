@@ -229,7 +229,7 @@ export default function HistoryPage() {
                                         </p>
                                     </div>
                                     {log.details && (
-                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{log.details}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{log.details.split('\n')[0]}</p>
                                     )}
                                 </div>
                                 <div onClick={(e) => e.stopPropagation()} className="flex items-center">
@@ -310,10 +310,32 @@ export default function HistoryPage() {
                         </div>
 
                         <div className="p-3 bg-secondary/30 rounded-lg border">
-                            <Label className="text-xs text-muted-foreground mb-1 block">O que mudou:</Label>
-                            <p className="text-sm leading-relaxed">
-                                {selectedLog.details || "Nenhum detalhe adicional fornecido."}
-                            </p>
+                            <Label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wider font-bold">O que mudou:</Label>
+                            <div className="space-y-3">
+                                {selectedLog.details ? (
+                                    selectedLog.details.split('\n').map((line, i) => {
+                                        if (line.startsWith('Visitado por:')) {
+                                            return (
+                                                <div key={i} className="mt-1 border-t pt-2">
+                                                    <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Visitado por</span>
+                                                    <p className="text-sm font-medium">{line.replace('Visitado por: ', '')}</p>
+                                                </div>
+                                            );
+                                        }
+                                        if (line.startsWith('Observações:')) {
+                                            return (
+                                                <div key={i} className="mt-1 border-t pt-2">
+                                                    <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Observações</span>
+                                                    <p className="text-sm italic text-muted-foreground">"{line.replace('Observações: ', '')}"</p>
+                                                </div>
+                                            );
+                                        }
+                                        return <p key={i} className="text-sm leading-relaxed">{line}</p>;
+                                    })
+                                ) : (
+                                    <p className="text-sm text-muted-foreground italic">Nenhum detalhe adicional fornecido.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

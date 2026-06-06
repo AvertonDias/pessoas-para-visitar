@@ -47,7 +47,8 @@ const formatChanges = (oldData: any, newData: any, groupMap: Map<string, string>
         if (newData.visitHistory.length > oldData.visitHistory.length) {
             const newVisit = newData.visitHistory[newData.visitHistory.length - 1];
             let details = `Visita adicionada em ${format(new Date(newVisit.date), "PPP", { locale: ptBR })}`;
-            if (newVisit.observations) details += ` com observação.`;
+            if (newVisit.visitors) details += `\nVisitado por: ${newVisit.visitors}`;
+            if (newVisit.observations) details += `\nObservações: ${newVisit.observations}`;
             changes.push(details);
         } else if (newData.visitHistory.length < oldData.visitHistory.length) {
             changes.push(`Uma visita foi removida.`);
@@ -58,7 +59,10 @@ const formatChanges = (oldData: any, newData: any, groupMap: Map<string, string>
                 return !oldVisit || JSON.stringify(newVisit) !== JSON.stringify(oldVisit);
             });
             if(changedVisit) {
-                changes.push(`Visita de ${format(new Date(changedVisit.date), "PPP", { locale: ptBR })} foi atualizada.`);
+                let details = `Visita de ${format(new Date(changedVisit.date), "PPP", { locale: ptBR })} foi atualizada.`;
+                if (changedVisit.visitors) details += `\nVisitado por: ${changedVisit.visitors}`;
+                if (changedVisit.observations) details += `\nObservações: ${changedVisit.observations}`;
+                changes.push(details);
             } else {
                  changes.push(`Uma visita foi atualizada.`);
             }
@@ -117,16 +121,11 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
     try {
         await batch.commit();
         // Log this action to the admin's audit log
-        const adminProfileSnap = await getDoc(doc(db, 'users', adminId));
-        const adminProfile = adminProfileSnap.data();
-
         logChange(db, adminId, {uid: user.uid, name: 'Sistema'}, 'create', 'helper', user.uid, displayName || user.email || 'Novo Ajudante', 'Aceitou o convite.');
 
         return; // Success
     } catch(commitError) {
         console.error("Batch commit failed during invitation claim:", commitError);
-        // This is a critical failure, but we can't easily roll back the auth user creation here.
-        // The user will exist but their profile will be incorrect. They can try again.
         throw new Error("Não foi possível processar o convite. Tente novamente.");
     }
   }
@@ -134,8 +133,6 @@ export const processRegistration = async (db: Firestore, user: User, inviteToken
   // Scenario 2: User is registering without an invitation.
   const userProfileSnap = await getDoc(userProfileRef);
   if (!userProfileSnap.exists()) {
-      // Only create a new admin profile if one doesn't exist.
-      // This prevents an existing helper from overwriting their role by re-registering.
       const profile: Omit<UserProfile, 'id' | 'importUrl'> = {
         email: user.email!,
         name: displayName ?? undefined,
@@ -199,7 +196,7 @@ export const updateName = async (db: Firestore, userId: string, nameId: string, 
     const groupMap = new Map(fieldGroups.map(g => [g.id, g.name]));
     const changeDetails = formatChanges(oldData, nameData, groupMap);
     if (changeDetails.length > 0) {
-      logChange(db, userId, performingUser, 'update', 'name', nameId, nameData.text || oldData.text, changeDetails.join('; '));
+      logChange(db, userId, performingUser, 'update', 'name', nameId, nameData.text || oldData.text, changeDetails.join('\n'));
     }
   } catch (serverError) {
     const permissionError = new FirestorePermissionError({
@@ -335,7 +332,6 @@ export const createInvitation = async (db: Firestore, adminId: string): Promise<
 
 export const removeHelper = (db: Firestore, helperId: string, performingUser: PerformingUser) => {
   const userProfileRef = doc(db, 'users', helperId);
-  // This removes their adminId, reverting them to a standard 'admin' of their own (likely empty) data.
   const data = { role: 'admin', adminId: deleteField() };
   updateDoc(userProfileRef, data)
      .then(() => {
@@ -362,7 +358,7 @@ export const batchImportData = async (
   fieldGroups: FieldGroup[],
   performingUser: PerformingUser,
 ) => {
-  const BATCH_LIMIT = 490; // Keep it safely under 500
+  const BATCH_LIMIT = 490;
   let batch = writeBatch(db);
   let operationCount = 0;
   const batches: ReturnType<typeof writeBatch>[] = [batch];
@@ -376,7 +372,6 @@ export const batchImportData = async (
     }
   };
   
-  // 1. Build a map of existing group names to their IDs
   const groupNameToIdMap = new Map<string, string>();
   fieldGroups.forEach(group => {
       groupNameToIdMap.set(group.name.toLowerCase(), group.id);
@@ -384,19 +379,16 @@ export const batchImportData = async (
 
   const namesCollectionRef = collection(db, 'users', userId, 'names');
 
-  // 2. Create new groups and add them to the map
   newGroups.forEach(groupName => {
     const groupRef = doc(collection(db, 'users', userId, 'fieldGroups'));
     batch.set(groupRef, {
       name: groupName,
       createdAt: serverTimestamp()
     });
-    // Add the new group to our map for immediate use
     groupNameToIdMap.set(groupName.toLowerCase(), groupRef.id);
     maybeCommitBatch();
   });
 
-  // 3. Process new names to create
   toCreate.forEach(item => {
     if (!item.text) return;
 
@@ -423,7 +415,6 @@ export const batchImportData = async (
     maybeCommitBatch();
   });
 
-  // 4. Process existing names to update
   toUpdate.forEach(({ existing, newData }) => {
     const nameRef = doc(namesCollectionRef, existing.id);
     const updatePayload: { [key: string]: any } = { ...newData };
@@ -438,7 +429,7 @@ export const batchImportData = async (
     
     if (updatePayload.importedVisitDate) {
       const newVisitDateStr = updatePayload.importedVisitDate;
-      delete updatePayload.importedVisitDate; // Not a real Firestore field
+      delete updatePayload.importedVisitDate;
 
       finalHistory = [
         ...finalHistory,
@@ -465,7 +456,6 @@ export const batchImportData = async (
     }
   });
 
-  // 5. Commit all batches in parallel
   try {
     await Promise.all(batches.map(b => b.commit()));
     const summary = `${toCreate.length} criados, ${toUpdate.length} atualizados, ${newGroups.length} novos grupos.`;
@@ -482,7 +472,7 @@ export const batchUpdateVisits = async (
   updates: ImportUpdate[],
   performingUser: PerformingUser,
 ) => {
-  const BATCH_LIMIT = 490; // Keep it safely under 500
+  const BATCH_LIMIT = 490;
   let batch = writeBatch(db);
   let operationCount = 0;
   const batches: ReturnType<typeof writeBatch>[] = [batch];
@@ -516,7 +506,7 @@ export const batchUpdateVisits = async (
     finalHistory = [
       ...finalHistory,
       {
-        id: doc(collection(db, 'temp-ids')).id, // Generate a unique ID for the visit
+        id: doc(collection(db, 'temp-ids')).id,
         date: newData.importedVisitDate,
         visitors: 'Importado'
       }
