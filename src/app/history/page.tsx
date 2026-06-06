@@ -267,7 +267,7 @@ export default function HistoryPage() {
         )}
 
         <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Info className="h-5 w-5 text-primary" />
@@ -279,58 +279,68 @@ export default function HistoryPage() {
                 </DialogHeader>
 
                 {selectedLog && (
-                    <div className="space-y-4 py-2">
-                        <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-5 py-2">
+                        <div className="grid grid-cols-2 gap-4 bg-secondary/20 p-3 rounded-lg border border-border/50">
                             <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                                     <User className="h-3 w-3" /> Realizado por
                                 </Label>
-                                <p className="text-sm font-medium">{selectedLog.userName}</p>
+                                <p className="text-sm font-bold text-foreground">{selectedLog.userName}</p>
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                                     <Clock className="h-3 w-3" /> Quando
                                 </Label>
-                                <p className="text-sm font-medium">
+                                <p className="text-sm font-bold text-foreground">
                                     {format(new Date(selectedLog.timestamp.seconds * 1000), "Pp", { locale: ptBR })}
                                 </p>
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1 mb-1">
                                 <Tag className="h-3 w-3" /> Item Afetado
                             </Label>
                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="font-normal capitalize">
+                                <Badge variant="outline" className="font-medium bg-background">
                                     {entityLabels[selectedLog.entityType]}
                                 </Badge>
-                                <span className="text-sm font-semibold">{selectedLog.entityName}</span>
+                                <span className="text-base font-bold text-primary">{selectedLog.entityName}</span>
                             </div>
                         </div>
 
-                        <div className="p-3 bg-secondary/30 rounded-lg border">
-                            <Label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wider font-bold">O que mudou:</Label>
-                            <div className="space-y-3">
+                        <div className="p-4 bg-background rounded-lg border-2 border-dashed border-border">
+                            <Label className="text-[10px] uppercase tracking-widest text-primary mb-3 block font-black">O que mudou:</Label>
+                            <div className="space-y-4">
                                 {selectedLog.details ? (
                                     selectedLog.details.split('\n').map((line, i) => {
                                         if (line.startsWith('Visitado por:')) {
+                                            const val = line.replace('Visitado por: ', '').trim();
+                                            if (!val) return null;
                                             return (
-                                                <div key={i} className="mt-1 border-t pt-2">
-                                                    <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Visitado por</span>
-                                                    <p className="text-sm font-medium">{line.replace('Visitado por: ', '')}</p>
+                                                <div key={i} className="mt-1 border-t border-border/50 pt-3">
+                                                    <span className="font-black text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Visitado por</span>
+                                                    <p className="text-sm font-bold text-foreground bg-secondary/30 p-2 rounded">{val}</p>
                                                 </div>
                                             );
                                         }
                                         if (line.startsWith('Observações:')) {
+                                            const val = line.replace('Observações: ', '').trim();
+                                            if (!val) return null;
                                             return (
-                                                <div key={i} className="mt-1 border-t pt-2">
-                                                    <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Observações</span>
-                                                    <p className="text-sm italic text-muted-foreground">"{line.replace('Observações: ', '')}"</p>
+                                                <div key={i} className="mt-1 border-t border-border/50 pt-3">
+                                                    <span className="font-black text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Observações</span>
+                                                    <p className="text-sm italic text-muted-foreground bg-secondary/10 p-3 rounded-md border border-border/30 whitespace-pre-wrap leading-relaxed">"{val}"</p>
                                                 </div>
                                             );
                                         }
-                                        return <p key={i} className="text-sm leading-relaxed">{line}</p>;
+                                        // Standard change line
+                                        return (
+                                            <div key={i} className="flex items-start gap-2">
+                                                <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                                <p className="text-sm font-medium leading-relaxed">{line}</p>
+                                            </div>
+                                        );
                                     })
                                 ) : (
                                     <p className="text-sm text-muted-foreground italic">Nenhum detalhe adicional fornecido.</p>
@@ -340,14 +350,14 @@ export default function HistoryPage() {
                     </div>
                 )}
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
                     {selectedLog && selectedLog.action !== 'delete' && (
                         <Button onClick={() => handleNavigateToEntity(selectedLog)} className="flex-1 sm:flex-none">
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Ver Item
                         </Button>
                     )}
-                    <Button variant="outline" onClick={() => setSelectedLog(null)}>
+                    <Button variant="outline" onClick={() => setSelectedLog(null)} className="flex-1 sm:flex-none">
                         Fechar
                     </Button>
                 </DialogFooter>

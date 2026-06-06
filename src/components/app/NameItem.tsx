@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Name, Visit, FieldGroup } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, History, Calendar as CalendarIcon } from 'lucide-react';
+import { Pencil, Trash2, History, Calendar as CalendarIcon, User, FileText } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -163,7 +163,7 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
 
   return (
     <>
-      <Collapsible className="rounded-md bg-card border data-[state=open]:bg-secondary/20 transition-colors duration-200">
+      <Collapsible className="rounded-md bg-card border data-[state=open]:bg-secondary/10 transition-colors duration-200">
           <div className="flex flex-col p-3 sm:relative">
             <CollapsibleTrigger className="flex-grow text-left">
               <p className="font-medium text-foreground">{name.text}</p>
@@ -276,40 +276,35 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
           <CollapsibleContent>
             <div className="p-3 pt-0">
                 <Separator className="mb-3"/>
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-sm font-semibold">Histórico de Visitas</h4>
-                        <Button variant="outline" size="sm" onClick={handleOpenAddVisitDialog}>
-                            <History className="h-4 w-4 mr-2"/>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center mb-1">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                            <History className="h-4 w-4 text-primary" />
+                            Histórico de Visitas
+                        </h4>
+                        <Button variant="outline" size="sm" onClick={handleOpenAddVisitDialog} className="h-8">
+                            <History className="h-3.5 w-3.5 mr-1.5"/>
                             Adicionar Visita
                         </Button>
                     </div>
-                    <div className="max-h-48 overflow-y-auto space-y-2 pr-2 rounded-md">
+                    <div className="max-h-64 overflow-y-auto space-y-3 pr-2 rounded-md">
                       {(name.visitHistory || []).length > 0 ? (
                         (name.visitHistory || []).slice().reverse().map((visit) => {
                             return (
-                                <div key={visit.id} className="text-sm p-2 bg-secondary/50 rounded-md">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="flex items-start sm:items-center gap-2 flex-grow min-w-0">
-                                            <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1 sm:mt-0" />
-                                            <div className="truncate">
-                                                <span className="font-medium text-foreground">{format(new Date(visit.date), "PPP", { locale: ptBR })}</span>
-                                                {visit.visitors && (
-                                                    <span className="block sm:inline-block text-muted-foreground text-xs sm:text-sm">
-                                                        <span className="hidden sm:inline"> - </span>
-                                                        {visit.visitors}
-                                                    </span>
-                                                )}
-                                            </div>
+                                <div key={visit.id} className="text-sm p-3 bg-secondary/30 rounded-lg border border-border/50">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2 text-primary font-bold">
+                                            <CalendarIcon className="h-3.5 w-3.5" />
+                                            <span>{format(new Date(visit.date), "PPP", { locale: ptBR })}</span>
                                         </div>
-                                        <div className="flex items-center flex-shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditVisitDialog(visit as Visit)} aria-label="Editar visita">
-                                                <Pencil className="h-3 w-3" />
+                                        <div className="flex items-center">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => handleOpenEditVisitDialog(visit as Visit)} aria-label="Editar visita">
+                                                <Pencil className="h-3.5 w-3.5" />
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Remover visita">
-                                                        <Trash2 className="h-3 w-3 text-destructive/70" />
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" aria-label="Remover visita">
+                                                        <Trash2 className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
@@ -327,14 +322,32 @@ export function NameItem({ name, updateName, deleteName, fieldGroups }: NameItem
                                             </AlertDialog>
                                         </div>
                                     </div>
-                                    {visit.observations && (
-                                        <p className="text-muted-foreground text-xs mt-1 pl-6">{visit.observations}</p>
-                                    )}
+                                    
+                                    <div className="space-y-2 pl-1">
+                                        {visit.visitors && (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
+                                                    <User className="h-2.5 w-2.5" /> Visitado por:
+                                                </span>
+                                                <p className="text-sm font-medium">{visit.visitors}</p>
+                                            </div>
+                                        )}
+                                        {visit.observations && (
+                                            <div className="flex flex-col gap-0.5 border-t border-border/30 pt-1.5">
+                                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
+                                                    <FileText className="h-2.5 w-2.5" /> Observações:
+                                                </span>
+                                                <p className="text-sm italic text-muted-foreground whitespace-pre-wrap">{visit.observations}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })
                       ) : (
-                          <p className="text-sm text-muted-foreground text-center py-2">Nenhuma visita registrada.</p>
+                          <div className="text-center py-6 border-2 border-dashed rounded-lg">
+                             <p className="text-sm text-muted-foreground">Nenhuma visita registrada.</p>
+                          </div>
                       )}
                     </div>
                 </div>
