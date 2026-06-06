@@ -20,27 +20,25 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
     let downloadUrl = url;
     try {
         const urlObj = new URL(url);
-        // Handle Google Drive file URLs
-        if (urlObj.hostname === 'drive.google.com') {
-            const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) {
-                downloadUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
-            }
-        }
-        // Handle Google Sheets URLs (that are not already published CSVs)
-        else if (urlObj.hostname === 'docs.google.com' && url.includes('/spreadsheets/d/')) {
-            const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1] && !url.includes('/pub?')) {
-                 downloadUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-                 // Match gid in query string or hash
-                 const gidMatch = url.match(/[?&#]gid=(\d+)/);
-                 if (gidMatch && gidMatch[1]) {
-                    downloadUrl += `&gid=${gidMatch[1]}`;
-                 }
+        
+        // Extrair ID do arquivo para Google Drive ou Google Sheets
+        const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const sheetsMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        const fileId = (driveMatch && driveMatch[1]) || (sheetsMatch && sheetsMatch[1]) || (idMatch && idMatch[1]);
+
+        if (fileId) {
+            // Tentar link de exportação do Sheets (mais confiável para planilhas)
+            downloadUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`;
+            
+            // Adicionar GID se presente para selecionar a aba correta
+            const gidMatch = url.match(/[?&#]gid=(\d+)/);
+            if (gidMatch && gidMatch[1]) {
+                downloadUrl += `&gid=${gidMatch[1]}`;
             }
         }
     } catch (e) {
-        // Not a valid URL object, might be a direct link. Proceed.
+        // Erro ao processar URL, continua com a original
     }
     
     try {
@@ -49,54 +47,56 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
             redirect: 'follow',
-            cache: 'no-store' // Fetch latest version always
+            cache: 'no-store'
         });
-        
-        const contentType = response.headers.get('content-type') || '';
 
-        // First, check if the content is HTML. This usually indicates an interstitial page (login, permission error, large file warning).
-        if (contentType.includes('text/html')) {
-             const responseText = await response.text();
-            
-            // Check for Google Drive's large file warning page
-            if (responseText.includes('id="uc-download-link"') || responseText.includes('confirm=')) {
-                return { success: false, error: 'O arquivo é muito grande ou requer confirmação manual no Google Drive. Tente baixar o arquivo e importá-lo manualmente.' };
-            }
-
-            // Check if it's a Google Login page (indicating a private file)
-            if (responseText.includes('ServiceLogin') || responseTypeIncludes(responseText, ['login', 'signin', 'accounts.google.com'])) {
-                return { success: false, error: 'Acesso negado. O arquivo parece ser privado. Certifique-se de que o compartilhamento está definido como "Qualquer pessoa com o link" ou use um link de "Publicar na Web".' };
-            }
-
-            // For any other HTML page, assume it's a generic link issue.
-            return { success: false, error: 'O link aponta para uma página da web e não para um arquivo CSV. Verifique se você copiou o link direto ou se publicou a planilha corretamente.' };
+        // Se falhar (ex: arquivo não é uma planilha), tentar link de download direto do Drive
+        if (!response.ok && url.includes('drive.google.com')) {
+             const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+             if (driveMatch && driveMatch[1]) {
+                const ucUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+                const secondResponse = await fetch(ucUrl, { redirect: 'follow' });
+                if (secondResponse.ok) return await processResponse(secondResponse);
+             }
         }
 
-        if (!response.ok) {
-            return { success: false, error: `Falha ao buscar o arquivo (Status: ${response.status}). Verifique se o link é público e direto para o arquivo CSV.` };
-        }
-        
-        // For non-HTML responses, decode using the correct encoding.
-        // Files from URLs (like Google Sheets) are typically UTF-8.
-        const buffer = await response.arrayBuffer();
-        const decoder = new TextDecoder('utf-8');
-        const decodedText = decoder.decode(buffer);
-
-        // Basic check to see if the content looks like CSV (contains at least one comma or semicolon)
-        if (!decodedText.includes(',') && !decodedText.includes(';')) {
-            return { success: false, error: 'O conteúdo retornado não parece ser um CSV válido. Verifique o arquivo de origem.' };
-        }
-
-        return { success: true, data: decodedText };
+        return await processResponse(response);
 
     } catch (error) {
         console.error('Error fetching CSV from URL:', error);
-        return { success: false, error: 'Ocorreu um erro de rede ao tentar buscar o arquivo. Verifique sua conexão e o link.' };
+        return { success: false, error: 'Ocorreu um erro de rede. Verifique o link e se ele é público.' };
     }
 }
 
-// Helper to check for multiple substrings in a string
-function responseTypeIncludes(text: string, keywords: string[]): boolean {
-    const lowerText = text.toLowerCase();
-    return keywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
+async function processResponse(response: Response) {
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('text/html')) {
+        const responseText = await response.text();
+        
+        if (responseText.includes('id="uc-download-link"') || responseText.includes('confirm=')) {
+            return { success: false, error: 'O arquivo é muito grande ou requer confirmação. Tente usar "Arquivo > Compartilhar > Publicar na Web" no Google Sheets.' };
+        }
+
+        if (responseText.includes('ServiceLogin') || responseText.toLowerCase().includes('signin')) {
+            return { success: false, error: 'Acesso negado. Certifique-se de que o compartilhamento está como "Qualquer pessoa com o link".' };
+        }
+
+        return { success: false, error: 'O link retornou uma página e não os dados. Verifique se você publicou a planilha corretamente.' };
+    }
+
+    if (!response.ok) {
+        return { success: false, error: `Erro ao buscar o arquivo (Status: ${response.status}).` };
+    }
+    
+    const buffer = await response.arrayBuffer();
+    // Tenta decodificar como UTF-8
+    const decoder = new TextDecoder('utf-8');
+    const decodedText = decoder.decode(buffer);
+
+    if (!decodedText.includes(',') && !decodedText.includes(';')) {
+        return { success: false, error: 'O arquivo não parece ser um CSV válido.' };
+    }
+
+    return { success: true, data: decodedText };
 }

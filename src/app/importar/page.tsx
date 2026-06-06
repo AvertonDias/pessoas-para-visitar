@@ -10,7 +10,7 @@ import * as services from '@/lib/firebase-services';
 import { fetchCsvFromUrl } from '@/app/actions';
 import { PerformingUser } from '@/lib/audit-log-services';
 import type { Name, FieldGroup, UserProfile, ImportedName, ImportUpdate, ImportPreview } from '@/lib/types';
-import { UploadCloud, Link as LinkIcon, Loader2, CalendarPlus } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, CalendarPlus, HelpCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
@@ -18,6 +18,12 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function ImportarPage() {
     const { toast } = useToast();
@@ -512,7 +518,7 @@ export default function ImportarPage() {
     };
 
     const handleImportFromUrl = async (urlToUse?: string) => {
-        const finalUrl = urlToUse || (userProfile?.importUrl || '');
+        const finalUrl = urlToUse || importUrl || (userProfile?.importUrl || '');
     
         if (isImportingFromUrl) return;
         if (!finalUrl) {
@@ -529,7 +535,7 @@ export default function ImportarPage() {
     
         try {
           if (isAdmin && finalUrl !== (userProfile?.importUrl || '')) {
-            await services.updateUserProfile(firestore, dataOwnerId, { importUrl: finalUrl }, performingUser);
+            await services.updateUserProfile(firestore, dataOwnerId, { importUrl: finalUrl });
             toast({
               title: "URL de sincronização salva",
               description: "Esta URL será usada para futuras sincronizações.",
@@ -601,6 +607,7 @@ export default function ImportarPage() {
                     Importar / Sincronizar
                 </h1>
             </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <Card>
                     <CardHeader>
@@ -649,6 +656,31 @@ export default function ImportarPage() {
                         </Button>
                     </CardContent>
                 </Card>
+            </div>
+
+            <div className="max-w-4xl mx-auto mt-8">
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="help">
+                        <AccordionTrigger className="text-muted-foreground hover:no-underline">
+                            <div className="flex items-center gap-2">
+                                <HelpCircle className="h-4 w-4" />
+                                <span>O link não está funcionando? Veja como fazer.</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-sm text-muted-foreground space-y-3 p-4 bg-secondary/20 rounded-lg">
+                            <p>Se você estiver usando o <strong>Google Sheets</strong>, siga estes passos para garantir que o link funcione:</p>
+                            <ol className="list-decimal pl-5 space-y-2">
+                                <li>Abra sua planilha no Google Sheets.</li>
+                                <li>Vá em <strong>Arquivo</strong> &gt; <strong>Compartilhar</strong> &gt; <strong>Publicar na Web</strong>.</li>
+                                <li>Selecione "Valores separados por vírgula (.csv)" em vez de "Página da Web".</li>
+                                <li>Clique em <strong>Publicar</strong>.</li>
+                                <li>Copie o link gerado e cole no campo acima.</li>
+                            </ol>
+                            <p className="mt-4 font-medium text-foreground">Por que usar "Publicar na Web"?</p>
+                            <p>Links normais de compartilhamento (como "Visualizar") muitas vezes redirecionam para a tela de login do Google, o que impede que o aplicativo leia os dados automaticamente. "Publicar na Web" gera um link direto para os dados.</p>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </div>
 
             <input
