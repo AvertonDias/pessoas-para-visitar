@@ -13,7 +13,7 @@ import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
 export const metadata: Metadata = {
   title: 'Pessoas para visitar',
   description: 'Um PWA para criar e gerenciar listas de pessoas para visitar.',
-  manifest: '/manifest.json?v=7',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -30,6 +30,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#2263DB" />
         <link rel="apple-touch-icon" href="/icons/Icon.png" />
         <link rel="icon" href="/icons/Icon.png" type="image/png" />
+        <link rel="manifest" href="/manifest.json" crossOrigin="use-credentials" />
       </head>
       <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>

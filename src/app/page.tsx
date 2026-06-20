@@ -67,8 +67,6 @@ export default function Home() {
     return doc(firestore, 'users', dataOwnerId);
   }, [firestore, dataOwnerId, user]);
   const { data: adminProfile, isLoading: adminProfileLoading } = useDoc<UserProfile>(adminProfileRef);
-  
-  const isAdmin = userProfile?.role !== 'helper';
 
   const namesQuery = useMemoFirebase(() => {
     if (!dataOwnerId || !firestore) return null;

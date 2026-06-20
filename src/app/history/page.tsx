@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -6,7 +7,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@
 import { collection, query, doc, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Card } from '@/components/ui/card';
-import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon, ExternalLink, Calendar, Clock, Info } from 'lucide-react';
+import { History, User, FileText, Tag, Trash2, Edit, Import, Link as LinkIcon, ExternalLink, Clock, Info } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -211,7 +212,6 @@ export default function HistoryPage() {
             <div className="space-y-3">
                 {logs.map(log => {
                     const ActionIcon = actionIcons[log.action] || Edit;
-                    const EntityIcon = entityTypeIcons[log.entityType] || FileText;
                     return (
                         <Card key={log.id} className="p-4 transition-all hover:bg-secondary/20 cursor-pointer" onClick={() => setSelectedLog(log)}>
                             <div className="flex items-start gap-4">

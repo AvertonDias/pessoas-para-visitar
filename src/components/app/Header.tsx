@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,21 +14,8 @@ export function Header() {
   const pathname = usePathname();
 
   const [hidden, setHidden] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
-    const controlNavbar = () => {
-      if (typeof window !== 'undefined') {
-        // Hide header if scrolling down past a threshold
-        if (window.scrollY > lastY && window.scrollY > 80) {
-          setHidden(true);
-        } else { // Show header if scrolling up
-          setHidden(false);
-        }
-        setLastScrollY(window.scrollY);
-      }
-    };
-    
     let lastY = 0;
     const handleScroll = () => {
       const currentY = window.scrollY;
@@ -65,7 +53,6 @@ export function Header() {
             alt="Pessoas para visitar logo"
             width={40}
             height={40}
-            className="h-8 w-8 sm:h-10 sm:w-10"
             style={{ width: 'auto', height: 'auto' }}
           />
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
