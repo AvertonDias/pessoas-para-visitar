@@ -15,7 +15,7 @@ import { collection, query, doc } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 import { getMostRecentVisitDate } from '@/lib/status-logic';
 import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
-import jsPDF from 'jspdf';
+import jspdf from 'jspdf';
 import 'jspdf-autotable';
 import { PerformingUser } from '@/lib/audit-log-services';
 import type { Name, FieldGroup, UserProfile } from '@/lib/types';
@@ -218,7 +218,7 @@ export default function Home() {
       return;
     }
 
-    const doc = new jsPDF();
+    const doc = new jspdf();
     const groupMap = new Map(fieldGroups.map(g => [g.id, g.name]));
 
     const sortedNames = [...filteredForPdf].sort((a, b) => {

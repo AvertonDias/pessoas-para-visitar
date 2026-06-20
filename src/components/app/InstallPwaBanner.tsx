@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Image from 'next/image';
 
 // Interface para o evento de instalação do navegador
 interface BeforeInstallPromptEvent extends Event {
@@ -89,11 +90,21 @@ export function InstallPwaBanner() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md border-primary/20">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-primary">
+          <div className="flex justify-center mb-4">
+             <Image
+                src="/icons/Icon.png"
+                alt="Logotipo do aplicativo"
+                width={64}
+                height={64}
+                style={{ width: 'auto', height: 'auto' }}
+                priority
+            />
+          </div>
+          <DialogTitle className="flex items-center justify-center gap-2 text-primary text-center">
             <Download className="h-6 w-6" />
             <span>Instalar Aplicativo</span>
           </DialogTitle>
-          <DialogDescription className="text-base pt-2">
+          <DialogDescription className="text-base pt-2 text-center">
             Tenha uma experiência muito melhor instalando o <strong>Visitas</strong> no seu celular ou computador.
           </DialogDescription>
         </DialogHeader>
@@ -104,7 +115,7 @@ export function InstallPwaBanner() {
           <p>• Interface limpa e sem barras do navegador</p>
         </div>
 
-        <DialogFooter className="sm:justify-end gap-2 pt-2">
+        <DialogFooter className="sm:justify-center gap-2 pt-2">
           <Button variant="ghost" onClick={handleDismiss} className="text-muted-foreground">
             Agora não
           </Button>
