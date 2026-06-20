@@ -11,7 +11,7 @@ import { AppFooter } from '@/components/app/AppFooter';
 export const metadata: Metadata = {
   title: 'Pessoas para visitar',
   description: 'Um PWA para criar e gerenciar listas de pessoas para visitar.',
-  manifest: '/manifest.json?v=5',
+  manifest: '/manifest.json?v=6',
 };
 
 export default function RootLayout({
