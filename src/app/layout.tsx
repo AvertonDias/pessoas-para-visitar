@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -11,7 +12,7 @@ import { AppFooter } from '@/components/app/AppFooter';
 export const metadata: Metadata = {
   title: 'Pessoas para visitar',
   description: 'Um PWA para criar e gerenciar listas de pessoas para visitar.',
-  manifest: '/manifest.json?v=6',
+  manifest: '/manifest.json?v=7',
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -137,6 +138,7 @@ function RegisterForm() {
                   alt="Logotipo do aplicativo"
                   width={250}
                   height={250}
+                  style={{ width: 'auto', height: 'auto' }}
                   priority
               />
           </motion.div>
@@ -154,6 +156,7 @@ function RegisterForm() {
                 alt="Logotipo do aplicativo"
                 width={48}
                 height={48}
+                style={{ width: 'auto', height: 'auto' }}
                 priority
             />
         </div>
@@ -295,6 +298,7 @@ export default function RegisterPage() {
                     alt="Logotipo do aplicativo"
                     width={48}
                     height={48}
+                    style={{ width: 'auto', height: 'auto' }}
                     priority
                 />
             </div>

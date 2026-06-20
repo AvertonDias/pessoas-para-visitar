@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -93,6 +94,7 @@ export default function LoginPage() {
                   alt="Logotipo do aplicativo"
                   width={250}
                   height={250}
+                  style={{ width: 'auto', height: 'auto' }}
                   priority
               />
           </motion.div>
@@ -111,6 +113,7 @@ export default function LoginPage() {
                 alt="Logotipo do aplicativo"
                 width={48}
                 height={48}
+                style={{ width: 'auto', height: 'auto' }}
                 priority
             />
         </div>
@@ -150,6 +153,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSigningIn}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -161,6 +165,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isSigningIn}
+                autoComplete="current-password"
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSigningIn}>

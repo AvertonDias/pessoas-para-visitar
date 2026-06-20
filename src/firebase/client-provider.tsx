@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -182,6 +183,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
                     alt="Logotipo do aplicativo"
                     width={250}
                     height={250}
+                    style={{ width: 'auto', height: 'auto' }}
                     priority
                 />
             </motion.div>
