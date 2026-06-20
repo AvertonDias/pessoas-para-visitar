@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -14,7 +15,6 @@ import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@
 import { collection, query, doc } from 'firebase/firestore';
 import * as services from '@/lib/firebase-services';
 import { getMostRecentVisitDate } from '@/lib/status-logic';
-import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
 import jspdf from 'jspdf';
 import 'jspdf-autotable';
 import { PerformingUser } from '@/lib/audit-log-services';
@@ -355,8 +355,6 @@ export default function Home() {
           onGeneratePdf={generateNamesPdf}
           fieldGroups={fieldGroups}
          />
-
-        <InstallPwaBanner />
     </div>
   );
 }

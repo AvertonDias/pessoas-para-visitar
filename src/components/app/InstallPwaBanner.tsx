@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -46,10 +47,11 @@ export function InstallPwaBanner() {
       const wasDismissed = sessionStorage.getItem('pwa-install-dismissed');
       
       if (!wasDismissed) {
-        // Exibe o modal após um pequeno delay para não assustar o usuário
-        setTimeout(() => {
+        // Exibe o modal após um pequeno delay
+        const timer = setTimeout(() => {
           setIsOpen(true);
         }, 3000);
+        return () => clearTimeout(timer);
       }
     };
 

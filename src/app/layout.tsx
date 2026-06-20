@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app/AppSidebar';
 import { Header } from '@/components/app/Header';
 import { AppFooter } from '@/components/app/AppFooter';
+import { InstallPwaBanner } from '@/components/app/InstallPwaBanner';
 
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ export default function RootLayout({
             </SidebarInset>
           </SidebarProvider>
           <Toaster />
+          <InstallPwaBanner />
         </FirebaseClientProvider>
       </body>
     </html>
