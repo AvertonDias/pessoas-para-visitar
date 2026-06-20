@@ -48,11 +48,9 @@ export default function Home() {
 
   const dataOwnerId = useMemo(() => {
     if (!user) return null;
-    // A helper must have an adminId to access data. Otherwise, they see their own data.
     if (userProfile?.role === 'helper' && userProfile.adminId) {
       return userProfile.adminId;
     }
-    // Default to own UID for admins or helpers in an inconsistent state
     return user.uid;
   }, [user, userProfile]);
 
@@ -64,7 +62,6 @@ export default function Home() {
     };
   }, [user, userProfile]);
   
-  // Fetch admin profile if current user is a helper
   const adminProfileRef = useMemoFirebase(() => {
     if (!firestore || !dataOwnerId || !user || dataOwnerId === user.uid) return null;
     return doc(firestore, 'users', dataOwnerId);
@@ -73,7 +70,6 @@ export default function Home() {
   
   const isAdmin = userProfile?.role !== 'helper';
 
-  // Data fetching from Firestore
   const namesQuery = useMemoFirebase(() => {
     if (!dataOwnerId || !firestore) return null;
     return query(collection(firestore, 'users', dataOwnerId, 'names'));
@@ -93,13 +89,9 @@ export default function Home() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortBy, setSortBy] = useState('visit-desc');
   
-  // State for PDF dialog
   const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
-  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-
-  // Load filters from localStorage on initial client render
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const savedGroup = localStorage.getItem('list-filter-group');
@@ -113,7 +105,6 @@ export default function Home() {
     }
   }, []);
 
-  // Save filters to localStorage whenever they change
   useEffect(() => {
     if (isClient) {
       localStorage.setItem('list-filter-group', selectedGroup);
@@ -173,7 +164,6 @@ export default function Home() {
       return matchesSearch && matchesGroup && matchesStatus;
     });
 
-    // Then, sort the filtered names
     filtered.sort((a, b) => {
       if (sortBy === 'name-asc') {
         return a.text.localeCompare(b.text);
@@ -185,11 +175,10 @@ export default function Home() {
       let dateComparison = 0;
       if (sortBy === 'visit-asc') {
         dateComparison = dateA - dateB;
-      } else { // 'visit-desc' is the default
+      } else {
         dateComparison = dateB - dateA;
       }
 
-      // If dates are the same, sort by name alphabetically
       if (dateComparison === 0) {
         return a.text.localeCompare(b.text);
       }
@@ -242,7 +231,6 @@ export default function Home() {
       if (pdfSortBy === 'visit-asc') {
         return dateA - dateB;
       }
-      // 'visit-desc'
       return dateB - dateA;
     });
 
@@ -282,7 +270,6 @@ export default function Home() {
       theme: 'grid',
       headStyles: { fillColor: [34, 99, 219] },
       didDrawPage: function (data: any) {
-        // Footer
         const pageCount = doc.internal.pages.length;
         doc.setFontSize(10);
         const pageSize = doc.internal.pageSize;
@@ -316,6 +303,7 @@ export default function Home() {
                     alt="Logotipo do aplicativo"
                     width={250}
                     height={250}
+                    style={{ width: 'auto', height: 'auto' }}
                     priority
                 />
             </motion.div>

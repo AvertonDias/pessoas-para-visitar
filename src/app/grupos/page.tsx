@@ -19,7 +19,6 @@ export default function GruposPage() {
     const firestore = useFirestore();
     const router = useRouter();
 
-    // Profile and admin checks
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, 'users', user.uid);
@@ -43,7 +42,6 @@ export default function GruposPage() {
         };
     }, [user, userProfile]);
 
-    // Redirect if not logged in
     useEffect(() => {
         if (!isUserLoading && !profileLoading) {
             if (!user) {
@@ -52,7 +50,6 @@ export default function GruposPage() {
         }
     }, [isUserLoading, profileLoading, user, router]);
 
-    // Data fetching
     const namesQuery = useMemoFirebase(() => {
         if (!dataOwnerId || !firestore) return null;
         return query(collection(firestore, 'users', dataOwnerId, 'names'));
@@ -77,7 +74,6 @@ export default function GruposPage() {
         }, {} as { [key: string]: number });
     }, [names, fieldGroups]);
 
-    // Logic functions
     const addGroup = (groupName: string) => {
         if (!dataOwnerId || !firestore || !performingUser) return;
 
@@ -102,7 +98,6 @@ export default function GruposPage() {
         
         services.deleteFieldGroup(firestore, dataOwnerId, groupId, performingUser);
 
-        // Remove the group from any names that have it assigned.
         names.forEach(name => {
           if (name.fieldGroup === groupId) {
             services.updateName(firestore, dataOwnerId, name.id, { fieldGroup: '' }, performingUser, fieldGroups);
@@ -164,6 +159,7 @@ export default function GruposPage() {
                         alt="Logotipo do aplicativo"
                         width={250}
                         height={250}
+                        style={{ width: 'auto', height: 'auto' }}
                         priority
                     />
                 </motion.div>

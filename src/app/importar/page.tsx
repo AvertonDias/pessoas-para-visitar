@@ -35,7 +35,6 @@ export default function ImportarPage() {
     const visitsFileInputRef = useRef<HTMLInputElement>(null);
     const autoSyncAttempted = useRef(false);
 
-    // Profile and admin checks
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, 'users', user.uid);
@@ -56,7 +55,6 @@ export default function ImportarPage() {
         };
     }, [user, userProfile]);
 
-    // Redirect if not admin or loading
     useEffect(() => {
         if (!isUserLoading && !profileLoading) {
             if (!user) {
@@ -72,7 +70,6 @@ export default function ImportarPage() {
         }
     }, [isUserLoading, profileLoading, user, isAdmin, router, toast]);
 
-    // Data fetching (names, groups - needed for import logic)
     const namesQuery = useMemoFirebase(() => {
         if (!dataOwnerId || !firestore) return null;
         return query(collection(firestore, 'users', dataOwnerId, 'names'));
@@ -87,7 +84,6 @@ export default function ImportarPage() {
     const { data: fieldGroupsData, isLoading: groupsLoading } = useCollection<FieldGroup>(groupsQuery);
     const fieldGroups = fieldGroupsData || [];
     
-    // State for import functionality
     const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
     const [importPreview, setImportPreview] = useState<ImportPreview>(null);
     const [importUrl, setImportUrl] = useState(userProfile?.importUrl || '');
@@ -101,15 +97,14 @@ export default function ImportarPage() {
         }
     }, [userProfile]);
 
-    // Helper for cleaning up names for comparison
     const normalizeName = (name: string) => {
         if (!name) return '';
         return name
             .trim()
             .toLowerCase()
             .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "") // Remove accents
-            .replace(/\s+/g, ' '); // Collapse multiple spaces
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, ' ');
     }
 
     const handleConfirmImport = async (preview: ImportPreview | null) => {
@@ -350,7 +345,6 @@ export default function ImportarPage() {
             if (phone) item.phone = phone;
     
             let isConsideredRemoved = false;
-            
             const removedColIndex = removedIndex !== -1 ? removedIndex : movedIndex;
     
             if (removedColIndex !== -1) {
@@ -375,7 +369,6 @@ export default function ImportarPage() {
                 }
             }
     
-    
             const lastVisitValue = lastVisitIndex !== -1 ? values[lastVisitIndex] : undefined;
             if (lastVisitValue) {
                 const parts = lastVisitValue.split('/');
@@ -386,7 +379,7 @@ export default function ImportarPage() {
                     let year = parseInt(parts[2], 10);
                     if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
                         if (year < 100) year += 2000;
-                        parsedDate = new Date(Date.UTC(year, month, day, 12)); // Set to midday UTC
+                        parsedDate = new Date(Date.UTC(year, month, day, 12));
                     } else {
                         parsedDate = new Date(lastVisitValue);
                     }
@@ -568,7 +561,6 @@ export default function ImportarPage() {
           autoSyncAttempted.current = true;
           handleImportFromUrl(userProfile.importUrl);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAdmin, userProfile, names.length]);
 
     const isLoading = isUserLoading || profileLoading || namesLoading || groupsLoading;
@@ -591,6 +583,7 @@ export default function ImportarPage() {
                         alt="Logotipo do aplicativo"
                         width={250}
                         height={250}
+                        style={{ width: 'auto', height: 'auto' }}
                         priority
                     />
                 </motion.div>

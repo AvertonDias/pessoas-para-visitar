@@ -7,6 +7,7 @@ import type { Name, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BarChart, UserCheck, UserX, AlertTriangle, Trash2, Calendar, HelpCircle, Users, FileText } from 'lucide-react';
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -122,14 +123,12 @@ export default function StatsPage() {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Title
     doc.setFontSize(22);
     doc.text("Relatório de Estatísticas", pageWidth / 2, 20, { align: 'center' });
     doc.setFontSize(12);
     doc.setTextColor(100);
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 28, { align: 'center' });
 
-    // Summary section
     doc.setFontSize(16);
     doc.setTextColor(40);
     doc.text("Resumo Geral", 14, 45);
@@ -148,7 +147,6 @@ export default function StatsPage() {
         headStyles: { fillColor: [34, 99, 219] },
     });
 
-    // Visit activity section
     let finalY = (doc as any).lastAutoTable.finalY || 10;
     doc.setFontSize(16);
     doc.setTextColor(40);
@@ -188,6 +186,7 @@ export default function StatsPage() {
                   alt="Logotipo do aplicativo"
                   width={250}
                   height={250}
+                  style={{ width: 'auto', height: 'auto' }}
                   priority
               />
           </motion.div>

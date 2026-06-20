@@ -18,7 +18,6 @@ export default function AjudantesPage() {
     const firestore = useFirestore();
     const router = useRouter();
 
-    // Profile and admin checks
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return doc(firestore, 'users', user.uid);
@@ -35,7 +34,6 @@ export default function AjudantesPage() {
         };
     }, [user, userProfile]);
 
-    // Redirect if not admin or loading
     useEffect(() => {
         if (!isUserLoading && !profileLoading) {
             if (!user) {
@@ -51,7 +49,6 @@ export default function AjudantesPage() {
         }
     }, [isUserLoading, profileLoading, user, isAdmin, router, toast]);
 
-    // Data fetching for helpers
     const helpersQuery = useMemoFirebase(() => {
         if (!user || !firestore || !isAdmin) return null;
         return query(collection(firestore, 'users'), where('adminId', '==', user.uid));
@@ -79,6 +76,7 @@ export default function AjudantesPage() {
                         alt="Logotipo do aplicativo"
                         width={250}
                         height={250}
+                        style={{ width: 'auto', height: 'auto' }}
                         priority
                     />
                 </motion.div>

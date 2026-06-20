@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -16,7 +15,7 @@ function MissingApiKeyMessage() {
       justifyContent: 'center',
       height: '100vh',
       padding: '1rem',
-      backgroundColor: 'hsl(38 92% 95%)', // Muted yellow
+      backgroundColor: 'hsl(38 92% 95%)',
       color: 'hsl(38 92% 30%)',
       fontFamily: 'sans-serif',
       textAlign: 'center'
@@ -33,44 +32,8 @@ function MissingApiKeyMessage() {
           Configuração do Firebase Incompleta
         </h1>
         <p style={{ marginTop: '1rem', textAlign: 'left', lineHeight: '1.5' }}>
-          As chaves de configuração do seu projeto Firebase não foram encontradas. Isso geralmente acontece por um dos seguintes motivos:
+          As chaves de configuração do seu projeto Firebase não foram encontradas.
         </p>
-
-        <div style={{ marginTop: '1.5rem', textAlign: 'left', borderTop: '1px solid #E5E7EB', paddingTop: '1.5rem' }}>
-            <h2 style={{fontSize: '1.2rem', fontWeight: 'bold' }}>Cenário 1: Ambiente de Produção (Vercel, Netlify, etc.)</h2>
-            <p style={{marginTop: '0.5rem'}}>
-                Se você está vendo este erro após publicar seu site, é porque as <strong>variáveis de ambiente</strong> do Firebase não foram configuradas no seu serviço de hospedagem.
-            </p>
-             <ol style={{ marginTop: '0.75rem', listStyle: 'decimal', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <li>Abra o painel de controle do seu projeto no serviço de hospedagem (ex: Vercel).</li>
-                <li>Vá para as configurações do projeto e encontre a seção "Environment Variables" (Variáveis de Ambiente).</li>
-                <li>
-                    Adicione todas as variáveis que começam com <code>NEXT_PUBLIC_FIREBASE_</code> do seu arquivo local <code>.env.local</code>. Certifique-se de copiar os nomes e os valores exatamente.
-                </li>
-                 <li>Após adicionar as variáveis, acione um "Redeploy" (republicar) da sua aplicação para que as alterações tenham efeito.</li>
-            </ol>
-        </div>
-        
-        <div style={{ marginTop: '1.5rem', textAlign: 'left', borderTop: '1px solid #E5E7EB', paddingTop: '1.5rem' }}>
-            <h2 style={{fontSize: '1.2rem', fontWeight: 'bold' }}>Cenário 2: Ambiente de Desenvolvimento Local</h2>
-            <p style={{marginTop: '0.5rem'}}>
-                Se você está vendo este erro no seu computador local (<code>localhost</code>), provavelmente o arquivo de configuração <code>.env.local</code> está ausente ou incompleto.
-            </p>
-            <ol style={{ marginTop: '0.5rem', listStyle: 'decimal', paddingLeft: '1.5rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <li>
-                Na pasta principal do seu projeto, crie um novo arquivo chamado <strong><code>.env.local</code></strong> se ele não existir.
-              </li>
-              <li>
-                Se houver um arquivo <strong><code>.env.example</code></strong>, copie seu conteúdo para o novo arquivo <strong><code>.env.local</code></strong>.
-              </li>
-              <li>
-                Preencha todas as variáveis (como <code>NEXT_PUBLIC_FIREBASE_API_KEY</code>) com suas chaves reais do Firebase.
-              </li>
-              <li>
-                <strong>Reinicie o seu servidor de desenvolvimento</strong> (Pare-o com <code>Ctrl+C</code> e inicie-o novamente com <code>npm run dev</code>).
-              </li>
-            </ol>
-        </div>
       </div>
     </div>
   );
@@ -85,7 +48,7 @@ function InvalidApiKeyMessage() {
       justifyContent: 'center',
       height: '100vh',
       padding: '1rem',
-      backgroundColor: 'hsl(0 84% 97%)', // Muted red
+      backgroundColor: 'hsl(0 84% 97%)',
       color: 'hsl(0 72% 30%)',
       fontFamily: 'sans-serif',
       textAlign: 'center'
@@ -102,47 +65,12 @@ function InvalidApiKeyMessage() {
           Chave de API do Firebase Inválida
         </h1>
         <p style={{ marginTop: '1rem', textAlign: 'left', lineHeight: '1.5' }}>
-          Ocorreu o erro <strong>(auth/invalid-api-key)</strong>. Isso significa que a chave de API (<code>NEXT_PUBLIC_FIREBASE_API_KEY</code>) usada para conectar ao Firebase não é válida.
+          Ocorreu o erro <strong>(auth/invalid-api-key)</strong>.
         </p>
-
-        <div style={{ marginTop: '1.5rem', textAlign: 'left', borderTop: '1px solid #E5E7EB', paddingTop: '1.5rem' }}>
-            <h2 style={{fontSize: '1.2rem', fontWeight: 'bold' }}>Cenário 1: Ambiente de Produção (Vercel, Netlify, etc.)</h2>
-            <p style={{marginTop: '0.5rem'}}>
-                Se você está vendo este erro após publicar seu site, é porque a <strong>variável de ambiente</strong> não foi configurada corretamente no seu serviço de hospedagem.
-            </p>
-             <ol style={{ marginTop: '0.75rem', listStyle: 'decimal', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <li>Abra o painel de controle do seu projeto no serviço de hospedagem (ex: Vercel).</li>
-                <li>Vá para as configurações do projeto e encontre a seção "Environment Variables" (Variáveis de Ambiente).</li>
-                <li>
-                    Verifique se a variável <code>NEXT_PUBLIC_FIREBASE_API_KEY</code> existe e se seu valor está <strong>exatamente</strong> igual ao do seu painel do Firebase.
-                </li>
-                 <li>Após corrigir a variável, acione um "Redeploy" (republicar) da sua aplicação para que as alterações tenham efeito.</li>
-            </ol>
-        </div>
-        
-        <div style={{ marginTop: '1.5rem', textAlign: 'left', borderTop: '1px solid #E5E7EB', paddingTop: '1.5rem' }}>
-            <h2 style={{fontSize: '1.2rem', fontWeight: 'bold' }}>Cenário 2: Ambiente de Desenvolvimento Local</h2>
-            <p style={{marginTop: '0.5rem'}}>
-                Se você está vendo este erro no seu computador local (<code>localhost</code>), verifique seu arquivo <code>.env.local</code>.
-            </p>
-            <ol style={{ marginTop: '0.5rem', listStyle: 'decimal', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <li>
-                Confira se o valor de <code>NEXT_PUBLIC_FIREBASE_API_KEY</code> está copiado <strong>exatamente</strong> como aparece no seu painel do Firebase, sem espaços ou caracteres extras.
-              </li>
-              <li>
-                Se você expôs sua chave publicamente, <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" style={{textDecoration: 'underline', color: '#1D4ED8'}}>regenere-a</a> e atualize o valor.
-              </li>
-              <li>
-                Após corrigir o arquivo, <strong>reinicie o seu servidor de desenvolvimento</strong> (Pare-o com <code>Ctrl+C</code> e inicie-o novamente com <code>npm run dev</code>).
-              </li>
-            </ol>
-        </div>
-
       </div>
     </div>
   );
 }
-
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -159,12 +87,9 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   const [firebaseServices, setFirebaseServices] = useState<FirebaseServices | null>(null);
 
   useEffect(() => {
-    // This ensures Firebase is initialized only on the client side, after hydration.
     setFirebaseServices(initializeFirebase());
   }, []);
 
-  // During server-side rendering and initial client-side render before useEffect runs,
-  // we can show a loading state.
   if (!firebaseServices) {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background">
@@ -200,7 +125,6 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return <InvalidApiKeyMessage />;
   }
 
-  // The type assertion is safe because if error is not 'API_KEY_MISSING', the services will exist.
   const { firebaseApp, auth, firestore } = firebaseServices;
 
   return (

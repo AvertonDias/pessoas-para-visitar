@@ -189,6 +189,7 @@ export default function HistoryPage() {
                       alt="Logotipo do aplicativo"
                       width={250}
                       height={250}
+                      style={{ width: 'auto', height: 'auto' }}
                       priority
                   />
               </motion.div>
@@ -334,7 +335,6 @@ export default function HistoryPage() {
                                                 </div>
                                             );
                                         }
-                                        // Standard change line
                                         return (
                                             <div key={i} className="flex items-start gap-2">
                                                 <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
