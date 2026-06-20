@@ -1,16 +1,8 @@
 'use server';
 
-import { suggestNames, type SuggestNamesInput, type SuggestNamesOutput } from '@/ai/flows/suggest-names';
-
-export async function getAiSuggestions(input: SuggestNamesInput): Promise<SuggestNamesOutput> {
-  try {
-    const result = await suggestNames(input);
-    return result;
-  } catch (error) {
-    console.error('Error getting AI suggestions:', error);
-    return { names: [] };
-  }
-}
+/**
+ * @fileOverview Ações de servidor para busca de dados externos.
+ */
 
 export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; data?: string; error?: string }> {
     if (!url) {
@@ -38,7 +30,7 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
             }
         }
     } catch (e) {
-        // Erro ao processar URL, continua com a original
+        // Erro ao processar URL
     }
     
     try {
@@ -50,7 +42,6 @@ export async function fetchCsvFromUrl(url: string): Promise<{ success: boolean; 
             cache: 'no-store'
         });
 
-        // Se falhar (ex: arquivo não é uma planilha), tentar link de download direto do Drive
         if (!response.ok && url.includes('drive.google.com')) {
              const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
              if (driveMatch && driveMatch[1]) {
@@ -90,7 +81,6 @@ async function processResponse(response: Response) {
     }
     
     const buffer = await response.arrayBuffer();
-    // Tenta decodificar como UTF-8
     const decoder = new TextDecoder('utf-8');
     const decodedText = decoder.decode(buffer);
 
