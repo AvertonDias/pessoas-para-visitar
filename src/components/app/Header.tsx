@@ -19,7 +19,7 @@ export function Header() {
     const controlNavbar = () => {
       if (typeof window !== 'undefined') {
         // Hide header if scrolling down past a threshold
-        if (window.scrollY > lastScrollY && window.scrollY > 80) {
+        if (window.scrollY > lastY && window.scrollY > 80) {
           setHidden(true);
         } else { // Show header if scrolling up
           setHidden(false);
@@ -27,14 +27,25 @@ export function Header() {
         setLastScrollY(window.scrollY);
       }
     };
+    
+    let lastY = 0;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastY && currentY > 80) {
+        setHidden(true);
+      } else {
+        setHidden(false);
+      }
+      lastY = currentY;
+    };
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', controlNavbar);
+      window.addEventListener('scroll', handleScroll);
       return () => {
-        window.removeEventListener('scroll', controlNavbar);
+        window.removeEventListener('scroll', handleScroll);
       };
     }
-  }, [lastScrollY]);
+  }, []);
 
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
@@ -55,6 +66,7 @@ export function Header() {
             width={40}
             height={40}
             className="h-8 w-8 sm:h-10 sm:w-10"
+            style={{ width: 'auto', height: 'auto' }}
           />
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Pessoas para visitar
