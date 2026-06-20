@@ -31,7 +31,7 @@ export default function LoginPage() {
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      if (error.code !== 'auth/cancelled-popup-request') {
+      if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
         console.error("Error signing in with Google", error);
         let description = "Não foi possível entrar com o Google.";
         if (error.code === 'auth/unauthorized-domain') {
