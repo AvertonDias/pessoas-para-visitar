@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// The type for the BeforeInstallPromptEvent is not in the default DOM typings.
+// Interface para o evento de instalação do navegador
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
   readonly userChoice: Promise<{
@@ -27,17 +27,27 @@ export function InstallPwaBanner() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // Verifica se já estamos no modo instalado (standalone)
+    const isInstalled = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as any).standalone === true;
+
+    if (isInstalled) return;
+
     const handleBeforeInstallPrompt = (event: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
+      // Impede que a barra padrão do navegador apareça imediatamente
       event.preventDefault();
-      // Stash the event so it can be triggered later.
+      
+      // Armazena o evento para disparar a instalação manualmente depois
       setInstallPrompt(event as BeforeInstallPromptEvent);
       
-      const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-      if (!isInStandaloneMode) {
-        // Use a timeout to delay the prompt slightly, making it less intrusive
+      // Verifica se o usuário já recusou a instalação nesta sessão
+      const wasDismissed = sessionStorage.getItem('pwa-install-dismissed');
+      
+      if (!wasDismissed) {
+        // Exibe o modal após um pequeno delay para não assustar o usuário
         setTimeout(() => {
-            setIsOpen(true);
+          setIsOpen(true);
         }, 3000);
       }
     };
@@ -52,39 +62,55 @@ export function InstallPwaBanner() {
   const handleInstallClick = async () => {
     if (!installPrompt) return;
     
-    // Show the browser's installation prompt
+    // Mostra o prompt nativo do navegador
     await installPrompt.prompt();
     
-    // Wait for the user to respond to the prompt.
-    await installPrompt.userChoice;
+    // Aguarda a escolha do usuário
+    const { outcome } = await installPrompt.userChoice;
     
-    // We've used the prompt, and can't use it again, so clear it.
+    if (outcome === 'accepted') {
+      console.log('Usuário aceitou a instalação do PWA');
+    }
+    
+    // Limpa o evento e fecha o modal
     setInstallPrompt(null);
     setIsOpen(false);
   };
 
   const handleDismiss = () => {
+    // Salva na sessão que o usuário fechou o modal para não mostrar de novo agora
+    sessionStorage.setItem('pwa-install-dismissed', 'true');
     setIsOpen(false);
   };
 
+  if (!installPrompt) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-primary/20">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-primary">
+            <Download className="h-6 w-6" />
             <span>Instalar Aplicativo</span>
           </DialogTitle>
-          <DialogDescription>
-            Para uma melhor experiência, instale o aplicativo em seu dispositivo. Tenha acesso rápido e funcionalidades offline.
+          <DialogDescription className="text-base pt-2">
+            Tenha uma experiência muito melhor instalando o <strong>Visitas</strong> no seu celular ou computador.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="sm:justify-end gap-2">
-          <Button variant="outline" onClick={handleDismiss}>
+        
+        <div className="bg-secondary/30 p-4 rounded-lg space-y-2 text-sm text-muted-foreground">
+          <p>• Acesso rápido pela tela inicial</p>
+          <p>• Funciona melhor em conexões lentas</p>
+          <p>• Interface limpa e sem barras do navegador</p>
+        </div>
+
+        <DialogFooter className="sm:justify-end gap-2 pt-2">
+          <Button variant="ghost" onClick={handleDismiss} className="text-muted-foreground">
             Agora não
           </Button>
-          <Button onClick={handleInstallClick}>
-            Instalar
+          <Button onClick={handleInstallClick} className="bg-primary hover:bg-primary/90">
+            <Download className="h-4 w-4 mr-2" />
+            Instalar Agora
           </Button>
         </DialogFooter>
       </DialogContent>
